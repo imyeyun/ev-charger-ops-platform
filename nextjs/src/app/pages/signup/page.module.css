@@ -1,0 +1,256 @@
+.container {
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px;
+  background-color: #f5f5f5;
+  font-family: Arial, sans-serif;
+}
+
+.signupWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 544px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.logoContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.logo {
+  width: auto;
+  height: 50px;
+  object-fit: contain;
+}
+
+.signupForm {
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #d0d0d0;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.title {
+  font-family: Inter, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 24.2px;
+  color: #333333;
+  margin: 0;
+}
+
+.agreementSection {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.sectionTitle {
+  font-family: Inter, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 18.15px;
+  color: #333333;
+  margin: 0;
+}
+
+.agreementList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.agreementItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: Inter, Arial, sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14.52px;
+  color: #333333;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.agreeButton {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-family: Inter, Arial, sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14.52px;
+  color: #333333;
+  cursor: pointer;
+  padding: 0;
+}
+
+.agreeButton:hover {
+  text-decoration: underline;
+}
+
+.allAgreeText {
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14.52px;
+}
+
+.inputSection {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.inputGroup {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.inputGroupWithButton {
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.inputGroupWithButton .input {
+  flex: 1;
+}
+
+.input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  font-family: Inter, Arial, sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 15.73px;
+  color: #333333;
+  background-color: #ffffff;
+  border: 1px solid #bdbdbd;
+  border-radius: 0;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.input::placeholder {
+  color: #999999;
+}
+
+.input:focus {
+  border-color: #2196f3;
+}
+
+.verifyButton {
+  height: 34px;
+  padding: 0 15px;
+  background-color: #2196f3;
+  border: none;
+  font-family: Inter, Arial, sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14.52px;
+  color: #ffffff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.verifyButton:hover {
+  background-color: #1976d2;
+}
+
+.verifyButton:active {
+  background-color: #1565c0;
+}
+
+.passwordMatch {
+  font-family: Inter, Arial, sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14.52px;
+  margin: 0;
+  padding-left: 10px;
+  color: #2196f3;
+}
+
+.signupButton {
+  width: 80px;
+  height: 36px;
+  background-color: #2196f3;
+  border: none;
+  font-family: Inter, Arial, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16.94px;
+  color: #ffffff;
+  cursor: pointer;
+  align-self: flex-end;
+  transition: background-color 0.2s;
+}
+
+.signupButton:hover {
+  background-color: #1976d2;
+}
+
+.signupButton:active {
+  background-color: #1565c0;
+}
+
+@media (max-width: 768px) {
+  .signupWrapper {
+    max-width: 90%;
+  }
+
+  .signupForm {
+    padding: 30px 20px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .sectionTitle {
+    font-size: 14px;
+  }
+
+  .input {
+    height: 40px;
+    font-size: 14px;
+  }
+
+  .verifyButton {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 11px;
+  }
+
+  .signupButton {
+    width: 100%;
+    height: 50px;
+    font-size: 16px;
+  }
+}
