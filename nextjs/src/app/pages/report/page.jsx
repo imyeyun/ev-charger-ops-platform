@@ -11,8 +11,6 @@ import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 
-import { jsPDF } from "jspdf";
-
 export default function Report() {
     const [selectedReportType, setSelectedReportType] = useState("");
     const [prompt, setPrompt] = useState("");
@@ -37,42 +35,6 @@ export default function Report() {
         setReportPreview(
             `생성된 보고서 미리보기:\n\n${prompt}\n\n[보고서 내용이 여기에 표시됩니다]`
         );
-    };
-
-    // ✅ PDF 다운로드 로직
-    const confirmDownload = () => {
-        if (!reportPreview) return;
-
-        const doc = new jsPDF({
-            unit: "mm",
-            format: "a4",
-        });
-
-        const marginX = 15;
-        const marginY = 20;
-        const lineHeight = 6;
-        const pageHeight = doc.internal.pageSize.getHeight();
-
-        // 한글 폰트는 기본 내장 폰트로는 깨질 수 있음.
-        // 지금은 "보고서 미리보기 텍스트"가 한글이면 PDF에서 네모(□)로 보일 수 있음.
-        // (한글 완벽 지원 필요하면 TTF 폰트 추가로 해결 가능)
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(11);
-
-        const lines = doc.splitTextToSize(reportPreview, 180);
-
-        let y = marginY;
-        lines.forEach((line) => {
-            if (y + lineHeight > pageHeight - marginY) {
-                doc.addPage();
-                y = marginY;
-            }
-            doc.text(line, marginX, y);
-            y += lineHeight;
-        });
-
-        doc.save(`report-${Date.now()}.pdf`);
-        setOpenDownload(false);
     };
 
     return (
@@ -171,7 +133,7 @@ export default function Report() {
                         <Button onClick={() => setOpenDownload(false)} variant="outlined">
                             취소
                         </Button>
-                        <Button onClick={confirmDownload} variant="contained">
+                        <Button  variant="contained">
                             확인
                         </Button>
                     </DialogActions>
