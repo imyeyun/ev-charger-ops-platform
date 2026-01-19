@@ -51,9 +51,6 @@ public class NotificationService {
                     .chgerTime(log.getChgerTime())
                     .chgerId(log.getChgerId())
                     .statId(log.getStatId())
-                    .zcode(log.getZcode())
-                    .zscode(log.getZscode())
-                    .busiId(log.getBusiId())
                     .build();
 
             externalNotificationRepository.save(notification);

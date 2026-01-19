@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
+
 @Table(name = "external_notification")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -39,26 +40,13 @@ public class ExternalNotification {
     @Column(name = "stat_id", nullable = false, length = 8)
     private String statId;
 
-    @Column(name = "zcode", nullable = false, length = 2)
-    private String zcode;
-
-    @Column(name = "zscode", nullable = false, length = 5)
-    private String zscode;
-
-    @Column(name = "busi_id", nullable = false, length = 2)
-    private String busiId;
-
     @Builder
     public ExternalNotification(String message, String testMail, LocalDateTime chgerTime,
-                                 String chgerId, String statId, String zcode,
-                                 String zscode, String busiId) {
+                                 String chgerId, String statId) {
         this.message = message;
         this.testMail = testMail;
         this.chgerTime = chgerTime;
         this.chgerId = chgerId;
         this.statId = statId;
-        this.zcode = zcode;
-        this.zscode = zscode;
-        this.busiId = busiId;
     }
 }

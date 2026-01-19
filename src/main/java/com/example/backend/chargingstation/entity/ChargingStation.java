@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "charging_station")
-@IdClass(ChargingStationId.class)
+//@IdClass(ChargingStationId.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChargingStation {

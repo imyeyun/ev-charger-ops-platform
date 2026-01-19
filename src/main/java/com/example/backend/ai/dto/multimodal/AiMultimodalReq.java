@@ -22,20 +22,15 @@ public class AiMultimodalReq {
     @Builder
     public static class SensorLogInfo {
         private LocalDateTime sensorTime;
-        private String statUpdDt;
-        private String note;
-        private String acInputVoltageV;
-        private String acFrequencyHz;
-        private String currentA;
-        private String powerKw;
-        private String energyKwh;
-        private String acLeakageMa;
-        private String groundOk;
-        private String cabinetTempC;
-        private String ambientTempC;
-        private String humidityPct;
-        private String connectorT;
-        private String ambientT;
-        private String batteryT;
+        private Double totalChargingKwh;
+        private Integer totalChargingMin;
+        private Integer currentSoc;
+        private Double currentEnergyMeterValue;
+        private Double chargingv;
+        private Double charginga;
+        private Double outPower;
+        private Integer chargingGunTemperature1;
+        private Integer chargingGunTemperature2;
+        private Integer types;
     }
 }

@@ -15,7 +15,4 @@ public class ChargerId implements Serializable {
 
     private String chgerId;
     private String statId;
-    private String zcode;
-    private String zscode;
-    private String busiId;
 }

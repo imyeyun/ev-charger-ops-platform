@@ -6,15 +6,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode
-public class ChargingStationId implements Serializable {
+public class SensorLogId implements Serializable {
 
+    private LocalDateTime sensorTime;
+    private String chgerId;
     private String statId;
-    private String zcode;
-    private String zscode;
-    private String busiId;
 }
