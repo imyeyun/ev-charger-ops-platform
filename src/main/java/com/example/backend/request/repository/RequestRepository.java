@@ -1,18 +1,15 @@
-package com.example.backend.requestoutbound.repository;
+package com.example.backend.request.repository;
 
-import com.example.backend.requestoutbound.entity.RequestOutbound;
+
+import com.example.backend.request.entity.Request;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
-public interface RequestOutboundRepository extends JpaRepository<RequestOutbound, Long> {
+public interface RequestRepository extends JpaRepository<Request, Long> {
 
-    List<RequestOutbound> findByReqId(Long reqId);
-
-    boolean existsByReqId(Long reqId);
-
-    boolean existsByReqIdIn(List<Long> reqIds); // 추가
+  List<Request> findAllByOrderByReqDtDesc();
 }
 
