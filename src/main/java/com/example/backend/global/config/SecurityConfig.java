@@ -32,7 +32,9 @@ public class SecurityConfig {
                         // 인증 관련 API는 공개
                         .requestMatchers(
                                 "/api/user/signup",
-                                "/api/user/login"
+                                "/api/user/login",
+                                "/api/QnA",
+                                "/api/report"
                         ).permitAll()
                         // 그 외 모든 API는 인증 필요
                         .anyRequest().authenticated()

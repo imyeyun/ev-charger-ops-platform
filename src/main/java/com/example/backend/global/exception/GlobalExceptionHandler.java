@@ -39,8 +39,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAiServerException(AiServerException e) {
         log.error("AI Server Error: {}", e.getMessage(), e);
         return ResponseEntity
-                .status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(ErrorResponse.of("AI 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요."));
+                //.status(HttpStatus.SERVICE_UNAVAILABLE)
+                //.body(ErrorResponse.of("AI 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요."));
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ErrorResponse.of(e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
