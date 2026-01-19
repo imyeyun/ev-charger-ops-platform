@@ -1,10 +1,9 @@
 package com.example.backend.chargingstation.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
+import jakarta.persistence.OneToOne;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,9 +28,18 @@ public class ImageLog {
     @Column(name = "img_path", nullable = false, length = 255)
     private String imgPath;
 
+    @Column(name = "stat_id", length = 8)
+    private String statId;
+
+    //@OneToOne(fetch = FetchType.LAZY)
+    //@JoinColumns({
+    //       @JoinColumns(name = "stat_id", referencedColumnName = "stat_id", insertable = false, updatable = false)
+    //})
+    //private Charger charger;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumns({
             @JoinColumn(name = "stat_id", referencedColumnName = "stat_id", insertable = false, updatable = false)
     })
-
+    private ChargingStation chargingStation;
 }

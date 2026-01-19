@@ -16,5 +16,5 @@ public class SensorLogId implements Serializable {
 
     private LocalDateTime sensorTime;
     private String chgerId;
-    private String statId2;
+    private String statId;
 }

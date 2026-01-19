@@ -39,16 +39,17 @@ public class RequestService {
                 .orElseThrow(() -> new NotFoundException("해당 민원을 찾을 수 없습니다."));
 
         List<RequestOutbound> outbounds = requestOutboundRepository.findByReqId(req.getReqId());
-        Optional<ChargingStation> stationOpt = chargingStationRepository.findByStatId(request.getStatId());
-        ChargingStation station = stationOpt.orElse(null);
+
+        //Optional<ChargingStation> stationOpt = chargingStationRepository.findByStatId(request.getStatId());
+        //ChargingStation station = stationOpt.orElse(null);
 
         RequestDetailRes.RequestInfo requestInfo = RequestDetailRes.RequestInfo.builder()
                 .reqId(request.getReqId())
-                .chargerId(request.getChgerId())
+                .chgerId(request.getChgerId())
                 .statId(request.getStatId())
-                .zcode(station != null ? station.getZcode() : null)
-                .zscode(station != null ? station.getZscode() : null)
-                .busId(station != null ? station.getBusiId() : null)
+                //.zcode(station != null ? station.getZcode() : null)
+                //.zscode(station != null ? station.getZscode() : null)
+                //.busId(station != null ? station.getBusiId() : null)
                 .title(request.getTitle())
                 .content(request.getContent())
                 .reqType(request.getReqType() != null ? request.getReqType().name() : null)

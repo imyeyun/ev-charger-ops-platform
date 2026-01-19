@@ -1,7 +1,6 @@
 package com.example.backend.chargingstation.repository;
 
 import com.example.backend.chargingstation.entity.ChargingStation;
-import com.example.backend.chargingstation.entity.ChargingStationId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

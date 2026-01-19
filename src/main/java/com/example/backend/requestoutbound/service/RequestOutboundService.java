@@ -109,7 +109,10 @@ public class RequestOutboundService {
     }
 
     private AiComplaintReq buildAiRequest(Request request) {
-        Optional<ChargingStation> stationOpt = chargingStationRepository.findByStatId(request.getStatId());
+        //Optional<ChargingStation> stationOpt = chargingStationRepository.findByStatId(request.getStatId());
+
+        Optional<ChargingStation> stationOpt = chargingStationRepository.findByStatId(request.getStatId())
+                .stream().findFirst();
 
         AiComplaintReq.ChargerStatusInfo chargerStatusInfo = null;
         AiComplaintReq.MultimodalAnalysisInfo multimodalInfo = null;

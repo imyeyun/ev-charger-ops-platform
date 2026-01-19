@@ -1,13 +1,7 @@
 package com.example.backend.request.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.example.backend.chargingstation.entity.Charger;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -49,7 +43,7 @@ public class Request {
     @Column(name = "status", nullable = false, length = 20)
     private RequestStatus status;
 
-    @ManyToOne(fetch = FetchType.LAZY)                                                                                                                                
+    @ManyToOne(fetch = FetchType.LAZY)
       @JoinColumns({                                                                                                                                                    
           @JoinColumn(name = "chger_id", referencedColumnName = "chger_id", insertable = false, updatable = false),                                                     
           @JoinColumn(name = "stat_id", referencedColumnName = "stat_id", insertable = false, updatable = false)                                                        
