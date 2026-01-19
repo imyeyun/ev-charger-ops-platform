@@ -14,7 +14,8 @@ public class RequestListItemRes {
     private String title;
     private String reqType;
     private LocalDateTime reqDt;
-    private String status;
+    //private String status;
+    private String field;
 
     public static RequestListItemRes from(Request request) {
         return RequestListItemRes.builder()
@@ -22,7 +23,8 @@ public class RequestListItemRes {
                 .title(request.getTitle())
                 .reqType(request.getReqType() != null ? request.getReqType().name() : null)
                 .reqDt(request.getReqDt())
-                .status(request.getStatus() != null ? request.getStatus().name() : null)
+                //.status(request.getStatus() != null ? request.getStatus().name() : null)
+                .field(request.getStatus() != null ? request.getStatus().name() : null)
                 .build();
     }
 }
