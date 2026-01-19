@@ -28,6 +28,20 @@ public class ReportService {
                 .prompt(request.getPrompt())
                 .dataStartTime(request.getDataStartTime())
                 .dataEndTime(request.getDataEndTime())
+                .chargerStatus(AiReportReq.FileReference.builder()
+                        .filePath(request.getChargerStatus().getFilePath())
+                        .build())
+                .multimodalAnalysis(AiReportReq.MultimodalFileReference.builder()
+                        .statId(request.getMultimodalAnalysis().getStatId())
+                        .filePath(request.getMultimodalAnalysis().getFilePath())
+                        .build())
+                .openRequests(AiReportReq.FileReference.builder()
+                        .filePath(request.getOpenRequests().getFilePath())
+                        .build())
+                .requestOutbounds(AiReportReq.FileReference.builder()
+                        .filePath(request.getRequestOutbounds().getFilePath())
+                        .build())
+                .chargerStatusAnalysis(buildChargerStatusAnalysis(request))
                 .build();
 
         AiReportRes aiResponse = aiReportClient.generateReport(aiRequest);
@@ -45,5 +59,13 @@ public class ReportService {
         Report savedReport = reportRepository.save(report);
 
         return ReportRes.from(savedReport);
+    }
+    private AiReportReq.FileReference buildChargerStatusAnalysis(ReportReq request) {
+        if (request.getChargerStatusAnalysis() == null) {
+            return null;
+        }
+        return AiReportReq.FileReference.builder()
+                .filePath(request.getChargerStatusAnalysis().getFilePath())
+                .build();
     }
 }

@@ -7,10 +7,12 @@ import com.example.backend.user.dto.UserRes;
 import com.example.backend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,9 +35,20 @@ public class UserController {
 
     @Operation(summary = "로그인")
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<UserRes>> login(@Valid @RequestBody LoginReq request, HttpSession session) {
+    public ResponseEntity<ApiResponse<UserRes>> login(
+            @Valid @RequestBody LoginReq request,
+            HttpServletRequest httpRequest) {
         UserRes response = userService.login(request);
-        session.setAttribute("user", response);
+
+        // 세션 고정 공격 방지: 기존 세션 무효화 후 새 세션 생성
+        HttpSession oldSession = httpRequest.getSession(false);
+        if (oldSession != null) {
+            oldSession.invalidate();
+        }
+
+        HttpSession newSession = httpRequest.getSession(true);
+        newSession.setAttribute("user", response);
+
         return ResponseEntity.ok(ApiResponse.success("로그인 성공", response));
     }
 
@@ -44,5 +57,18 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> logout(HttpSession session) {
         session.invalidate();
         return ResponseEntity.ok(ApiResponse.success("로그아웃 성공", null));
+    }
+
+    @Operation(summary = "현재 로그인 사용자 조회")
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserRes>> getCurrentUser(HttpSession session) {
+        UserRes user = (UserRes) session.getAttribute("user");
+
+        if (user == null) {
+            return ResponseEntity.status(401)
+                    .body(ApiResponse.error(401, "로그인이 필요합니다."));
+        }
+
+        return ResponseEntity.ok(ApiResponse.success("조회 성공", user));
     }
 }
