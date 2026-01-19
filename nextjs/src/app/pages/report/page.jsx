@@ -1,27 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import Header from "../../components/Header";
+import Header from "@/components/Header";
 import styles from "./page.module.css";
+
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
+
+import { jsPDF } from "jspdf";
 
 export default function Report() {
     const [selectedReportType, setSelectedReportType] = useState("");
     const [prompt, setPrompt] = useState("");
     const [reportPreview, setReportPreview] = useState("");
-    const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
-    const [showResetConfirm, setShowResetConfirm] = useState(false);
-    const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+
+    // ✅ 저장 팝업 -> 다운로드 팝업
+    const [openDownload, setOpenDownload] = useState(false);
 
     const handleReportTypeSelect = (type) => {
         setSelectedReportType(type);
 
-        if (type === "audit") {
-            setPrompt("감사용 보고서 예시 프롬포트...");
-        } else if (type === "monthly") {
-            setPrompt("월별 보고서 예시 프롬포트...");
-        } else if (type === "custom") {
-            setPrompt("맞춤 보고서 기본 프롬포트 형식...");
-        }
+        if (type === "audit") setPrompt("감사용 보고서 예시 프롬포트...");
+        else if (type === "monthly") setPrompt("월별 보고서 예시 프롬포트...");
+        else if (type === "custom") setPrompt("맞춤 보고서 기본 프롬포트 형식...");
     };
 
     const handleGenerateReport = () => {
@@ -29,36 +34,54 @@ export default function Report() {
             alert("프롬포트를 입력해주세요.");
             return;
         }
-
         setReportPreview(
             `생성된 보고서 미리보기:\n\n${prompt}\n\n[보고서 내용이 여기에 표시됩니다]`
         );
     };
 
+    // ✅ PDF 다운로드 로직
     const confirmDownload = () => {
-        console.log("PDF 다운로드");
-        setShowDownloadConfirm(false);
-    };
+        if (!reportPreview) return;
 
-    const confirmReset = () => {
-        setPrompt("");
-        setReportPreview("");
-        setSelectedReportType("");
-        setShowResetConfirm(false);
-    };
+        const doc = new jsPDF({
+            unit: "mm",
+            format: "a4",
+        });
 
-    const confirmSave = () => {
-        console.log("보고서 저장");
-        setShowSaveConfirm(false);
+        const marginX = 15;
+        const marginY = 20;
+        const lineHeight = 6;
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        // 한글 폰트는 기본 내장 폰트로는 깨질 수 있음.
+        // 지금은 "보고서 미리보기 텍스트"가 한글이면 PDF에서 네모(□)로 보일 수 있음.
+        // (한글 완벽 지원 필요하면 TTF 폰트 추가로 해결 가능)
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+
+        const lines = doc.splitTextToSize(reportPreview, 180);
+
+        let y = marginY;
+        lines.forEach((line) => {
+            if (y + lineHeight > pageHeight - marginY) {
+                doc.addPage();
+                y = marginY;
+            }
+            doc.text(line, marginX, y);
+            y += lineHeight;
+        });
+
+        doc.save(`report-${Date.now()}.pdf`);
+        setOpenDownload(false);
     };
 
     return (
         <>
-            {/* ✅ Report 페이지에서만 Header 사용 */}
             <Header />
 
             <div className={styles.container}>
                 <div className={styles.reportWrapper}>
+                    {/* 사이드바 */}
                     <div className={styles.sidebar}>
                         <h2 className={styles.sidebarTitle}>보고서 유형</h2>
                         <div className={styles.reportTypeList}>
@@ -70,6 +93,7 @@ export default function Report() {
                             >
                                 감사용 보고서
                             </button>
+
                             <button
                                 className={`${styles.reportTypeButton} ${
                                     selectedReportType === "monthly" ? styles.active : ""
@@ -78,6 +102,7 @@ export default function Report() {
                             >
                                 월별 보고서
                             </button>
+
                             <button
                                 className={`${styles.reportTypeButton} ${
                                     selectedReportType === "custom" ? styles.active : ""
@@ -89,6 +114,7 @@ export default function Report() {
                         </div>
                     </div>
 
+                    {/* 메인 */}
                     <div className={styles.mainContent}>
                         <div className={styles.promptSection}>
                             <h2 className={styles.sectionTitle}>프롬포트 입력</h2>
@@ -99,10 +125,7 @@ export default function Report() {
                                 onChange={(e) => setPrompt(e.target.value)}
                                 rows={10}
                             />
-                            <button
-                                className={styles.generateButton}
-                                onClick={handleGenerateReport}
-                            >
+                            <button className={styles.generateButton} onClick={handleGenerateReport}>
                                 보고서 생성
                             </button>
                         </div>
@@ -113,85 +136,46 @@ export default function Report() {
                                 {reportPreview ? (
                                     <pre className={styles.previewText}>{reportPreview}</pre>
                                 ) : (
-                                    <p className={styles.emptyPreview}>
-                                        생성된 보고서가 없습니다.
-                                    </p>
+                                    <p className={styles.emptyPreview}>생성된 보고서가 없습니다.</p>
                                 )}
                             </div>
                         </div>
 
+                        {/* ✅ 하단 액션: PDF 다운로드만 */}
                         <div className={styles.actionButtons}>
                             <button
                                 className={styles.actionButton}
-                                onClick={() => setShowDownloadConfirm(true)}
+                                onClick={() => setOpenDownload(true)}
                                 disabled={!reportPreview}
                             >
                                 PDF 다운로드
-                            </button>
-                            <button
-                                className={styles.actionButton}
-                                onClick={() => setShowResetConfirm(true)}
-                            >
-                                초기화
-                            </button>
-                            <button
-                                className={styles.actionButton}
-                                onClick={() => setShowSaveConfirm(true)}
-                                disabled={!reportPreview}
-                            >
-                                보고서 저장
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* 다운로드 확인 */}
-                {showDownloadConfirm && (
-                    <div className={styles.modalOverlay}>
-                        <div className={styles.modal}>
-                            <h3>PDF 다운로드</h3>
-                            <p>생성된 보고서를 PDF로 다운로드하시겠습니까?</p>
-                            <div className={styles.modalButtons}>
-                                <button onClick={confirmDownload}>확인</button>
-                                <button onClick={() => setShowDownloadConfirm(false)}>
-                                    취소
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* 초기화 확인 */}
-                {showResetConfirm && (
-                    <div className={styles.modalOverlay}>
-                        <div className={styles.modal}>
-                            <h3>초기화</h3>
-                            <p>작성된 보고서를 초기화하시겠습니까?</p>
-                            <div className={styles.modalButtons}>
-                                <button onClick={confirmReset}>확인</button>
-                                <button onClick={() => setShowResetConfirm(false)}>
-                                    취소
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* 저장 확인 */}
-                {showSaveConfirm && (
-                    <div className={styles.modalOverlay}>
-                        <div className={styles.modal}>
-                            <h3>보고서 저장</h3>
-                            <p>생성된 보고서를 DB에 저장하시겠습니까?</p>
-                            <div className={styles.modalButtons}>
-                                <button onClick={confirmSave}>확인</button>
-                                <button onClick={() => setShowSaveConfirm(false)}>
-                                    취소
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {/* ✅ MUI 팝업: PDF 다운로드 */}
+                <Dialog
+                    open={openDownload}
+                    onClose={() => setOpenDownload(false)}
+                    maxWidth="xs"
+                    fullWidth
+                >
+                    <DialogTitle>PDF 다운로드</DialogTitle>
+                    <DialogContent>
+                        <Typography variant="body2">
+                            생성된 보고서를 PDF 파일로 다운로드하시겠습니까?
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setOpenDownload(false)} variant="outlined">
+                            취소
+                        </Button>
+                        <Button onClick={confirmDownload} variant="contained">
+                            확인
+                        </Button>
+                    </DialogActions>
+                </Dialog>
             </div>
         </>
     );

@@ -1,68 +1,144 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
-import styles from './page.module.css';
-import logoImage from './logo.png';
+import { useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
-export default function Login() {
-  const [userId, setUserId] = useState('');
-  const [password, setPassword] = useState('');
+import {
+    Box,
+    Paper,
+    Typography,
+    TextField,
+    Button,
+    Link as MuiLink,
+} from "@mui/material";
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // 로그인 로직 구현
-    console.log('로그인 시도:', { userId, password });
-  };
+import logoImage from "./logo.png";
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.loginWrapper}>
-        <div className={styles.header}>
-          <div className={styles.logoContainer}>
-            <Image
-              src={logoImage}
-              alt="한국환경공단 로고"
-              className={styles.logo}
-              priority
-            />
-          </div>
-          <h1 className={styles.title}>한국환경공단</h1>
-          <p className={styles.subtitle}>Korea Environment Corporation</p>
-        </div>
+export default function Page() {
+    const router = useRouter();
+    const [userId, setUserId] = useState("");
+    const [password, setPassword] = useState("");
 
-        <form className={styles.loginForm} onSubmit={handleSubmit}>
-          <div className={styles.inputGroup}>
-            <input
-              type="text"
-              id="userId"
-              className={styles.input}
-              placeholder="사용자ID"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-            />
-          </div>
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-          <div className={styles.inputGroup}>
-            <input
-              type="password"
-              id="password"
-              className={styles.input}
-              placeholder="비밀번호"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+        console.log("로그인 시도:", { userId, password });
 
-          <button type="submit" className={styles.loginButton}>
-            로그인
-          </button>
+        // 예시: 로그인 성공 처리
+        router.push("/pages/monitoring");
+        router.refresh();
+    };
 
-          <div className={styles.signupLink}>
-            <a href="#" className={styles.signupText}>회원가입</a>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+    return (
+        <Box
+            sx={{
+                minHeight: "100vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                px: 2,
+                backgroundColor: "#fff",
+            }}
+        >
+            <Paper
+                elevation={0}
+                sx={{
+                    // ✅ 카드 폭 키움 (420 → 560)
+                    width: "min(560px, 94vw)",
+                    border: "1px solid #e6e6e6",
+                    borderRadius: 1,
+                    // ✅ 여백 키움 (p:4 → p:5)
+                    p: 5,
+                }}
+            >
+                {/* 상단 로고/타이틀 */}
+                <Box sx={{ textAlign: "center", mb: 3.5 }}>
+                    <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+                        <Image
+                            src={logoImage}
+                            alt="한국환경공단 로고"
+                            priority
+                            // ✅ 로고 크게
+                            style={{ width: 160, height: "auto" }}
+                        />
+                    </Box>
+
+                    {/* ✅ 글씨 크게 */}
+                    <Typography sx={{ fontWeight: 800, fontSize: 22, color: "#111" }}>
+                        한국환경공단
+                    </Typography>
+                    <Typography sx={{ fontSize: 14, color: "#666", mt: 0.8 }}>
+                        Korea Environment Corporation
+                    </Typography>
+                </Box>
+
+                {/* 폼 */}
+                <Box component="form" onSubmit={handleSubmit}>
+                    <TextField
+                        fullWidth
+                        placeholder="사용자ID"
+                        value={userId}
+                        onChange={(e) => setUserId(e.target.value)}
+                        sx={{
+                            mb: 2,
+                            "& .MuiOutlinedInput-root": {
+                                borderRadius: 0.7,
+                                // ✅ 인풋 높이 크게
+                                height: 56,
+                                fontSize: 16,
+                            },
+                        }}
+                        inputProps={{ "aria-label": "사용자ID" }}
+                    />
+
+                    <TextField
+                        fullWidth
+                        type="password"
+                        placeholder="비밀번호"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        sx={{
+                            mb: 2.5,
+                            "& .MuiOutlinedInput-root": {
+                                borderRadius: 0.7,
+                                height: 56,
+                                fontSize: 16,
+                            },
+                        }}
+                        inputProps={{ "aria-label": "비밀번호" }}
+                    />
+
+                    <Button
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        sx={{
+                            // ✅ 버튼 크게
+                            height: 56,
+                            borderRadius: 0.7,
+                            fontWeight: 800,
+                            fontSize: 16,
+                            backgroundColor: "#1b6fff",
+                            "&:hover": { backgroundColor: "#135fe0" },
+                        }}
+                    >
+                        로그인
+                    </Button>
+
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2.5 }}>
+                        <MuiLink
+                            component="button"
+                            type="button"
+                            underline="none"
+                            sx={{ fontSize: 13, color: "#1b6fff", fontWeight: 600 }}
+                            onClick={() => router.push("/pages/signup")}
+                        >
+                            회원가입
+                        </MuiLink>
+                    </Box>
+                </Box>
+            </Paper>
+        </Box>
+    );
 }

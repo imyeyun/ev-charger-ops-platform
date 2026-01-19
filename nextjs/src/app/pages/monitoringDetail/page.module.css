@@ -1,0 +1,171 @@
+/* ✅ 이 파일로 통째로 교체해: src/app/pages/monitoringDetail/page.module.css */
+
+.page {
+    width: 100vw;
+    min-height: 100vh;
+    background: #fff;
+    font-family: Inter, Arial, sans-serif;
+}
+
+.wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 상단 */
+.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 30px;
+}
+
+.title {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: #2c2c2c;
+}
+
+.topBtn {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid #d0d0d0;
+    font-size: 14px;
+    color: #555;
+    cursor: pointer;
+}
+
+/* 본문 */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 520px;
+    gap: 60px;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.h2 {
+    margin: 0 0 15px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+}
+
+/* 테이블 */
+.table {
+    border: 1px solid #e0e0e0;
+}
+
+.trHead,
+.tr {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.trHead {
+    background: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.tr {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.tr > div,
+.trHead > div {
+    padding: 12px 20px;
+    font-size: 13px;
+    border-right: 1px solid #e0e0e0;
+}
+
+.tr > div:last-child,
+.trHead > div:last-child {
+    border-right: none;
+}
+
+/* 필드 */
+.field,
+.fieldHalf {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.field2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+.fieldHalf {
+    width: calc(50% - 9px);
+}
+
+/* ✅ CSS Modules에서는 전역 태그(label) 금지 → 클래스 사용 */
+.label {
+    font-size: 13px;
+    color: #666;
+}
+
+.row {
+    display: flex;
+    gap: 14px;
+}
+
+.box,
+.boxSmall {
+    border: 1px solid #bdbdbd;
+    background: #fff;
+    min-height: 40px;
+    padding: 10px;
+    font-size: 13px;
+    color: #333;
+}
+
+.box {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.boxSmall {
+    width: 110px;
+    font-size: 11px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* CCTV */
+.right {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.cctv {
+    height: 350px;
+    border: 1px solid #e0e0e0;
+    background: #f5f5f5;
+}
+
+.cctvBtn {
+    width: 200px;
+    height: 48px;
+    background: #2196f3;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    align-self: center;
+}
+

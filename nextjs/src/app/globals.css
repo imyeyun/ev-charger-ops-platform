@@ -1,0 +1,29 @@
+/* ===== reset ===== */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    overflow-x: hidden;            /* ✅ 가로 스크롤 방지 */
+    background: #fff;
+    font-family: Arial, "Noto Sans KR", sans-serif;
+}
+
+/* ===== 전역 캔버스(2번째 이미지 느낌 핵심) =====
+   - 화면이 커져도 폭을 제한해서 가운데에 “작게” 고정
+   - 모든 페이지가 동일한 기준 폭을 갖게 됨
+*/
+.appRoot {
+    width: clamp(1040px, 78vw, 1320px);
+    margin: 0 auto;
+}
+
+
+/* 헤더가 풀폭(브라우저 전체)로 필요하면 이 방식 말고 Header 내부 maxWidth를 쓰는데,
+   지금은 “전체가 2번째 이미지처럼 중앙에 모이는 형태”를 원하니까 appRoot로 통일하는 게 맞음 */
