@@ -1,7 +1,7 @@
 /* ✅ 이 파일로 통째로 교체해: src/app/pages/monitoringDetail/page.module.css */
 
 .page {
-    width: 100vw;
+    width: 100%;
     min-height: 100vh;
     background: #fff;
     font-family: Inter, Arial, sans-serif;
