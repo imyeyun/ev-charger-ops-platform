@@ -1,4 +1,4 @@
-ackage com.example.backend.ai.dto.complaint;
+package com.example.backend.ai.dto.complaint;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -1,10 +1,10 @@
-package com.example.backend.monitoring.service;
+package com.example.backend.chargingstation.service;
 
 import com.example.backend.chargingstation.entity.ChargerLog;
 import com.example.backend.chargingstation.entity.ChargingStation;
-import com.example.backend.monitoring.dto.MonitoringRes;
-import com.example.backend.monitoring.repository.ChargerLogRepository;
-import com.example.backend.monitoring.repository.ChargingStationRepository;
+import com.example.backend.chargingstation.dto.MonitoringRes;
+import com.example.backend.chargingstation.repository.ChargerLogRepository;
+import com.example.backend.chargingstation.repository.ChargingStationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

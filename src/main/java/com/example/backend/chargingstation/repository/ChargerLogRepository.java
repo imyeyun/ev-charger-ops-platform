@@ -2,6 +2,7 @@ package com.example.backend.chargingstation.repository;
 
 import com.example.backend.chargingstation.entity.ChargerLog;
 import com.example.backend.chargingstation.entity.ChargerLogId;
+import com.example.backend.chargingstation.entity.ChargingStation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -38,4 +39,11 @@ public interface ChargerLogRepository extends JpaRepository<ChargerLog, ChargerL
            "AND cl.chgerTime = (SELECT MAX(cl2.chgerTime) FROM ChargerLog cl2 " +
            "WHERE cl2.statId = cl.statId AND cl2.chgerId = cl.chgerId)")
     List<ChargerLog> findLatestLogsByStatId(@Param("statId") String statId);
+
+    //@Query("SELECT cs FROM ChargingStation cs " +
+    //        "JOIN FETCH cs.regionCode " +
+    //        "JOIN FETCH cs.regionDetailCode " +
+    //        "JOIN FETCH cs.agency")
+    //List<ChargingStation> findAllWithCodes();
+
 }

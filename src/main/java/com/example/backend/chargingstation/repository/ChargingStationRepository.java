@@ -22,6 +22,9 @@ public interface ChargingStationRepository extends JpaRepository<ChargingStation
 
     List<ChargingStation> findByStatId(String statId);
 
+    //@Query
+    //List<ChargingStation> findAllWithCodes();
+
     @Query("SELECT cs FROM ChargingStation cs " +
            "JOIN FETCH cs.regionCode " +
            "JOIN FETCH cs.regionDetailCode " +

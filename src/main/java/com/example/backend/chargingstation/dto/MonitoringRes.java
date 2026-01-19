@@ -1,4 +1,4 @@
-package com.example.backend.monitoring.dto;
+package com.example.backend.chargingstation.dto;
 
 import lombok.Builder;
 import lombok.Getter;

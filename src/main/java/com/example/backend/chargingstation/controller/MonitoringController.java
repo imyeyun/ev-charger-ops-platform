@@ -1,7 +1,7 @@
-package com.example.backend.monitoring.controller;
+package com.example.backend.chargingstation.controller;
 
-import com.example.backend.monitoring.dto.MonitoringRes;
-import com.example.backend.monitoring.service.MonitoringService;
+import com.example.backend.chargingstation.dto.MonitoringRes;
+import com.example.backend.chargingstation.service.MonitoringService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
