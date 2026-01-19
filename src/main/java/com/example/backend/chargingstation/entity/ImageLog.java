@@ -21,7 +21,6 @@ public class ImageLog {
     @Column(name = "img_id")
     private Long imgId;
 
-    @Id
     @Column(name = "img_time")
     private LocalDateTime imgTime;
 
