@@ -136,6 +136,16 @@
     background-color: #1565c0;
 }
 
+.generateButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none; /* ✅ 진짜 클릭 차단 */
+}
+
+.generateButton:disabled:hover {
+    background-color: #2196f3; /* hover로 색 바뀌는 것도 방지 */
+}
+
 .previewContent {
     min-height: 300px;
     padding: 20px;
