@@ -1,18 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import styles from './page.module.css';
 import Header from '@/app/components/Header'; // 1. Header 컴포넌트 임포트
+import { fetchComplaintDetail } from '@/app/api/complaintsApi';
 
-export default function ComplaintDetail({ params }) {
+export default function ComplaintDetail() {
     const router = useRouter();
+    const params = useParams();
     const complaintId = params?.id;
 
     const [complaint, setComplaint] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const idStr = complaintId ? String(complaintId) : null;
+
         const sampleComplaints = {
             '1': {
                 id: 1,
@@ -50,11 +54,11 @@ export default function ComplaintDetail({ params }) {
             },
         };
 
-        if (complaintId && sampleComplaints[complaintId]) {
-            setComplaint(sampleComplaints[complaintId]);
+        if (idStr && sampleComplaints[idStr]) {
+            setComplaint(sampleComplaints[idStr]);
         } else {
             setComplaint({
-                id: complaintId || 1,
+                id: idStr || '?',
                 title: '민원 제목',
                 category: '기타',
                 receivedDate: '2024-01-15 10:00',
@@ -67,27 +71,79 @@ export default function ComplaintDetail({ params }) {
         setLoading(false);
     }, [complaintId]);
 
+    // 백 연결 시 위의 useEffect 삭제 후 아래 주석 해제
+    // useEffect(() => {
+    //     if (!complaintId) return;
+
+    //     const run = async () => {
+    //         try {
+    //         setLoading(true);
+
+    //         const { request, outbounds } = await fetchComplaintDetail(complaintId);
+
+    //         // ✅ 백 응답 → 화면용 state로 매핑
+    //         // (필드명은 백이 확정되면 여기만 조정하면 됨)
+    //         setComplaint({
+    //             id: request.reqId ?? request.id ?? complaintId,
+    //             title: request.title ?? '민원 제목',
+    //             category: request.reqType ?? request.category ?? '기타',
+    //             receivedDate: request.reqDt ?? request.receivedDate ?? '-',
+    //             content: request.content ?? '민원 내용이 여기에 표시됩니다.',
+
+    //             // outbounds(답변 이력) 중 "최신" 1개를 보여주는 형태로 가정
+    //             hasReply: Array.isArray(outbounds) && outbounds.length > 0,
+    //             replyDate:
+    //             Array.isArray(outbounds) && outbounds.length > 0
+    //                 ? (outbounds[outbounds.length - 1].answerDt ?? outbounds[outbounds.length - 1].procDt ?? null)
+    //                 : null,
+    //             reply:
+    //             Array.isArray(outbounds) && outbounds.length > 0
+    //                 ? (outbounds[outbounds.length - 1].answer ?? outbounds[outbounds.length - 1].reply ?? null)
+    //                 : null,
+
+    //             // 필요하면 전체 답변 목록도 넣어둘 수 있음
+    //             outbounds: Array.isArray(outbounds) ? outbounds : [],
+    //         });
+    //         } catch (e) {
+    //         // ✅ 실패 시 처리
+    //         setComplaint(null);
+    //         // 여기서 중앙 모달/에러 UI를 쓰고 싶으면 상태 추가해서 처리
+    //         console.error(e);
+    //         } finally {
+    //         setLoading(false);
+    //         }
+    //     };
+
+    //     run();
+    // }, [complaintId]);
+
     const handleBack = () => {
         router.push('/pages/ComplaintList');
     };
 
     if (loading) {
         return (
-            <div className={styles.container}>
-                <div className={styles.wrapper}>
-                    <div className={styles.loading}>로딩 중...</div>
+            <>
+                <Header />
+                <div className={styles.container}>
+                    <div className={styles.wrapper}>
+                        <div className={styles.loading}>로딩 중...</div>
+                    </div>
                 </div>
-            </div>
+            </>
         );
     }
 
     if (!complaint) {
         return (
-            <div className={styles.container}>
-                <div className={styles.wrapper}>
-                    <div className={styles.error}>민원을 찾을 수 없습니다.</div>
+            <>
+                <Header />
+                <div className={styles.container}>
+                    <div className={styles.wrapper}>
+                        <div className={styles.error}>민원을 찾을 수 없습니다.</div>
+                    </div>
                 </div>
-            </div>
+            </>
         );
     }
 

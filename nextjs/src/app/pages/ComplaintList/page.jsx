@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { fetchComplaintList, processComplaints } from '@/app/api/complaintsApi';
 import { useRouter } from 'next/navigation';
 import Header from '@/app/components/Header'; // 1. Header 컴포넌트 임포트
 import styles from './page.module.css';
@@ -39,6 +40,40 @@ export default function ComplaintList() {
         { id: 5, title: '충전기 고장 민원 2', content: '또 다른 충전기 고장', status: '미처리', category: '충전기 고장', date: '2024-01-11 16:00' },
         { id: 6, title: '결제 문제', content: '결제 관련 문제가 있습니다', status: '처리완료', category: '결제 오류', date: '2024-01-10 10:30' },
     ];
+    // 백 연결 시 위의 allComplaints 삭제 후 아래 두 줄 주석 해제
+    // const [allComplaints, setAllComplaints] = useState([]);   // ✅ 서버 데이터 저장
+    // const [loading, setLoading] = useState(true);
+    
+    // 백 연결 시 아래 주석 해제
+    // 최초 진입 시 리스트 API 호출해서 setAllComplaints
+    // useEffect(() => {
+    //     const run = async () => {
+    //         try {
+    //             setLoading(true);
+    //             const list = await fetchComplaintList();
+
+    //             // ✅ 백 응답 필드명(reqId, reqDt, reqType...)을 화면용 필드로 매핑
+    //             const mapped = (Array.isArray(list) ? list : []).map((item) => ({
+    //                 id: item.reqId,                 // ✅ row click / 선택에 쓰는 id
+    //                 title: item.title ?? '',
+    //                 content: item.content ?? '',    // 리스트에 content 없으면 '' 유지
+    //                 category: item.reqType ?? item.reqTypeNm ?? '', // 백 스펙에 맞게
+    //                 status: item.status === 'PROCESSED' ? '처리완료' : '미처리', // 백에 status가 없다면 기본
+    //                 date: item.reqDt ?? item.reqDtStr ?? '',        // datetime 문자열(ISO면 더 좋음)
+    //                 field: item.field ?? item.Field ?? '',
+    //             }));
+
+    //             setAllComplaints(mapped);
+    //         } catch (e) {
+    //             openModal(e.message || '민원 리스트를 불러오지 못했습니다.');
+    //             setAllComplaints([]);
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
+
+    //     run();
+    // }, []);
 
     // ✅ “적용된 필터(appliedFilters)” 기준으로만 목록 필터링
     const filteredComplaints = useMemo(() => {
@@ -162,12 +197,43 @@ export default function ComplaintList() {
 
     const handleAgentProcess = () => {
         if (selectedItems.length === 0) {
-            alert('처리할 민원을 선택해주세요.');
+            openModal('처리할 민원을 선택해주세요.');
             return;
         }
         // Agent 처리 로직 구현
         console.log('선택된 민원 Agent 처리:', selectedItems);
     };
+
+    // 백 연결 시 위의 handleAgentProcess 삭제 후 아래 주석 해제
+    // const handleAgentProcess = async () => {
+    //     if (selectedItems.length === 0) {
+    //         openModal('처리할 민원을 선택해주세요.');
+    //         return;
+    //     }
+
+    //     try {
+    //         const result = await processComplaints(selectedItems); // API 호출 (reqIds: [12, 15] 형태로 전송됨)
+    //         openModal(`요청 ${result.requestedCount}건 중 ${result.successCount}건 처리되었습니다.`);
+
+    //         // ✅ 처리 후 목록 최신화
+    //         const list = await fetchComplaintList();
+    //         const mapped = (Array.isArray(list) ? list : []).map((item) => ({
+    //             id: item.reqId,
+    //             title: item.title ?? '',
+    //             content: item.content ?? '',
+    //             category: item.reqType ?? item.reqTypeNm ?? '',
+    //             status: item.status === 'PROCESSED' ? '처리완료' : '미처리',
+    //             date: item.reqDt ?? item.reqDtStr ?? '',
+    //             field: item.field ?? item.Field ?? '',
+    //         }));
+    //         setAllComplaints(mapped);
+
+    //         setSelectedItems([]); // 선택 해제
+    //     } catch (e) {
+    //         openModal(e.message || '민원 처리 중 오류가 발생했습니다.');
+    //     }
+    // };
+
 
     const handleRowClick = (id) => {
         router.push(`/pages/ComplaintDetail/${id}`);
