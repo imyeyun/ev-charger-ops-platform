@@ -23,15 +23,15 @@ public class ChargingStation {
     @Column(name = "stat_id", length = 8)
     private String statId;
 
-    @Id
+
     @Column(name = "zcode", length = 2)
     private String zcode;
 
-    @Id
+
     @Column(name = "zscode", length = 5)
     private String zscode;
 
-    @Id
+
     @Column(name = "busi_id", length = 2)
     private String busiId;
 
