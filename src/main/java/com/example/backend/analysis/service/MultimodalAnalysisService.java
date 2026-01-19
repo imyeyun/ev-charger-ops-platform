@@ -28,7 +28,7 @@ public class MultimodalAnalysisService {
     private final SensorLogRepository sensorLogRepository;
     private final AiMultimodalClient aiMultimodalClient;
 
-    @Transactional
+        @Transactional
     public MultimodalAnalysisRes analyze(MultimodalAnalysisReq request) {
         String statId = request.getStatId();
         String chgerId = request.getChgerId();
@@ -53,6 +53,8 @@ public class MultimodalAnalysisService {
                 .imgId(imageLog.getImgId())
                 .imgTime(imageLog.getImgTime())
                 .sensorTime(sensorLog.getSensorTime())
+                .chgerId2(chgerId)
+                .statId2(statId)
                 .build();
 
         multimodalAnalysisRepository.save(analysis);
@@ -74,21 +76,16 @@ public class MultimodalAnalysisService {
 
         AiMultimodalReq.SensorLogInfo sensorInfo = AiMultimodalReq.SensorLogInfo.builder()
                 .sensorTime(sensorLog.getSensorTime())
-                .statUpdDt(sensorLog.getStatUpdDt())
-                .note(sensorLog.getNote())
-                .acInputVoltageV(sensorLog.getAcInputVoltageV())
-                .acFrequencyHz(sensorLog.getAcFrequencyHz())
-                .currentA(sensorLog.getCurrentA())
-                .powerKw(sensorLog.getPowerKw())
-                .energyKwh(sensorLog.getEnergyKwh())
-                .acLeakageMa(sensorLog.getAcLeakageMa())
-                .groundOk(sensorLog.getGroundOk())
-                .cabinetTempC(sensorLog.getCabinetTempC())
-                .ambientTempC(sensorLog.getAmbientTempC())
-                .humidityPct(sensorLog.getHumidityPct())
-                .connectorT(sensorLog.getConnectorT())
-                .ambientT(sensorLog.getAmbientT())
-                .batteryT(sensorLog.getBatteryT())
+                .totalChargingKwh(sensorLog.getTotalChargingKwh())
+                .totalChargingMin(sensorLog.getTotalChargingMin())
+                .currentSoc(sensorLog.getCurrentSoc())
+                .currentEnergyMeterValue(sensorLog.getCurrentEnergyMeterValue())
+                .chargingv(sensorLog.getChargingv())
+                .charginga(sensorLog.getCharginga())
+                .outPower(sensorLog.getOutPower())
+                .chargingGunTemperature1(sensorLog.getChargingGunTemperature1())
+                .chargingGunTemperature2(sensorLog.getChargingGunTemperature2())
+                .types(sensorLog.getTypes())
                 .build();
 
         return AiMultimodalReq.builder()

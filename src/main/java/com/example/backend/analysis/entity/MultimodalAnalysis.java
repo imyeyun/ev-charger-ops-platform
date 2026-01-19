@@ -54,10 +54,27 @@ public class MultimodalAnalysis {
     @Column(name = "sensor_time", nullable = false)
     private LocalDateTime sensorTime;
 
+    @Column(name = "chger_id", nullable = false, length = 2)
+    private String chgerId;
+
+    @Column(name = "stat_id", nullable = false, length = 8)
+    private String statId;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumns({
+            @JoinColumn(name = "img_id", referencedColumnName = "img_id", insertable = false, updatable = false),
+            @JoinColumn(name = "img_time", referencedColumnName = "img_time", insertable = false, updatable = false),
+            @JoinColumn(name = "sensor_time", referencedColumnName = "sensor_time", insertable = false, updatable = false),
+            @JoinColumn(name = "chger_id", referencedColumnName = "chger_id", insertable = false, updatable = false),
+            @joinColumn(name = "stat_id", referencedColumnName = "stat_id", insertable = false, updatable = false),
+
+    })
+
     @Builder
     public MultimodalAnalysis(Boolean fireYn, String fireDetails, Boolean brokeYn, String brokeDetails,
                                Boolean cleanYn, String cleanDetails, LocalDateTime imgsensoranalTime,
-                               Long imgId, LocalDateTime imgTime, LocalDateTime sensorTime) {
+                               Long imgId, LocalDateTime imgTime, LocalDateTime sensorTime,
+                               String chgerId2, String statId2) {
         this.fireYn = fireYn;
         this.fireDetails = fireDetails;
         this.brokeYn = brokeYn;
@@ -68,5 +85,7 @@ public class MultimodalAnalysis {
         this.imgId = imgId;
         this.imgTime = imgTime;
         this.sensorTime = sensorTime;
+        this.chgerId2 = chgerId2;
+        this.statId2 = statId2;
     }
 }

@@ -47,49 +47,52 @@ public class RequestOutboundService {
 
     @Transactional
     public OutboundBatchRes processRequests(OutboundBatchReq req) {
+        List<Long> reqIds = req.getReqIds();
+        List<Request> requests = requestRepository.findAllById(reqIds);
+        if (requests.size() != reqIds.size()) {
+            throw new NotFoundException("해당 민원을 찾을 수 없습니다.");
+        }
+        if (requestOutboundRepository.existsByReqIdIn(reqIds)) {
+            throw new ConflictException("이미 답변이 등록된 민원입니다.");
+        }
+
+        java.util.Map<Long, Request> requestMap = requests.stream()
+                .collect(java.util.stream.Collectors.toMap(Request::getReqId, request -> request));
+        List<Request> orderedRequests = reqIds.stream()
+                .map(reqId -> {
+                    Request request = requestMap.get(reqId);
+                    if (request == null) {
+                        throw new NotFoundException("해당 민원을 찾을 수 없습니다.");
+                    }
+                    return request;
+                })
+                .toList();
+        
         List<OutboundBatchRes.OutboundResult> results = new ArrayList<>();
         int successCount = 0;
 
-        for (Long reqId : req.getReqIds()) {
-            try {
-                OutboundBatchRes.OutboundResult result = processSingleRequest(reqId);
-                results.add(result);
-                if ("PROCESSED".equals(result.getStatus())) {
-                    successCount++;
-                }
-            } catch (NotFoundException e) {
-                results.add(OutboundBatchRes.OutboundResult.builder()
-                        .reqId(reqId)
-                        .status("NOT_FOUND")
-                        .build());
-            } catch (ConflictException e) {
-                results.add(OutboundBatchRes.OutboundResult.builder()
-                        .reqId(reqId)
-                        .status("ALREADY_PROCESSED")
-                        .build());
+            for (Request request : orderedRequests) {
+            OutboundBatchRes.OutboundResult result = processSingleRequest(request);
+            results.add(result);
+            if ("PROCESSED".equals(result.getStatus())) {
+                successCount++;
+        
             }
         }
 
         return OutboundBatchRes.builder()
-                .requestedCount(req.getReqIds().size())
+                .requestedCount(reqIds.size())
                 .successCount(successCount)
                 .results(results)
                 .build();
     }
 
-    private OutboundBatchRes.OutboundResult processSingleRequest(Long reqId) {
-        Request request = requestRepository.findById(reqId)
-                .orElseThrow(() -> new NotFoundException("해당 민원을 찾을 수 없습니다."));
-
-        if (requestOutboundRepository.existsByReqId(reqId)) {
-            throw new ConflictException("이미 답변이 등록된 민원입니다.");
-        }
-
+  private OutboundBatchRes.OutboundResult processSingleRequest(Request request) {
         AiComplaintReq aiRequest = buildAiRequest(request);
         AiComplaintRes aiResponse = aiComplaintClient.generateAnswer(aiRequest);
 
         RequestOutbound outbound = RequestOutbound.builder()
-                .reqId(reqId)
+                .reqId(request.getReqId())
                 .answer(aiResponse.getAnswer())
                 .answerDt(aiResponse.getAnswerDt() != null ? aiResponse.getAnswerDt() : LocalDateTime.now())
                 .build();
@@ -99,15 +102,14 @@ public class RequestOutboundService {
         request.updateStatus(RequestStatus.COMPLETED);
 
         return OutboundBatchRes.OutboundResult.builder()
-                .reqId(reqId)
+                .reqId(request.getReqId())
                 .status("PROCESSED")
                 .procId(saved.getProcId())
                 .build();
     }
 
     private AiComplaintReq buildAiRequest(Request request) {
-        Optional<ChargingStation> stationOpt = chargingStationRepository.findByStatId(request.getStatId())
-                .stream().findFirst();
+        Optional<ChargingStation> stationOpt = chargingStationRepository.findByStatId(request.getStatId());
 
         AiComplaintReq.ChargerStatusInfo chargerStatusInfo = null;
         AiComplaintReq.MultimodalAnalysisInfo multimodalInfo = null;

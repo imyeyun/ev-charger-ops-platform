@@ -17,7 +17,4 @@ public class ChargerLogId implements Serializable {
     private LocalDateTime chgerTime;
     private String chgerId;
     private String statId;
-    private String zcode;
-    private String zscode;
-    private String busiId;
 }

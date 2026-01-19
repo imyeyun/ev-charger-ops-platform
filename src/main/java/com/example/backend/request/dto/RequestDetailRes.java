@@ -19,9 +19,6 @@ public class RequestDetailRes {
         private Long reqId;
         private String chgerId;
         private String statId;
-        private String zcode;
-        private String zscode;
-        private String busiId;
         private String title;
         private String content;
         private String reqType;

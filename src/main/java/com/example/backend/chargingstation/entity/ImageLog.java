@@ -29,15 +29,9 @@ public class ImageLog {
     @Column(name = "img_path", nullable = false, length = 255)
     private String imgPath;
 
-    @Column(name = "stat_id", nullable = false, length = 8)
-    private String statId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumns({
+            @JoinColumn(name = "stat_id", referencedColumnName = "stat_id", insertable = false, updatable = false)
+    })
 
-    @Column(name = "zcode", nullable = false, length = 2)
-    private String zcode;
-
-    @Column(name = "zscode", nullable = false, length = 5)
-    private String zscode;
-
-    @Column(name = "busi_id", nullable = false, length = 2)
-    private String busiId;
 }

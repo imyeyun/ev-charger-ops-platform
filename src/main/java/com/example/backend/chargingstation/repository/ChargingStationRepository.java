@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ChargingStationRepository extends JpaRepository<ChargingStation, ChargingStationId> {
+public interface ChargingStationRepository extends JpaRepository<ChargingStation, String> {
 
     @Query("SELECT cs FROM ChargingStation cs " +
            "JOIN FETCH cs.regionCode " +

@@ -2,7 +2,12 @@ package com.example.backend.chargingstation.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -12,6 +17,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "sensor_log")
+@IdClass(SensorLogId.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SensorLog {
@@ -20,63 +26,48 @@ public class SensorLog {
     @Column(name = "sensor_time")
     private LocalDateTime sensorTime;
 
-    @Column(name = "chger_id", nullable = false, length = 2)
+    @Id
+    @Column(name = "chger_id", length = 2)
     private String chgerId;
 
-    @Column(name = "stat_id", nullable = false, length = 8)
+    @Id
+    @Column(name = "stat_id", length = 8)
     private String statId;
 
-    @Column(name = "zcode", nullable = false, length = 2)
-    private String zcode;
+    @Column(name = "total_charging_kwh", nullable = false)
+    private Double totalChargingKwh;
 
-    @Column(name = "zscode", nullable = false, length = 5)
-    private String zscode;
+    @Column(name = "total_charging_min", nullable = false)
+    private Integer totalChargingMin;
 
-    @Column(name = "busi_id", nullable = false, length = 2)
-    private String busiId;
+    @Column(name = "current_soc", nullable = false)
+    private Integer currentSoc;
 
-    @Column(name = "stat_upd_dt", nullable = false, length = 14)
-    private String statUpdDt;
+    @Column(name = "current_energy_meter_value", nullable = false)
+    private Double currentEnergyMeterValue;
 
-    @Column(name = "note", nullable = false, length = 200)
-    private String note;
+    @Column(name = "chargingv", nullable = false)
+    private Double chargingv;
 
-    @Column(name = "ac_input_voltage_v")
-    private String acInputVoltageV;
+    @Column(name = "charginga", nullable = false)
+    private Double charginga;
 
-    @Column(name = "ac_frequency_hz")
-    private String acFrequencyHz;
+    @Column(name = "out_power", nullable = false)
+    private Double outPower;
 
-    @Column(name = "current_a")
-    private String currentA;
+    @Column(name = "charging_gun_temperature1", nullable = false)
+    private Integer chargingGunTemperature1;
 
-    @Column(name = "power_kw")
-    private String powerKw;
+    @Column(name = "charging_gun_temperature2", nullable = false)
+    private Integer chargingGunTemperature2;
 
-    @Column(name = "energy_kwh")
-    private String energyKwh;
+    @Column(name = "types", nullable = false)
+    private Integer types;
 
-    @Column(name = "ac_leakage_ma")
-    private String acLeakageMa;
-
-    @Column(name = "ground_ok")
-    private String groundOk;
-
-    @Column(name = "cabinet_temp_c")
-    private String cabinetTempC;
-
-    @Column(name = "ambient_temp_c")
-    private String ambientTempC;
-
-    @Column(name = "humidity_pct")
-    private String humidityPct;
-
-    @Column(name = "connector_t")
-    private String connectorT;
-
-    @Column(name = "ambient_t")
-    private String ambientT;
-
-    @Column(name = "battery_t")
-    private String batteryT;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumns({
+            @JoinColumn(name = "chger_id", referencedColumnName = "chger_id", insertable = false, updatable = false),
+            @JoinColumn(name = "stat_id", referencedColumnName = "stat_id", insertable = false, updatable = false)
+    })
+    private Charger charger;
 }

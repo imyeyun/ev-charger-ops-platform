@@ -32,15 +32,6 @@ public class Request {
     @Column(name = "stat_id", nullable = false, length = 8)
     private String statId;
 
-    @Column(name = "zcode", nullable = false, length = 2)
-    private String zcode;
-
-    @Column(name = "zscode", nullable = false, length = 5)
-    private String zscode;
-
-    @Column(name = "busi_id", nullable = false, length = 2)
-    private String busiId;
-
     @Column(name = "title", nullable = false, length = 200)
     private String title;
 
@@ -58,14 +49,17 @@ public class Request {
     @Column(name = "status", nullable = false, length = 20)
     private RequestStatus status;
 
+    @ManyToOne(fetch = FetchType.LAZY)                                                                                                                                
+      @JoinColumns({                                                                                                                                                    
+          @JoinColumn(name = "chger_id", referencedColumnName = "chger_id", insertable = false, updatable = false),                                                     
+          @JoinColumn(name = "stat_id", referencedColumnName = "stat_id", insertable = false, updatable = false)                                                        
+      })                                                                                                                                                                
+      private Charger charger;
+
     @Builder
-    public Request(String chgerId, String statId, String zcode, String zscode, String busiId,
-                   String title, String content, RequestType reqType, LocalDateTime reqDt, RequestStatus status) {
+    public Request(String chgerId, String statId, String title, String content, RequestType reqType, LocalDateTime reqDt, RequestStatus status) {
         this.chgerId = chgerId;
         this.statId = statId;
-        this.zcode = zcode;
-        this.zscode = zscode;
-        this.busiId = busiId;
         this.title = title;
         this.content = content;
         this.reqType = reqType;
