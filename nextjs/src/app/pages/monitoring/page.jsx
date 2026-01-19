@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Header from "@/components/Header";
-import ChatWidget from "@/components/ChatWidget";
+import Header from "@/app/components/Header";
+import ChatWidget from "@/app/components/ChatWidget";
 import styles from "./page.module.css";
 
 // ✅ 차트 컴포넌트 연결
-import UnconfirmStatusChart from "@/components/UnconfirmStatusChart";
-import UnconfirmRegionChart from "@/components/UnconfirmRegionChart";
-import SummaryChart from "@/components/SummaryChart";
+import UnconfirmStatusChart from "@/app/components/UnconfirmStatusChart";
+import UnconfirmRegionChart from "@/app/components/UnconfirmRegionChart";
+import SummaryChart from "@/app/components/SummaryChart";
 
 export default function MonitoringPage() {
     // =========================

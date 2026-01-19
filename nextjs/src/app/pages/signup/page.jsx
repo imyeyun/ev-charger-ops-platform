@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
-import logoImage from '../login/logo.png';
 
 export default function Signup() {
   const router = useRouter();
@@ -109,10 +108,12 @@ export default function Signup() {
         <div className={styles.header}>
           <div className={styles.logoContainer}>
             <Image
-              src={logoImage}
+              src="/logo.png"
               alt="한국환경공단 로고"
               className={styles.logo}
               priority
+              width={210}
+              height={48}
             />
           </div>
         </div>

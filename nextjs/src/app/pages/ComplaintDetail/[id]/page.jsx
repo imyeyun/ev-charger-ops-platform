@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
-import Header from '@/components/Header'; // 1. Header 컴포넌트 임포트
+import Header from '@/app/components/Header'; // 1. Header 컴포넌트 임포트
 
 export default function ComplaintDetail({ params }) {
     const router = useRouter();

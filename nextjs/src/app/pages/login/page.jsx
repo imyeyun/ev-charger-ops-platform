@@ -13,8 +13,6 @@ import {
     Link as MuiLink,
 } from "@mui/material";
 
-import logoImage from "./logo.png";
-
 export default function Page() {
     const router = useRouter();
     const [userId, setUserId] = useState("");
@@ -56,11 +54,11 @@ export default function Page() {
                 <Box sx={{ textAlign: "center", mb: 3.5 }}>
                     <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
                         <Image
-                            src={logoImage}
+                            src="/logo.png"
                             alt="한국환경공단 로고"
                             priority
-                            // ✅ 로고 크게
-                            style={{ width: 160, height: "auto" }}
+                            width={210}
+                            height={48}
                         />
                     </Box>
 
