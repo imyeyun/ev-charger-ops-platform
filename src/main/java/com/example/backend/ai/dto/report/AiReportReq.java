@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
-//import java.util.List;
+import java.util.List;
 
 @Getter
 @Builder
@@ -14,19 +14,13 @@ public class AiReportReq {
     private String prompt;
     private LocalDateTime dataStartTime;
     private LocalDateTime dataEndTime;
-    /*private List<ChargerStatusInfo> chargerStatus;
+    private List<ChargerStatusInfo> chargerStatus;
     private List<MultimodalAnalysisInfo> multimodalAnalysis;
     private List<OpenRequestInfo> openRequests;
-    private List<RequestOutboundInfo> requestOutbounds;*/
-    private FileReference chargerStatus;
-    private MultimodalFileReference multimodalAnalysis;
-    private FileReference openRequests;
-    private FileReference requestOutbounds;
-    private FileReference chargerStatusAnalysis;
+    private List<RequestOutboundInfo> requestOutbounds;
 
     @Getter
     @Builder
-    /*
     public static class ChargerStatusInfo {
         private String statId;
         private String zcodeDescription;
@@ -95,11 +89,7 @@ public class AiReportReq {
         private LocalDateTime reqDt;
         private String status;
     }
-    */
-    public static class FileReference {
-        private String filePath;
-    }
-    /*
+
     @Getter
     @Builder
     public static class RequestOutboundInfo {
@@ -119,13 +109,5 @@ public class AiReportReq {
         private Long procId;
         private String answer;
         private LocalDateTime answerDt;
-    }
-     */
-    @Getter
-    @Builder
-    public static class MultimodalFileReference {
-        private String statId;
-        private String filePath;
-
     }
 }

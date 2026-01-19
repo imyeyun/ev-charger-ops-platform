@@ -1,4 +1,4 @@
-/*package com.example.backend.ai.mapper;
+package com.example.backend.ai.mapper;
 
 import com.example.backend.ai.dto.report.AiReportReq;
 import com.example.backend.analysis.entity.MultimodalAnalysis;
@@ -132,4 +132,3 @@ public class ReportAiMapper {
                 .build();
     }
 }
-*/
