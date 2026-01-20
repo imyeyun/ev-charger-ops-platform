@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { fetchComplaintList, processComplaints } from '@/app/api/complaintsApi';
+import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import Header from '@/app/components/Header'; // 1. Header 컴포넌트 임포트
 import styles from './page.module.css';
@@ -31,49 +31,40 @@ export default function ComplaintList() {
     const openModal = (msg) => setModalMessage(msg);
     const closeModal = () => setModalMessage('');
 
-    // 샘플 데이터 - 실제 데이터로 교체 필요
-    const allComplaints = [
-        { id: 1, title: '충전기 고장 민원', content: '충전기가 작동하지 않습니다', status: '미처리', category: '충전기 고장', date: '2024-01-15 10:00' },
-        { id: 2, title: '결제 오류 민원', content: '결제가 중복으로 되었습니다', status: '처리완료', category: '결제 오류', date: '2024-01-14 11:00' },
-        { id: 3, title: 'AS 연결 지연 민원', content: 'AS 콜센터 연결이 너무 오래 걸립니다', status: '미처리', category: 'AS 콜센터 연결 지연', date: '2024-01-13 14:00' },
-        { id: 4, title: '기타 민원', content: '기타 문의사항입니다', status: '처리완료', category: '기타', date: '2024-01-12 09:00' },
-        { id: 5, title: '충전기 고장 민원 2', content: '또 다른 충전기 고장', status: '미처리', category: '충전기 고장', date: '2024-01-11 16:00' },
-        { id: 6, title: '결제 문제', content: '결제 관련 문제가 있습니다', status: '처리완료', category: '결제 오류', date: '2024-01-10 10:30' },
-    ];
-    // 백 연결 시 위의 allComplaints 삭제 후 아래 두 줄 주석 해제
-    // const [allComplaints, setAllComplaints] = useState([]);   // ✅ 서버 데이터 저장
-    // const [loading, setLoading] = useState(true);
+    const [allComplaints, setAllComplaints] = useState([]);   // ✅ 서버 데이터 저장
+    const [loading, setLoading] = useState(true);
     
-    // 백 연결 시 아래 주석 해제
-    // 최초 진입 시 리스트 API 호출해서 setAllComplaints
-    // useEffect(() => {
-    //     const run = async () => {
-    //         try {
-    //             setLoading(true);
-    //             const list = await fetchComplaintList();
+    // ✅ 최초 진입 시 리스트 API 호출해서 setAllComplaints
+    useEffect(() => {
+        const run = async () => {
+            try {
+                setLoading(true);
+                // 사용자가 페이지에 처음 접속했을 때 서버로부터 전체 민원 리스트를 가져옴
+                const result = await axios.get('/api/complaintsApi');
+                const list = Array.isArray(result.data) ? result.data : [];
 
-    //             // ✅ 백 응답 필드명(reqId, reqDt, reqType...)을 화면용 필드로 매핑
-    //             const mapped = (Array.isArray(list) ? list : []).map((item) => ({
-    //                 id: item.reqId,                 // ✅ row click / 선택에 쓰는 id
-    //                 title: item.title ?? '',
-    //                 content: item.content ?? '',    // 리스트에 content 없으면 '' 유지
-    //                 category: item.reqType ?? item.reqTypeNm ?? '', // 백 스펙에 맞게
-    //                 status: item.status === 'PROCESSED' ? '처리완료' : '미처리', // 백에 status가 없다면 기본
-    //                 date: item.reqDt ?? item.reqDtStr ?? '',        // datetime 문자열(ISO면 더 좋음)
-    //                 field: item.field ?? item.Field ?? '',
-    //             }));
+                // ✅ 백 응답 필드명(reqId, reqDt, reqType...)을 화면용 필드로 매핑
+                const mapped = (Array.isArray(list) ? list : []).map((item) => ({
+                    id: item.reqId,                 // ✅ row click / 선택에 쓰는 id
+                    title: item.title ?? '',
+                    content: item.content ?? '',    // 리스트에 content 없으면 '' 유지
+                    category: item.reqType ?? item.reqTypeNm ?? '', // 백 스펙에 맞게
+                    status: item.status === 'PROCESSED' ? '처리완료' : '미처리', // 백에 status가 없다면 기본
+                    date: item.reqDt ?? item.reqDtStr ?? '',        // datetime 문자열(ISO면 더 좋음)
+                    field: item.field ?? item.Field ?? '',
+                }));
 
-    //             setAllComplaints(mapped);
-    //         } catch (e) {
-    //             openModal(e.message || '민원 리스트를 불러오지 못했습니다.');
-    //             setAllComplaints([]);
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
+                setAllComplaints(mapped);
+            } catch (e) {
+                openModal(e.message || '민원 리스트를 불러오지 못했습니다.');
+                setAllComplaints([]);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    //     run();
-    // }, []);
+        run();
+    }, []);
 
     // ✅ “적용된 필터(appliedFilters)” 기준으로만 목록 필터링
     const filteredComplaints = useMemo(() => {
@@ -195,45 +186,43 @@ export default function ComplaintList() {
         }
     };
 
-    const handleAgentProcess = () => {
+    const handleAgentProcess = async () => {
         if (selectedItems.length === 0) {
             openModal('처리할 민원을 선택해주세요.');
             return;
         }
-        // Agent 처리 로직 구현
-        console.log('선택된 민원 Agent 처리:', selectedItems);
+
+        // 선택된 민원 일괄 처리(Agent 처리)
+        try {
+            const result = await axios.post('/api/complaintsApi', {
+                action: 'process',
+                reqIds: selectedItems,
+            });
+
+            const data = result.data;
+            openModal(`요청 ${data.requestedCount}건 중 ${data.successCount}건 처리되었습니다.`);
+
+            // ✅ 처리 후 목록 최신화
+            // 민원 Agent 처리가 완료된 후, 변경된 상태를 화면에 반영하기 위해 전체 민원 리스트를 다시 불러옴
+            const listResult = await axios.get('/api/complaintsApi');
+            const list = Array.isArray(listResult.data) ? listResult.data : [];
+
+            const mapped = (Array.isArray(list) ? list : []).map((item) => ({
+                id: item.reqId,
+                title: item.title ?? '',
+                content: item.content ?? '',
+                category: item.reqType ?? item.reqTypeNm ?? '',
+                status: item.status === 'PROCESSED' ? '처리완료' : '미처리',
+                date: item.reqDt ?? item.reqDtStr ?? '',
+                field: item.field ?? item.Field ?? '',
+            }));
+            setAllComplaints(mapped);
+
+            setSelectedItems([]); // 선택 해제
+        } catch (e) {
+            openModal(e.message || '민원 처리 중 오류가 발생했습니다.');
+        }
     };
-
-    // 백 연결 시 위의 handleAgentProcess 삭제 후 아래 주석 해제
-    // const handleAgentProcess = async () => {
-    //     if (selectedItems.length === 0) {
-    //         openModal('처리할 민원을 선택해주세요.');
-    //         return;
-    //     }
-
-    //     try {
-    //         const result = await processComplaints(selectedItems); // API 호출 (reqIds: [12, 15] 형태로 전송됨)
-    //         openModal(`요청 ${result.requestedCount}건 중 ${result.successCount}건 처리되었습니다.`);
-
-    //         // ✅ 처리 후 목록 최신화
-    //         const list = await fetchComplaintList();
-    //         const mapped = (Array.isArray(list) ? list : []).map((item) => ({
-    //             id: item.reqId,
-    //             title: item.title ?? '',
-    //             content: item.content ?? '',
-    //             category: item.reqType ?? item.reqTypeNm ?? '',
-    //             status: item.status === 'PROCESSED' ? '처리완료' : '미처리',
-    //             date: item.reqDt ?? item.reqDtStr ?? '',
-    //             field: item.field ?? item.Field ?? '',
-    //         }));
-    //         setAllComplaints(mapped);
-
-    //         setSelectedItems([]); // 선택 해제
-    //     } catch (e) {
-    //         openModal(e.message || '민원 처리 중 오류가 발생했습니다.');
-    //     }
-    // };
-
 
     const handleRowClick = (id) => {
         router.push(`/pages/ComplaintDetail/${id}`);
