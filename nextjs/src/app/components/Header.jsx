@@ -11,7 +11,10 @@ const NAV = [
     { label: "Simulator", href: "/pages/simulator" },
 ];
 
+
+
 export default function Header() {
+    const router = useRouter();
     const pathname = usePathname();
 
     const isActive = (href) => {

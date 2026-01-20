@@ -59,6 +59,9 @@ export default function Page() {
                             priority
                             width={210}
                             height={48}
+                            className="darkreader-ignore"
+                            data-darkreader-ignore
+                            suppressHydrationWarning
                         />
                     </Box>
 
