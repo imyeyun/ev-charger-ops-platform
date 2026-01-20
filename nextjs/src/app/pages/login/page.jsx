@@ -13,6 +13,8 @@ import {
     Link as MuiLink,
 } from "@mui/material";
 
+import { login } from "@/app/api/authApi"; // ✅ 추가
+
 export default function Page() {
     const router = useRouter();
     const [userId, setUserId] = useState("");
@@ -21,11 +23,15 @@ export default function Page() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        console.log("로그인 시도:", { userId, password });
+        try {
+            // ✅ userId -> employeeNum 매핑
+            await login({ employeeNum: userId, password });
 
-        // 예시: 로그인 성공 처리
-        router.push("/pages/monitoring");
-        router.refresh();
+            router.push("/pages/monitoring");
+            router.refresh();
+        } catch (err) {
+            alert(err?.message ?? "로그인에 실패했습니다.");
+        }
     };
 
     return (
@@ -42,15 +48,12 @@ export default function Page() {
             <Paper
                 elevation={0}
                 sx={{
-                    // ✅ 카드 폭 키움 (420 → 560)
                     width: "min(560px, 94vw)",
                     border: "1px solid #e6e6e6",
                     borderRadius: 1,
-                    // ✅ 여백 키움 (p:4 → p:5)
                     p: 5,
                 }}
             >
-                {/* 상단 로고/타이틀 */}
                 <Box sx={{ textAlign: "center", mb: 3.5 }}>
                     <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
                         <Image
@@ -65,7 +68,6 @@ export default function Page() {
                         />
                     </Box>
 
-                    {/* ✅ 글씨 크게 */}
                     <Typography sx={{ fontWeight: 800, fontSize: 22, color: "#111" }}>
                         한국환경공단
                     </Typography>
@@ -74,7 +76,6 @@ export default function Page() {
                     </Typography>
                 </Box>
 
-                {/* 폼 */}
                 <Box component="form" onSubmit={handleSubmit}>
                     <TextField
                         fullWidth
@@ -85,7 +86,6 @@ export default function Page() {
                             mb: 2,
                             "& .MuiOutlinedInput-root": {
                                 borderRadius: 0.7,
-                                // ✅ 인풋 높이 크게
                                 height: 56,
                                 fontSize: 16,
                             },
@@ -115,7 +115,6 @@ export default function Page() {
                         fullWidth
                         variant="contained"
                         sx={{
-                            // ✅ 버튼 크게
                             height: 56,
                             borderRadius: 0.7,
                             fontWeight: 800,
