@@ -16,7 +16,7 @@ public class AiMultimodalClient {
     public AiMultimodalRes analyze(AiMultimodalReq request) {
         try {
             return aiWebClient.post()
-                    .uri("/api/report/multimodal_analysis")
+                    .uri("/api/multimodal_analysis")
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(AiMultimodalRes.class)

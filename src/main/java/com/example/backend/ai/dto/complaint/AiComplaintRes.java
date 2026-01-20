@@ -11,4 +11,5 @@ public class AiComplaintRes {
 
     private String answer;
     private LocalDateTime answerDt;
+    private Integer code;
 }
