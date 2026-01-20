@@ -1,30 +1,195 @@
 :root {
     --leftListMaxHeight: 320px;
 }
-/* ✅ 좌측(필터+리스트) + 우측(차트/리스트) 한 번에 배치 */
+
+/* 전체: 좌/우 2컬럼 */
 .dashboardGrid {
-    display: grid;
-    grid-template-columns: 360px 1fr 1fr 1fr; /* 좌측 폭은 필요하면 조정 */
-    gap: 24px;
-    align-items: start;
+  display: grid;
+  grid-template-columns: 360px 1fr 1fr 1fr;
+  gap: 20px;
+  align-items: start;
 }
 
-/* ✅ 좌측 패널이 2행(span 2)을 차지 */
+/* 왼쪽은 그냥 1칸만 */
 .leftPanel {
-    grid-column: 1;
-    grid-row: 1 / span 2;
+  grid-column: 1;
+  grid-row: 2 / span 2;
 }
 
-/* ✅ search.jsx 내부에서 필터 카드 + 리스트 카드 세로 스택 */
+/* 오른쪽에서만 위/아래 배치 */
+.rightPanel {
+  grid-column: 2;
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 20px;
+}
+
+/* 오른쪽 위: 3칸 */
+.rightTop {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* 오른쪽 아래: 2칸 */
+.rightBottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* search.jsx 내부에서 필터 카드 + 리스트 카드 세로 스택 */
 .leftPanelStack {
     display: flex;
     flex-direction: column;
     gap: 24px;
 }
 
-/* ✅ 하단 4번째 칸 비우기 */
-.gridEmpty {
-    /* 비워둬도 됨 */
+/* 편집 모드 관련 스타일 */
+.editControls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-bottom: 0;
+    grid-column: 2 / -1;
+    grid-row: 1;
+}
+
+.editBtn,
+.resetBtn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+}
+
+.editBtn {
+    background: #2196f3;
+}
+
+.editBtn.active {
+    background: #4caf50;
+}
+
+.resetBtn {
+    background: #ff5722;
+}
+
+.draggableCard {
+    position: relative;
+    cursor: move;
+    border: 2px dashed #2196f3 !important;
+    transition: all 0.2s;
+}
+
+.draggableCard:hover {
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.dragHint {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #2196f3;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    z-index: 10;
+}
+
+.deleteBtn {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 28px;
+    height: 28px;
+    background: #f44336;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.2s;
+}
+
+.deleteBtn:hover {
+    background: #d32f2f;
+    transform: scale(1.1);
+}
+
+.emptySlot {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    background: #f9f9f9;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 200px;
+}
+
+.addBtn {
+    padding: 12px 24px;
+    background: #4caf50;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.addBtn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.componentSelector {
+    position: relative;
+    width: 100%;
+    max-width: 300px;
+}
+
+.selectorDropdown {
+    width: 100%;
+    padding: 8px 12px;
+    background: #fff;
+    border: 2px solid #4caf50;
+    border-radius: 6px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    color: #333;
+    cursor: pointer;
+}
+
+.emptySlotText {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    color: #999;
+    text-align: center;
+}
+
+.contentGrid {
+    display: contents;
 }
 .page {
     height: 100dvh;
@@ -62,7 +227,7 @@
 
 .topGrid {
     display: grid;
-    grid-template-columns: 340px 1fr 1fr 1fr;
+    grid-template-columns: 360px 1fr 1fr 1fr;
     gap: 20px;
     align-items: stretch;
 }
@@ -70,7 +235,7 @@
 .bottomGrid {
     margin-top: 20px;
     display: grid;
-    grid-template-columns: 340px 1fr 1fr;
+    grid-template-columns: 360px 1fr 1fr;
     gap: 20px;
 }
 
@@ -370,3 +535,5 @@
         grid-template-columns: 1fr;
     }
 }
+
+

@@ -31,6 +31,26 @@ export default function MonitoringPage() {
 
     const [chatOpen, setChatOpen] = useState(false);
 
+    // 🎨 편집 모드 및 레이아웃 state
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [draggedItem, setDraggedItem] = useState(null);
+
+    // 📊 기본 레이아웃 설정 (그리드 위치: row/col로 관리)
+    const defaultLayout = [
+        { id: "chart1", component: "UnconfirmStatusChart", title: "상태미확인 충전기 현황", gridArea: "2 / 2 / 3 / 3" },
+        { id: "chart2", component: "UnconfirmRegionChart", title: "지역별 상태 미확인 비율", gridArea: "2 / 3 / 3 / 4" },
+        { id: "chart3", component: "SummaryChart", title: "충전기 상태 현황", gridArea: "2 / 4 / 3 / 5" },
+        { id: "list1", component: "PagedList", title: "이상탐지 위험 충전소 리스트", dataKey: "risk", gridArea: "3 / 2 / 4 / 3" },
+        { id: "list2", component: "PagedList", title: "상태 미확인 충전소 리스트", dataKey: "unconfirmed", gridArea: "3 / 3 / 4 / 4" },
+    ];
+
+    // 전체 사용 가능한 컴포넌트 목록 (고정)
+    const availableComponents = useMemo(() => defaultLayout, []);
+
+    const [layout, setLayout] = useState(defaultLayout);
+    const [removedComponents, setRemovedComponents] = useState([]);
+    const [emptySlotSelections, setEmptySlotSelections] = useState({});
+
     // 더미
     const stationList = useMemo(
         () => [
@@ -78,6 +98,272 @@ export default function MonitoringPage() {
         alert("알림 전송(임시) - API 연결 시 실제 전송 로직으로 교체");
     };
 
+    // 🎨 드래그 앤 드롭 핸들러
+    const handleDragStart = (e, item) => {
+        if (!isEditMode) return;
+        setDraggedItem(item);
+        e.dataTransfer.effectAllowed = "move";
+    };
+
+    const handleDragOver = (e) => {
+        if (!isEditMode) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+    };
+
+    const handleDrop = (e, targetItem) => {
+        if (!isEditMode || !draggedItem || draggedItem.id === targetItem.id) {
+            setDraggedItem(null);
+            return;
+        }
+        e.preventDefault();
+
+        // 위치 교환
+        const newLayout = layout.map(item => {
+            if (item.id === draggedItem.id) {
+                return { ...item, gridArea: targetItem.gridArea };
+            }
+            if (item.id === targetItem.id) {
+                return { ...item, gridArea: draggedItem.gridArea };
+            }
+            return item;
+        });
+
+        setLayout(newLayout);
+        setDraggedItem(null);
+    };
+
+    const handleResetLayout = () => {
+        if (window.confirm("레이아웃을 초기화하시겠습니까?")) {
+            setLayout(defaultLayout);
+            setRemovedComponents([]);
+            setEmptySlotSelections({});
+        }
+    };
+
+    // 🗑️ 컴포넌트 삭제
+    const handleRemoveComponent = (itemId) => {
+        const removedItem = layout.find(item => item.id === itemId);
+        if (removedItem) {
+            setLayout(layout.filter(item => item.id !== itemId));
+            setRemovedComponents([...removedComponents, removedItem]);
+        }
+    };
+
+    // ➕ 컴포넌트 추가 (빈 공간에)
+    const handleAddComponent = (targetGridArea, componentToAddId) => {
+        if (!componentToAddId) return;
+
+        // 추가할 컴포넌트 찾기
+        const componentToAdd = removedComponents.find(c => c.id === componentToAddId);
+        // 타겟 위치에 있던 컴포넌트 찾기 (빈 슬롯)
+        const targetSlot = removedComponents.find(c => c.gridArea === targetGridArea);
+        
+        if (!componentToAdd || !targetSlot) return;
+
+        // 위치 교환
+        // 1. 추가할 컴포넌트를 레이아웃에 타겟 위치로 추가
+        const newComponent = { ...componentToAdd, gridArea: targetGridArea };
+        setLayout([...layout, newComponent]);
+        
+        // 2. 타겟 슬롯의 컴포넌트를 제거된 목록에서 추가할 컴포넌트가 있던 위치로 이동
+        const updatedRemovedComponents = removedComponents.map(c => {
+            if (c.id === targetSlot.id) {
+                // 타겟 슬롯을 추가할 컴포넌트가 있던 위치로 이동
+                return { ...c, gridArea: componentToAdd.gridArea };
+            }
+            return c;
+        }).filter(c => c.id !== componentToAddId); // 추가된 컴포넌트는 제거
+        
+        setRemovedComponents(updatedRemovedComponents);
+    };
+
+    // 📦 컴포넌트 렌더링
+    const renderComponent = (item) => {
+        const cardClass = isEditMode ? `${styles.card} ${styles.draggableCard}` : styles.card;
+        const cardStyle = { gridArea: item.gridArea };
+
+        if (item.component === "UnconfirmStatusChart") {
+            return (
+                <section
+                    key={item.id}
+                    className={cardClass}
+                    style={cardStyle}
+                    draggable={isEditMode}
+                    onDragStart={(e) => handleDragStart(e, item)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, item)}
+                >
+                    {isEditMode && (
+                        <>
+                            <button
+                                className={styles.deleteBtn}
+                                onClick={() => handleRemoveComponent(item.id)}
+                                title="삭제"
+                            >
+                                ×
+                            </button>
+                            <div className={styles.dragHint}>드래그하여 이동</div>
+                        </>
+                    )}
+                    <h3 className={styles.cardTitle}>{item.title}</h3>
+                    <UnconfirmStatusChart />
+                </section>
+            );
+        }
+
+        if (item.component === "UnconfirmRegionChart") {
+            return (
+                <section
+                    key={item.id}
+                    className={cardClass}
+                    style={cardStyle}
+                    draggable={isEditMode}
+                    onDragStart={(e) => handleDragStart(e, item)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, item)}
+                >
+                    {isEditMode && (
+                        <>
+                            <button
+                                className={styles.deleteBtn}
+                                onClick={() => handleRemoveComponent(item.id)}
+                                title="삭제"
+                            >
+                                ×
+                            </button>
+                            <div className={styles.dragHint}>드래그하여 이동</div>
+                        </>
+                    )}
+                    <h3 className={styles.cardTitle}>{item.title}</h3>
+                    <UnconfirmRegionChart />
+                </section>
+            );
+        }
+
+        if (item.component === "SummaryChart") {
+            return (
+                <section
+                    key={item.id}
+                    className={cardClass}
+                    style={cardStyle}
+                    draggable={isEditMode}
+                    onDragStart={(e) => handleDragStart(e, item)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, item)}
+                >
+                    {isEditMode && (
+                        <>
+                            <button
+                                className={styles.deleteBtn}
+                                onClick={() => handleRemoveComponent(item.id)}
+                                title="삭제"
+                            >
+                                ×
+                            </button>
+                            <div className={styles.dragHint}>드래그하여 이동</div>
+                        </>
+                    )}
+                    <h3 className={styles.cardTitle}>{item.title}</h3>
+                    <SummaryChart total={152} />
+                </section>
+            );
+        }
+
+        if (item.component === "PagedList") {
+            const isRisk = item.dataKey === "risk";
+            const items = isRisk ? riskStations : unconfirmedStations;
+
+            return (
+                <div
+                    key={item.id}
+                    className={cardClass}
+                    style={cardStyle}
+                    draggable={isEditMode}
+                    onDragStart={(e) => handleDragStart(e, item)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, item)}
+                >
+                    {isEditMode && (
+                        <>
+                            <button
+                                className={styles.deleteBtn}
+                                onClick={() => handleRemoveComponent(item.id)}
+                                title="삭제"
+                            >
+                                ×
+                            </button>
+                            <div className={styles.dragHint}>드래그하여 이동</div>
+                        </>
+                    )}
+                    <PagedList
+                        styles={styles}
+                        title={item.title}
+                        items={items}
+                        pageSize={5}
+                        onView={goDetail}
+                    />
+                </div>
+            );
+        }
+    };
+
+    // 🔲 빈 슬롯 렌더링
+    const renderEmptySlot = (removedComp) => {
+        const { id, gridArea, title } = removedComp;
+        const selectedComponent = emptySlotSelections[id] || "";
+
+        return (
+            <div
+                key={`empty-${id}`}
+                className={styles.emptySlot}
+                style={{ gridArea }}
+            >
+                <p className={styles.emptySlotText}>비어있는 공간</p>
+                <p className={styles.emptySlotText} style={{ fontSize: '11px', color: '#bbb', marginTop: '-8px' }}>
+                    (원래: {title})
+                </p>
+                {removedComponents.length > 0 && (
+                    <>
+                        <div className={styles.componentSelector}>
+                            <select
+                                className={styles.selectorDropdown}
+                                value={selectedComponent}
+                                onChange={(e) => {
+                                    setEmptySlotSelections({
+                                        ...emptySlotSelections,
+                                        [id]: e.target.value
+                                    });
+                                }}
+                            >
+                                <option value="">컴포넌트 선택</option>
+                                {removedComponents.map(comp => (
+                                    <option key={comp.id} value={comp.id}>
+                                        {comp.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        {selectedComponent && (
+                            <button
+                                className={styles.addBtn}
+                                onClick={() => {
+                                    handleAddComponent(gridArea, selectedComponent);
+                                    // 선택 초기화
+                                    const newSelections = { ...emptySlotSelections };
+                                    delete newSelections[id];
+                                    setEmptySlotSelections(newSelections);
+                                }}
+                            >
+                                추가
+                            </button>
+                        )}
+                    </>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className={styles.page}>
             <Header />
@@ -85,6 +371,7 @@ export default function MonitoringPage() {
             <main className={styles.main}>
                 <div className={styles.inner}>
                     <div className={styles.dashboardGrid}>
+                        {/* 왼쪽 검색 패널 (고정) */}
                         <div className={styles.leftPanel}>
                             <Search
                                 styles={styles}
@@ -106,37 +393,38 @@ export default function MonitoringPage() {
                             />
                         </div>
 
-                        <section className={styles.card}>
-                            <h3 className={styles.cardTitle}>상태미확인 충전기 현황</h3>
-                            <UnconfirmStatusChart />
-                        </section>
+                        {/* 🎨 편집 컨트롤 버튼들 */}
+                        <div className={styles.editControls}>
+                            {isEditMode && (
+                                <button
+                                    className={styles.resetBtn}
+                                    onClick={handleResetLayout}
+                                >
+                                    초기화
+                                </button>
+                            )}
+                            <button
+                                className={`${styles.editBtn} ${isEditMode ? styles.active : ''}`}
+                                onClick={() => setIsEditMode(!isEditMode)}
+                            >
+                                {isEditMode ? "완료" : "편집"}
+                            </button>
+                        </div>
 
-                        <section className={styles.card}>
-                            <h3 className={styles.cardTitle}>지역별 상태 미확인 비율</h3>
-                            <UnconfirmRegionChart />
-                        </section>
-
-                        <section className={styles.card}>
-                            <h3 className={styles.cardTitle}>충전기 상태 현황</h3>
-                            <SummaryChart total={152} />
-                        </section>
-
-
-                        <PagedList
-                            styles={styles}
-                            title="이상탐지 위험 충전소 리스트"
-                            items={riskStations}
-                            pageSize={5}
-                            onView={goDetail}
-                        />
-
-                        <PagedList
-                            styles={styles}
-                            title="상태 미확인 충전소 리스트"
-                            items={unconfirmedStations}
-                            pageSize={5}
-                            onView={goDetail}
-                        />
+                        {/* 📊 동적 레이아웃 렌더링 */}
+                        {isEditMode ? (
+                            <>
+                                {/* 현재 레이아웃의 컴포넌트들 */}
+                                {layout.map(item => renderComponent(item))}
+                                
+                                {/* 삭제된 컴포넌트의 빈 슬롯 (편집 모드에서만 표시) */}
+                                {/* 삭제 당시의 실제 위치(gridArea)를 사용 */}
+                                {removedComponents.map(comp => renderEmptySlot(comp))}
+                            </>
+                        ) : (
+                            /* 일반 모드: 현재 레이아웃만 표시 */
+                            layout.map(item => renderComponent(item))
+                        )}
 
                         <div className={styles.gridEmpty} />
                     </div>
