@@ -200,5 +200,50 @@ public class H2DataInitializer implements ApplicationRunner {
       "/static/images/sample-b.jpg",
       "ST000002"
     );
+
+    // request, request_outbound 데이터 추가
+    jdbcTemplate.update(
+            """
+            insert into request
+            (req_id, chger_id, stat_id, title, content, req_type, req_dt, status)
+            values (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            1L,
+            "01",
+            "ST000001",
+            "충전 중 오류 발생",
+            "충전 시작 후 5분 뒤 오류 코드가 표시됩니다.",
+            "COMPLAINT",
+            Timestamp.valueOf(now.minusHours(3)),
+            "PENDING"
+    );
+    jdbcTemplate.update(
+            """
+            insert into request
+            (req_id, chger_id, stat_id, title, content, req_type, req_dt, status)
+            values (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            2L,
+            "01",
+            "ST000002",
+            "충전기 점검 요청",
+            "케이블 연결이 느슨해 보여 점검 요청드립니다.",
+            "REPAIR",
+            Timestamp.valueOf(now.minusDays(1)),
+            "IN_PROGRESS"
+    );
+
+    jdbcTemplate.update(
+            """
+            insert into request_outbound
+            (proc_id, answer, answer_dt, req_id)
+            values (?, ?, ?, ?)
+            """,
+            2L,
+            "충전기 케이블 상태를 확인하고 교체 일정을 안내드리겠습니다.",
+            Timestamp.valueOf(now.minusHours(20)),
+            2L
+    );
+
   }
 }
