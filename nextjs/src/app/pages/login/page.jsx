@@ -13,24 +13,40 @@ import {
     Link as MuiLink,
 } from "@mui/material";
 
-import { login } from "@/app/api/authApi"; // ✅ 추가
+import { login } from "@/app/api/authApi";
 
 export default function Page() {
     const router = useRouter();
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        try {
-            // ✅ userId -> employeeNum 매핑
-            await login({ employeeNum: userId, password });
+        if (isLoading) return; // 1) 로그인 중 중복 제출 방지
 
+        const employeeNum = userId.trim();
+        const pw = password; // 비밀번호는 공백도 비밀번호일 수 있어서 trim 안 함(원하면 trim 가능)
+
+        // 3) 입력값 공백/빈값 차단(최소)
+        if (!employeeNum) {
+            alert("사용자ID를 입력해주세요.");
+            return;
+        }
+        if (!pw) {
+            alert("비밀번호를 입력해주세요.");
+            return;
+        }
+
+        setIsLoading(true); // 1) 로딩 시작
+        try {
+            await login({ employeeNum, password: pw });
             router.push("/pages/monitoring");
-            router.refresh();
+            router.refresh(); // 너 말대로 일단 유지
         } catch (err) {
             alert(err?.message ?? "로그인에 실패했습니다.");
+            setIsLoading(false); // 2) 실패 시 버튼 다시 활성화
         }
     };
 
@@ -60,18 +76,11 @@ export default function Page() {
                             src="/logo.png"
                             alt="한국환경공단 로고"
                             priority
-                            width={210}
-                            height={48}
-                            className="darkreader-ignore"
-                            data-darkreader-ignore
-                            suppressHydrationWarning
+                            width={220}
+                            height={50}
                         />
                     </Box>
-
-                    <Typography sx={{ fontWeight: 800, fontSize: 22, color: "#111" }}>
-                        한국환경공단
-                    </Typography>
-                    <Typography sx={{ fontSize: 14, color: "#666", mt: 0.8 }}>
+                    <Typography sx={{ fontSize: 12, color: "#666", mt: 0.8 }}>
                         Korea Environment Corporation
                     </Typography>
                 </Box>
@@ -114,6 +123,7 @@ export default function Page() {
                         type="submit"
                         fullWidth
                         variant="contained"
+                        disabled={isLoading} // 1) 로그인 중 다시 누르기 방지
                         sx={{
                             height: 56,
                             borderRadius: 0.7,
@@ -121,9 +131,13 @@ export default function Page() {
                             fontSize: 16,
                             backgroundColor: "#1b6fff",
                             "&:hover": { backgroundColor: "#135fe0" },
+                            "&.Mui-disabled": {
+                                backgroundColor: "#9bbcff",
+                                color: "#fff",
+                            },
                         }}
                     >
-                        로그인
+                        {isLoading ? "로그인 중..." : "로그인"}
                     </Button>
 
                     <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2.5 }}>
@@ -133,6 +147,7 @@ export default function Page() {
                             underline="none"
                             sx={{ fontSize: 13, color: "#1b6fff", fontWeight: 600 }}
                             onClick={() => router.push("/pages/signup")}
+                            disabled={isLoading}
                         >
                             회원가입
                         </MuiLink>
