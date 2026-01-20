@@ -36,81 +36,59 @@ export default function Report() {
         else if (type === "custom") setPrompt("맞춤 보고서 기본 프롬포트 형식...");
     };
 
-    // 파일 존재 체크
-    const existsFile = async (url) => {
-        try {
-            const res = await fetch(url, { method: "HEAD" });
-            return res.ok;
-        } catch {
-            return false;
-        }
-    };
 
     /**
      * ✅ 보고서 생성(서버 호출)
      * - 서버가 filePath를 내려주면 미리보기/다운로드에 사용
      */
     // const handleGenerateReport = async () => {
-    //     // ✅ 1. 생성 중이면 아예 무시 (완전 차단)
+    //     // ✅ UI 레벨 중복 차단
     //     if (isGenerating) return;
     //
-    //     // ✅ 2. 입력 검증
+    //     // ✅ UX 검증은 page에서
     //     if (!selectedReportType) {
-    //         alert("보고서 유형을 선택해주세요.");
+    //         setErrorMsg("보고서 유형을 선택해주세요.");
+    //         setOpenError(true);
     //         return;
     //     }
     //     if (!prompt.trim()) {
-    //         alert("프롬포트를 입력해주세요.");
+    //         setErrorMsg("프롬포트를 입력해주세요.");
+    //         setOpenError(true);
     //         return;
     //     }
     //
-    //     try {
-    //         setIsGenerating(true);
-    //         setFilePath(""); // ✅ 이전 미리보기 제거
+    //     setIsGenerating(true);
+    //     setFilePath(""); // 이전 미리보기 제거
     //
-    //         const payload = {
+    //     try {
+    //         const { fileUrl } = await reportApi.generateAndResolve({
     //             reportType: selectedReportType,
     //             prompt,
     //             dataStartTime: null,
     //             dataEndTime: null,
-    //         };
+    //         });
     //
-    //         const data = await reportApi.createReport(payload);
-    //
-    //         // ✅ 3. filePath 존재 여부
-    //         const fp = data?.filePath;
-    //         if (!fp) {
-    //             setErrorMsg("보고서 생성에 실패했습니다. (파일 경로 없음)");
-    //             setOpenError(true);
-    //             return;
-    //         }
-    //
-    //         // ✅ 4. 절대경로로 정규화
-    //         const normalized =
-    //             fp.startsWith("http://") || fp.startsWith("https://")
-    //                 ? fp
-    //                 : `${window.location.origin}${fp.startsWith("/") ? "" : "/"}${fp}`;
-    //
-    //         // ✅ 5. 실제 파일 존재 체크 (404 방지)
-    //         const ok = await existsFile(normalized);
-    //         if (!ok) {
-    //             setErrorMsg("보고서 파일을 찾을 수 없습니다. 다시 생성해주세요.");
-    //             setOpenError(true);
-    //             return;
-    //         }
-    //
-    //         // ✅ 6. 여기까지 왔으면 안전
-    //         setFilePath(normalized);
-    //
+    //         // ✅ page는 결과만 사용
+    //         setFilePath(fileUrl);
     //     } catch (e) {
-    //         setErrorMsg(e.message || "보고서 생성 중 오류가 발생했습니다.");
+    //         setErrorMsg(e.message);
     //         setOpenError(true);
     //     } finally {
-    //         // ✅ 7. 무조건 상태 복구
     //         setIsGenerating(false);
     //     }
     // };
 
+
+    /** API 연동 후 삭제 시작 **/
+        // 파일 존재 체크
+    const existsFile = async (url) => {
+            try {
+                const res = await fetch(url, { method: "HEAD" });
+                return res.ok;
+            } catch {
+                return false;
+            }
+        };
 
     /* 미리보기 테스트 */
     const handleGenerateReport = async () => {
@@ -130,7 +108,7 @@ export default function Report() {
         // 🔹 테스트용: 1초 뒤 가짜 filePath 세팅
         setTimeout(async () => {
             // const testPath = "/files/not-exist.pdf";
-            const testPath = "/pdf/test-report.pdf";
+            const testPath = "/files/test-report.pdf";
             const ok = await existsFile(testPath);
             if (!ok) {
                 setFilePath(""); // ✅ 미리보기 자체를 안 띄움
@@ -145,6 +123,8 @@ export default function Report() {
         }, 1000);
     };
 
+    /** API 연동 후 삭제 끝 **/
+
     /**
      * ✅ 다운로드 확인 누르면:
      * - filePath를 새 탭으로 열거나,
@@ -153,20 +133,18 @@ export default function Report() {
      * (프록시가 Content-Disposition을 attachment로 주면 자동 다운로드 됨)
      */
     const confirmDownload = async () => {
-        if (!filePath) return;
+        try {
+            const fileUrl = await reportApi.validateDownload(filePath);
 
-        const ok = await existsFile(filePath);
-        if (!ok) {
-            setErrorMsg("다운로드할 파일이 존재하지 않습니다. 다시 생성해주세요.");
+            // 실제 다운로드 UX는 page에서
+            window.open(fileUrl, "_blank", "noopener,noreferrer");
+
+            setOpenDownload(false);
+        } catch (e) {
+            setErrorMsg(e.message);
             setOpenError(true);
             setOpenDownload(false);
-            return;
         }
-
-        // 존재하면 진행
-        // window.open(...) 또는 a download 방식 등
-        window.open(filePath, "_blank", "noopener,noreferrer");
-        setOpenDownload(false);
     };
 
     return (
