@@ -33,6 +33,6 @@ public class AiMultimodalReq {
         private Integer chargingGunTemperature2;
         private Integer types;
         private String chgerId;
-        private Strign statId;
+        private String statId;
     }
 }
