@@ -1,3 +1,5 @@
+import axios from "axios";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 // 프론트 전용 임시 계정
@@ -6,46 +8,43 @@ const TEMP_LOGIN = {
     password: "1234",
 };
 
-if (!API_BASE) {
-    throw new Error("NEXT_PUBLIC_API_BASE_URL is not defined");
-}
-
-function toUrl(pathOrUrl) {
-    if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
-    return `${API_BASE}${pathOrUrl}`;
-}
-
 function pickMessage(data, fallback) {
     return data?.message || data?.msg || data?.error || fallback;
 }
 
-async function requestJson(pathOrUrl, { method = "GET", body } = {}) {
-    const res = await fetch(toUrl(pathOrUrl), {
-        method,
-        headers: { "Content-Type": "application/json" },
-        // 쿠키 기반 인증 대비
-        credentials: "include",
-        body: body ? JSON.stringify(body) : undefined,
-    });
+// axios 인스턴스 (http.js 안 쓰는 최소 통일)
+const api = axios.create({
+    baseURL: API_BASE,
+    withCredentials: true,
+    headers: { "Content-Type": "application/json" },
+});
 
-    let data = null;
+// fetch requestJson과 동일한 느낌으로 유지
+async function requestJson(path, { method = "GET", body } = {}) {
     try {
-        data = await res.json();
-    } catch {
-        data = null;
-    }
+        const res = await api.request({
+            url: path,
+            method,
+            data: body, // POST/PUT 등에서 body로 들어감
+            // GET에서 data는 무시되긴 하지만, 깔끔하게 하려면 method별로 분기해도 됨
+        });
 
-    // HTTP status 에러
-    if (!res.ok) {
-        throw new Error(pickMessage(data, `Request failed (HTTP ${res.status})`));
-    }
+        const data = res.data ?? {};
 
-    // API body code 에러(정의서 스타일)
-    if (data && typeof data.code !== "undefined" && data.code !== 200) {
-        throw new Error(pickMessage(data, "Request failed"));
-    }
+        // API body code 에러(정의서 스타일)
+        if (typeof data.code !== "undefined" && data.code !== 200) {
+            throw new Error(pickMessage(data, "Request failed"));
+        }
 
-    return data ?? {};
+        return data;
+    } catch (err) {
+        // axios는 실패 시 여기로 떨어짐(네트워크/4xx/5xx 등)
+        const msg = pickMessage(
+            err?.response?.data,
+            `Request failed${err?.response?.status ? ` (HTTP ${err.response.status})` : ""}`
+        );
+        throw new Error(msg);
+    }
 }
 
 // POST /api/user/login
@@ -59,7 +58,7 @@ export async function login({ employeeNum, password }) {
         return { code: 200 };
     }
 
-    // 🔽 그 외는 기존대로 백엔드 호출
+    // 🔽 그 외는 기존대로 백엔드 호출(백엔드 없으면 에러 뜸)
     return requestJson("/api/user/login", {
         method: "POST",
         body: { employeeNum, password },
@@ -74,12 +73,12 @@ export function signup({ employeeNum, password, username, department }) {
     });
 }
 
-// GET /api/user/me
+// GET /api/user/me (아직 안 쓴다 했으니 그대로 둬도 됨)
 export function me() {
-    return requestJson("/api/user/me");
+    return requestJson("/api/user/me", { method: "GET" });
 }
 
-// GET /api/user/logout
+// GET /api/user/logout (아직 안 쓴다 했으니 그대로 둬도 됨)
 export function logout() {
-    return requestJson("/api/user/logout");
+    return requestJson("/api/user/logout", { method: "GET" });
 }
