@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import styles from './page.module.css';
-
-import { signup } from '@/app/api/authApi'; // ✅ 추가
 
 export default function Signup() {
     const router = useRouter();
@@ -53,7 +52,6 @@ export default function Signup() {
             alert('아이디를 입력해주세요.');
             return;
         }
-        // ✅ 현재 정의서에 중복확인 API가 없어서 임시로만 처리
         setIsIdVerified(true);
         alert('사용 가능한 아이디입니다.');
     };
@@ -97,18 +95,25 @@ export default function Signup() {
         }
 
         try {
-            // ✅ userId -> employeeNum 매핑
-            await signup({
+            const payload = {
                 employeeNum: formData.userId,
                 password: formData.password,
                 username: formData.name,
                 department: formData.department,
+            };
+
+            await axios.post('/api/authApi/signup', payload, {
+                headers: { 'Content-Type': 'application/json' },
             });
 
             alert('회원가입이 완료되었습니다.');
             router.push('/pages/login');
         } catch (err) {
-            alert(err?.message ?? '회원가입에 실패했습니다.');
+            const msg =
+                err?.response?.data?.message ||
+                err?.message ||
+                '회원가입에 실패했습니다.';
+            alert(msg);
         }
     };
 

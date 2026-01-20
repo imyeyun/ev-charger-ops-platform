@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
 import {
     Box,
@@ -13,8 +14,6 @@ import {
     Link as MuiLink,
 } from "@mui/material";
 
-import { login } from "@/app/api/authApi";
-
 export default function Page() {
     const router = useRouter();
     const [userId, setUserId] = useState("");
@@ -23,13 +22,11 @@ export default function Page() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (isLoading) return; // 1) 로그인 중 중복 제출 방지
+        if (isLoading) return;
 
         const employeeNum = userId.trim();
-        const pw = password; // 비밀번호는 공백도 비밀번호일 수 있어서 trim 안 함(원하면 trim 가능)
+        const pw = password;
 
-        // 3) 입력값 공백/빈값 차단(최소)
         if (!employeeNum) {
             alert("사용자ID를 입력해주세요.");
             return;
@@ -39,14 +36,23 @@ export default function Page() {
             return;
         }
 
-        setIsLoading(true); // 1) 로딩 시작
+        setIsLoading(true);
         try {
-            await login({ employeeNum, password: pw });
+            await axios.post(
+                "/api/authApi/login",
+                { employeeNum, password: pw },
+                { headers: { "Content-Type": "application/json" } }
+            );
+
             router.push("/pages/monitoring");
             router.refresh(); // 너 말대로 일단 유지
         } catch (err) {
-            alert(err?.message ?? "로그인에 실패했습니다.");
-            setIsLoading(false); // 2) 실패 시 버튼 다시 활성화
+            const msg =
+                err?.response?.data?.message ||
+                err?.message ||
+                "로그인에 실패했습니다.";
+            alert(msg);
+            setIsLoading(false);
         }
     };
 
@@ -123,7 +129,7 @@ export default function Page() {
                         type="submit"
                         fullWidth
                         variant="contained"
-                        disabled={isLoading} // 1) 로그인 중 다시 누르기 방지
+                        disabled={isLoading}
                         sx={{
                             height: 56,
                             borderRadius: 0.7,

@@ -11,20 +11,20 @@ import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 
-import reportApi from "@/app/api/reportApi";
+import reportApi from "@/app/api/reportApi"; // repoetApi의 경우 로직이 복잡해 따로 reportApi.jsx 로 분리
 
 export default function Report() {
     const [selectedReportType, setSelectedReportType] = useState("");
     const [prompt, setPrompt] = useState("");
 
-    // 서버가 준 PDF 경로(프론트 도메인 기준 /files/... 형태)
+    // 서버가 준 PDF URL(프론트에서 열 수 있는 형태)
     const [filePath, setFilePath] = useState("");
 
     // UI 상태
     const [isGenerating, setIsGenerating] = useState(false);
     const [openDownload, setOpenDownload] = useState(false);
 
-    // 파일 없을때 오류
+    // 에러 팝업
     const [openError, setOpenError] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
@@ -36,10 +36,10 @@ export default function Report() {
         else if (type === "custom") setPrompt("맞춤 보고서 기본 프롬포트 형식...");
     };
 
-
     /**
-     * ✅ 보고서 생성(서버 호출)
-     * - 서버가 filePath를 내려주면 미리보기/다운로드에 사용
+     * ✅ 백엔드 연동 버전
+     * - reportApi.generateAndResolve()만 호출
+     * - 결과로 받은 fileUrl을 미리보기/다운로드에 사용
      */
     // const handleGenerateReport = async () => {
     //     // ✅ UI 레벨 중복 차단
@@ -68,80 +68,73 @@ export default function Report() {
     //             dataEndTime: null,
     //         });
     //
-    //         // ✅ page는 결과만 사용
     //         setFilePath(fileUrl);
     //     } catch (e) {
-    //         setErrorMsg(e.message);
+    //         setErrorMsg(e?.message || "보고서 생성 중 오류가 발생했습니다.");
     //         setOpenError(true);
     //     } finally {
     //         setIsGenerating(false);
     //     }
     // };
 
-
-    /** API 연동 후 삭제 시작 **/
-        // 파일 존재 체크
+    // ✅ 테스트용 파일 존재 체크
     const existsFile = async (url) => {
-            try {
-                const res = await fetch(url, { method: "HEAD" });
-                return res.ok;
-            } catch {
-                return false;
-            }
-        };
+        try {
+            const res = await fetch(url, { method: "HEAD" });
+            return res.ok;
+        } catch {
+            return false;
+        }
+    };
 
-    /* 미리보기 테스트 */
+    /**
+     * ✅ 테스트 버전(백엔드 없이)
+     * - 1초 딜레이 후 testPath로 미리보기 띄우기
+     */
     const handleGenerateReport = async () => {
-        if (isGenerating) return; // ✅ 이미 생성 중이면 무시
+        if (isGenerating) return;
 
         if (!selectedReportType) {
-            alert("보고서 유형을 선택해주세요.");
+            setErrorMsg("보고서 유형을 선택해주세요.");
+            setOpenError(true);
             return;
         }
         if (!prompt.trim()) {
-            alert("프롬포트를 입력해주세요.");
+            setErrorMsg("프롬포트를 입력해주세요.");
+            setOpenError(true);
             return;
         }
 
         setIsGenerating(true);
 
-        // 🔹 테스트용: 1초 뒤 가짜 filePath 세팅
         setTimeout(async () => {
-            // const testPath = "/files/not-exist.pdf";
             const testPath = "/pdf/test-report.pdf";
             const ok = await existsFile(testPath);
+
             if (!ok) {
-                setFilePath(""); // ✅ 미리보기 자체를 안 띄움
+                setFilePath("");
                 setErrorMsg("보고서 파일을 찾을 수 없습니다. 다시 생성해주세요.");
                 setOpenError(true);
                 setIsGenerating(false);
                 return;
             }
 
-            setFilePath(testPath); // ✅ 존재할 때만 미리보기 띄움
+            setFilePath(testPath);
             setIsGenerating(false);
         }, 1000);
     };
 
-    /** API 연동 후 삭제 끝 **/
 
     /**
-     * ✅ 다운로드 확인 누르면:
-     * - filePath를 새 탭으로 열거나,
-     * - a 태그 download로 저장 트리거
-     *
-     * (프록시가 Content-Disposition을 attachment로 주면 자동 다운로드 됨)
+     * ✅ 다운로드 확인
      */
     const confirmDownload = async () => {
         try {
             const fileUrl = await reportApi.validateDownload(filePath);
-
-            // 실제 다운로드 UX는 page에서
             window.open(fileUrl, "_blank", "noopener,noreferrer");
-
             setOpenDownload(false);
         } catch (e) {
-            setErrorMsg(e.message);
+            setErrorMsg(e?.message || "다운로드할 파일을 확인할 수 없습니다.");
             setOpenError(true);
             setOpenDownload(false);
         }
@@ -216,8 +209,6 @@ export default function Report() {
 
                             <div className={styles.previewContent}>
                                 {filePath ? (
-                                    // ✅ 서버가 준 PDF URL로 미리보기
-                                    // (CSP/헤더에 따라 iframe이 막힐 수 있음. 그땐 링크로 대체하면 됨)
                                     <iframe
                                         title="report-preview"
                                         src={filePath}
@@ -256,27 +247,47 @@ export default function Report() {
                 </div>
 
                 {/* MUI 팝업: PDF 다운로드 */}
-                <Dialog open={openDownload} onClose={() => setOpenDownload(false)} maxWidth="xs" fullWidth>
+                <Dialog
+                    open={openDownload}
+                    onClose={() => setOpenDownload(false)}
+                    maxWidth="xs"
+                    fullWidth
+                >
                     <DialogTitle>PDF 다운로드</DialogTitle>
                     <DialogContent>
-                        <Typography variant="body2">생성된 보고서를 PDF 파일로 다운로드하시겠습니까?</Typography>
+                        <Typography variant="body2">
+                            생성된 보고서를 PDF 파일로 다운로드하시겠습니까?
+                        </Typography>
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => setOpenDownload(false)} variant="outlined">
                             취소
                         </Button>
-                        <Button onClick={confirmDownload} variant="contained" disabled={!filePath}>
+                        <Button
+                            onClick={confirmDownload}
+                            variant="contained"
+                            disabled={!filePath}
+                        >
                             확인
                         </Button>
                     </DialogActions>
                 </Dialog>
-                <Dialog open={openError} onClose={() => setOpenError(false)} maxWidth="xs" fullWidth>
-                    <DialogTitle>파일을 불러올 수 없음</DialogTitle>
+
+                {/* 에러 팝업 */}
+                <Dialog
+                    open={openError}
+                    onClose={() => setOpenError(false)}
+                    maxWidth="xs"
+                    fullWidth
+                >
+                    <DialogTitle>오류</DialogTitle>
                     <DialogContent>
                         <Typography variant="body2">{errorMsg}</Typography>
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={() => setOpenError(false)} variant="contained">확인</Button>
+                        <Button onClick={() => setOpenError(false)} variant="contained">
+                            확인
+                        </Button>
                     </DialogActions>
                 </Dialog>
             </div>
