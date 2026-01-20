@@ -76,6 +76,8 @@ public class MultimodalAnalysisService {
 
         AiMultimodalReq.SensorLogInfo sensorInfo = AiMultimodalReq.SensorLogInfo.builder()
                 .sensorTime(sensorLog.getSensorTime())
+                .chgerId(sensorLog.getChgerId())
+                .statId(sensorLog.getStatId())
                 .totalChargingKwh(sensorLog.getTotalChargingKwh())
                 .totalChargingMin(sensorLog.getTotalChargingMin())
                 .currentSoc(sensorLog.getCurrentSoc())

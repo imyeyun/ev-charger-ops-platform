@@ -102,6 +102,15 @@ public class H2DataInitializer implements ApplicationRunner {
       "50kW",
       "DC"
     );
+    // 충전소 하나에 충전기 여러대 확인
+    jdbcTemplate.update(
+            "insert into charger (chger_id, stat_id, chger_type, output, method) values (?, ?, ?, ?, ?)",
+            "02",
+            "ST000001",
+            "01",
+            "7kW",
+            "AC"
+    );
     jdbcTemplate.update(
       "insert into charger (chger_id, stat_id, chger_type, output, method) values (?, ?, ?, ?, ?)",
       "01",

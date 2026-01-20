@@ -32,5 +32,7 @@ public class AiMultimodalReq {
         private Integer chargingGunTemperature1;
         private Integer chargingGunTemperature2;
         private Integer types;
+        private String chgerId;
+        private Strign statId;
     }
 }

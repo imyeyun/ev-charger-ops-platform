@@ -169,6 +169,8 @@ public class MultimodalAnalysis {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumns({
             @JoinColumn(name = "sensor_time", referencedColumnName = "sensor_time", insertable = false, updatable = false),
+            @JoinColumn(name = "chger_id", referencedColumnName = "chger_id", insertable = false, updatable = false),
+            @JoinColumn(name = "stat_id", referencedColumnName = "stat_id", insertable = false, updatable = false)
 
     })
     private SensorLog sensorlog;

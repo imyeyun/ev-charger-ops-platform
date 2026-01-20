@@ -40,7 +40,8 @@ public class SecurityConfig {
                                 "/api/request", //API 임시 테스트용
                                 "/api/request_outbound",
                                 "/api/QNA",
-                                "/api/report"
+                                "/api/report",
+                                "api/charging_station/detail"
                                 
                         ).permitAll()
                         .anyRequest().authenticated()

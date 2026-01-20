@@ -21,6 +21,12 @@ public class ChargingStationController {
     private final ChargingStationService chargingStationService;
 
     @Operation(summary = "충전소 상세 조회", description = "충전소 ID로 상세 정보 조회")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(
+        examples = @ExampleObject(value = """
+                {
+                    "statId": "ST000001"
+                }
+                """)))
     @PostMapping("/detail")
     public ResponseEntity<StationDetailRes> getStationDetail(@RequestBody StationDetailReq request) {
         StationDetailRes response = chargingStationService.getStationDetail(request);
