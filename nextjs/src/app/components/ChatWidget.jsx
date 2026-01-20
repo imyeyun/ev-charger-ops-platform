@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import axios from "axios";
 
 export default function ChatWidget({ open, onClose }) {
     const [messages, setMessages] = useState([
         { id: 1, role: "bot", text: "안녕하세요! 무엇을 도와드릴까요?" },
     ]);
     const [input, setInput] = useState("");
+    const [sending, setSending] = useState(false);
     const listRef = useRef(null);
 
     useEffect(() => {
@@ -15,23 +17,59 @@ export default function ChatWidget({ open, onClose }) {
         if (el) el.scrollTop = el.scrollHeight;
     }, [open, messages]);
 
-    const send = () => {
+
+    const callQnaApi = async (prompt) => {
+        
+
+        const res = await axios.post("/api/qnaApi", { prompt });
+        console.log("[QnA] response <=", res?.data);
+        return res?.data?.answer ?? "";
+    };
+
+    const send = async () => {
         const text = input.trim();
-        if (!text) return;
+        if (!text || sending) return;
 
         const userMsg = { id: Date.now(), role: "user", text };
         setMessages((prev) => [...prev, userMsg]);
         setInput("");
 
-        // ✅ 임시 응답(추후 API 연결 시 이 부분 교체)
-        setTimeout(() => {
-            const botMsg = {
-                id: Date.now() + 1,
-                role: "bot",
-                text: `확인했어요: "${text}"`,
-            };
-            setMessages((prev) => [...prev, botMsg]);
-        }, 400);
+        setSending(true);
+
+        // 로딩 메시지
+        const loadingId = Date.now() + 1;
+        setMessages((prev) => [
+            ...prev,
+            { id: loadingId, role: "bot", text: "답변 생성 중..." },
+        ]);
+
+        try {
+            const answer = await callQnaApi(text);
+
+            const botText = answer?.trim()
+                ? answer
+                : "응답이 비어있습니다. (백 응답 형식 확인 필요)";
+
+            setMessages((prev) =>
+                prev.map((m) => (m.id === loadingId ? { ...m, text: botText } : m))
+            );
+        } catch (err) {
+            console.log("[QnA] error <=", err);
+
+            const msg =
+                err?.response?.data?.message ||
+                err?.response?.data?.error ||
+                err?.message ||
+                "요청 실패";
+
+            setMessages((prev) =>
+                prev.map((m) =>
+                    m.id === loadingId ? { ...m, text: `요청 실패: ${msg}` } : m
+                )
+            );
+        } finally {
+            setSending(false);
+        }
     };
 
     const onKeyDown = (e) => {
@@ -46,7 +84,7 @@ export default function ChatWidget({ open, onClose }) {
             style={{
                 position: "fixed",
                 left: 20,
-                bottom: 96, // 하단 고정 버튼과 겹치지 않게
+                bottom: 96,
                 width: 340,
                 height: 440,
                 background: "#ffffff",
@@ -110,7 +148,13 @@ export default function ChatWidget({ open, onClose }) {
                 {messages.map((m) => {
                     const isUser = m.role === "user";
                     return (
-                        <div key={m.id} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start" }}>
+                        <div
+                            key={m.id}
+                            style={{
+                                display: "flex",
+                                justifyContent: isUser ? "flex-end" : "flex-start",
+                            }}
+                        >
                             <div
                                 style={{
                                     maxWidth: "78%",
@@ -121,9 +165,12 @@ export default function ChatWidget({ open, onClose }) {
                                     background: isUser ? "#1b6fff" : "#ffffff",
                                     color: isUser ? "#ffffff" : "#111111",
                                     border: isUser ? "none" : "1px solid #e6e6e6",
-                                    boxShadow: isUser ? "none" : "0 2px 8px rgba(0,0,0,0.04)",
+                                    boxShadow: isUser
+                                        ? "none"
+                                        : "0 2px 8px rgba(0,0,0,0.04)",
                                     whiteSpace: "pre-wrap",
                                     wordBreak: "break-word",
+                                    opacity: m.text === "답변 생성 중..." ? 0.75 : 1,
                                 }}
                             >
                                 {m.text}
@@ -161,23 +208,25 @@ export default function ChatWidget({ open, onClose }) {
                 outline: "none",
                 fontFamily: "Arial, sans-serif",
             }}
+            disabled={sending}
         />
                 <button
                     type="button"
                     onClick={send}
+                    disabled={sending}
                     style={{
                         height: 34,
                         padding: "0 14px",
                         borderRadius: 8,
                         border: "none",
-                        background: "#1b6fff",
+                        background: sending ? "#9bbcff" : "#1b6fff",
                         color: "#fff",
                         fontSize: 12,
                         fontWeight: 800,
-                        cursor: "pointer",
+                        cursor: sending ? "not-allowed" : "pointer",
                     }}
                 >
-                    전송
+                    {sending ? "전송중" : "전송"}
                 </button>
             </div>
         </div>
