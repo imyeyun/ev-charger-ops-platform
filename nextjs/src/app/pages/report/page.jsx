@@ -108,7 +108,7 @@ export default function Report() {
         // 🔹 테스트용: 1초 뒤 가짜 filePath 세팅
         setTimeout(async () => {
             // const testPath = "/files/not-exist.pdf";
-            const testPath = "/files/test-report.pdf";
+            const testPath = "/pdf/test-report.pdf";
             const ok = await existsFile(testPath);
             if (!ok) {
                 setFilePath(""); // ✅ 미리보기 자체를 안 띄움
