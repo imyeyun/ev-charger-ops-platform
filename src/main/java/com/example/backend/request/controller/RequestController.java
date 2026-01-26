@@ -38,14 +38,14 @@ public class RequestController {
                         {
                           "reqId": 2,
                           "title": "string",
-                          "reqType": "COMPLAINT",
+                          "reqType": "CHARGER_BREAKDOWN",
                           "reqDt": "2024-01-10T10:00:00",
                           "field": "PENDING"
                         },
                         {
                           "reqId": 1,
                           "title": "string",
-                          "reqType": "INQUIRY",
+                          "reqType": "SUBSIDY",
                           "reqDt": "2024-01-09T09:00:00",
                           "field": "COMPLETED"
                         }
@@ -80,7 +80,7 @@ public class RequestController {
                           "busId": "01",
                           "title": "string",
                           "content": "string",
-                          "reqType": "COMPLAINT",
+                          "reqType": "CHARGER_BREAKDOWN",
                           "reqDt": "2024-01-10T10:00:00",
                           "status": "PENDING"
                         },

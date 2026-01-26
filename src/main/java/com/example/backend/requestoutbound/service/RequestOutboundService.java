@@ -26,6 +26,7 @@ import com.example.backend.requestoutbound.repository.RequestOutboundRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -45,7 +46,7 @@ public class RequestOutboundService {
     private final MultimodalAnalysisRepository multimodalAnalysisRepository;
     private final AiComplaintClient aiComplaintClient;
 
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public OutboundBatchRes processRequests(OutboundBatchReq req) {
         List<Long> reqIds = req.getReqIds();
         List<Request> requests = requestRepository.findAllById(reqIds);
@@ -88,6 +89,9 @@ public class RequestOutboundService {
     }
 
   private OutboundBatchRes.OutboundResult processSingleRequest(Request request) {
+        request.updateStatus(RequestStatus.IN_PROGRESS);
+        requestRepository.save(request);
+
         AiComplaintReq aiRequest = buildAiRequest(request);
         AiComplaintRes aiResponse = aiComplaintClient.generateAnswer(aiRequest);
 
@@ -100,6 +104,7 @@ public class RequestOutboundService {
         RequestOutbound saved = requestOutboundRepository.save(outbound);
 
         request.updateStatus(RequestStatus.COMPLETED);
+        requestRepository.save(request);
 
         return OutboundBatchRes.OutboundResult.builder()
                 .reqId(request.getReqId())
