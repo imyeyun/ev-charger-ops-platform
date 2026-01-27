@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+    commands:
+      - java -version
+
+  build:
+    commands:
+      - cd backend
+      - chmod +x gradlew
+      - ./gradlew clean build -x test
+      - cd ../../..
+
+artifacts:
+  files:
+    - appspec.yml
+    - scripts/**/*
+    - backend/build/libs/*.jar
