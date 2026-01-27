@@ -24,7 +24,7 @@ public class WebClientConfig {
 
     private final ObjectMapper objectMapper; // ✅ 주입
 
-    @Value("${ai.server.url:http://localhost:8000}")
+    @Value("${ai.server.url:http://localhost:8888}") //⭐ fast api 주소로 변경
     private String aiServerUrl;
 
     @Value("${ai.server.connect-timeout:5000}")

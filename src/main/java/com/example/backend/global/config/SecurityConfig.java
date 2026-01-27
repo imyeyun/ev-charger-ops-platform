@@ -39,7 +39,7 @@ public class SecurityConfig {
                                 "/api/user/login",
                                 "/api/request", //API 임시 테스트용
                                 "/api/request_outbound",
-                                "/api/QNA",
+                                "/api/QnA", // ⭐ 오타 수정
                                 "/api/report",
                                 "api/charging_station/detail"
                                 

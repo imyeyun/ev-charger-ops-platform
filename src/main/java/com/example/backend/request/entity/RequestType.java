@@ -2,10 +2,9 @@ package com.example.backend.request.entity;
 
 public enum RequestType {
 
-    COMPLAINT("민원"),
-    REPAIR("수리요청"),
-    INQUIRY("문의"),
-    SUGGESTION("건의사항"),
+    CHARGER_BREAKDOWN("충전기 고장"),
+    PAYMENT("결제"),
+    SUBSIDY("보조금"),
     OTHER("기타");
 
     private final String description;

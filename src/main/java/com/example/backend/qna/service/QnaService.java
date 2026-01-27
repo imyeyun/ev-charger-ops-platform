@@ -27,6 +27,7 @@ public class QnaService {
         AiQnaReq aiRequest = AiQnaReq.builder()
                 //.prompt(request.getPrompt())
                 .prompt(prompt)
+                .sessionId("default-session") // ⭐ 세션 아이디 추가
                 .build();
 
         AiQnaRes aiResponse = aiQnaClient.askQuestion(aiRequest);
