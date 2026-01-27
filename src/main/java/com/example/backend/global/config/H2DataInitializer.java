@@ -93,61 +93,6 @@ public class H2DataInitializer implements ApplicationRunner {
       "테스트용 초기 데이터",
       2023
     );
-    jdbcTemplate.update(
-            """
-            insert into charging_station
-            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, install_year)
-            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            "ST000003",
-            "11",
-            "11000",
-            "AA",
-            "테스트 충전소 C",
-            "서울시 강남구 테스트로 3",
-            37.4988,
-            127.0301,
-            "02-5555-1111",
-            "테스트용 추가 데이터",
-            2024
-    );
-    jdbcTemplate.update(
-            """
-            insert into charging_station
-            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, install_year)
-            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            "ST000004",
-            "26",
-            "26000",
-            "AA",
-            "테스트 충전소 D",
-            "부산시 해운대구 테스트로 4",
-            35.1639,
-            129.1651,
-            "051-7777-2222",
-            "테스트용 추가 데이터",
-            2024
-    );
-    jdbcTemplate.update(
-            """
-            insert into charging_station
-            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, install_year)
-            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            "ST000005",
-            "11",
-            "11000",
-            "AA",
-            "테스트 충전소 E",
-            "서울시 강남구 테스트로 5",
-            37.4962,
-            127.0254,
-            "02-8888-3333",
-            "테스트용 추가 데이터",
-            2024
-    );
-
 
     jdbcTemplate.update(
       "insert into charger (chger_id, stat_id, chger_type, output, method) values (?, ?, ?, ?, ?)",
@@ -174,31 +119,6 @@ public class H2DataInitializer implements ApplicationRunner {
       "7kW",
       "AC"
     );
-    jdbcTemplate.update(
-            "insert into charger (chger_id, stat_id, chger_type, output, method) values (?, ?, ?, ?, ?)",
-            "02",
-            "ST000003",
-            "02",
-            "50kW",
-            "DC"
-    );
-    jdbcTemplate.update(
-            "insert into charger (chger_id, stat_id, chger_type, output, method) values (?, ?, ?, ?, ?)",
-            "03",
-            "ST000004",
-            "01",
-            "7kW",
-            "AC"
-    );
-    jdbcTemplate.update(
-            "insert into charger (chger_id, stat_id, chger_type, output, method) values (?, ?, ?, ?, ?)",
-            "04",
-            "ST000005",
-            "02",
-            "100kW",
-            "DC"
-    );
-
 
     LocalDateTime now = LocalDateTime.now();
     jdbcTemplate.update(
@@ -216,20 +136,6 @@ public class H2DataInitializer implements ApplicationRunner {
       2
     );
     jdbcTemplate.update(
-            """
-            insert into charger_log
-            (chger_time, chger_id, stat_id, last_tsdt, last_tedt, stat_upd_dt, stat)
-            values (?, ?, ?, ?, ?, ?, ?)
-            """,
-            Timestamp.valueOf(now.minusMinutes(12)),
-            "02",
-            "ST000001",
-            Timestamp.valueOf(now.minusHours(2)),
-            Timestamp.valueOf(now.minusHours(1).minusMinutes(20)),
-            Timestamp.valueOf(now.minusMinutes(9)),
-            1
-    );
-    jdbcTemplate.update(
       """
       insert into charger_log
       (chger_time, chger_id, stat_id, last_tsdt, last_tedt, stat_upd_dt, stat)
@@ -242,48 +148,6 @@ public class H2DataInitializer implements ApplicationRunner {
       Timestamp.valueOf(now.minusHours(1)),
       Timestamp.valueOf(now.minusMinutes(3)),
       3
-    );
-    jdbcTemplate.update(
-            """
-            insert into charger_log
-            (chger_time, chger_id, stat_id, last_tsdt, last_tedt, stat_upd_dt, stat)
-            values (?, ?, ?, ?, ?, ?, ?)
-            """,
-            Timestamp.valueOf(now.minusMinutes(25)),
-            "02",
-            "ST000003",
-            Timestamp.valueOf(now.minusHours(3)),
-            Timestamp.valueOf(now.minusHours(2).minusMinutes(30)),
-            Timestamp.valueOf(now.minusMinutes(20)),
-            2
-    );
-    jdbcTemplate.update(
-            """
-            insert into charger_log
-            (chger_time, chger_id, stat_id, last_tsdt, last_tedt, stat_upd_dt, stat)
-            values (?, ?, ?, ?, ?, ?, ?)
-            """,
-            Timestamp.valueOf(now.minusMinutes(18)),
-            "03",
-            "ST000004",
-            Timestamp.valueOf(now.minusHours(5)),
-            Timestamp.valueOf(now.minusHours(4).minusMinutes(20)),
-            Timestamp.valueOf(now.minusMinutes(15)),
-            1
-    );
-    jdbcTemplate.update(
-            """
-            insert into charger_log
-            (chger_time, chger_id, stat_id, last_tsdt, last_tedt, stat_upd_dt, stat)
-            values (?, ?, ?, ?, ?, ?, ?)
-            """,
-            Timestamp.valueOf(now.minusMinutes(8)),
-            "04",
-            "ST000005",
-            Timestamp.valueOf(now.minusHours(1).minusMinutes(10)),
-            Timestamp.valueOf(now.minusHours(1)),
-            Timestamp.valueOf(now.minusMinutes(5)),
-            3
     );
 
     jdbcTemplate.update(
@@ -358,7 +222,7 @@ public class H2DataInitializer implements ApplicationRunner {
             "ST000001",
             "충전 중 오류 발생",
             "충전 시작 후 5분 뒤 오류 코드가 표시됩니다.",
-            "CHARGER_BREAKDOWN",
+            "COMPLAINT",
             Timestamp.valueOf(now.minusHours(3)),
             "PENDING"
     );
@@ -373,54 +237,9 @@ public class H2DataInitializer implements ApplicationRunner {
             "ST000002",
             "충전기 점검 요청",
             "케이블 연결이 느슨해 보여 점검 요청드립니다.",
-            "CHARGER_BREAKDOWN",
+            "REPAIR",
             Timestamp.valueOf(now.minusDays(1)),
             "IN_PROGRESS"
-    );
-    jdbcTemplate.update(
-            """
-            insert into request
-            (req_id, chger_id, stat_id, title, content, req_type, req_dt, status)
-            values (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            3L,
-            "02",
-            "ST000003",
-            "충전 중 갑자기 중단됩니다",
-            "충전 시작 후 2~3분 지나면 자동으로 중단되고 다시 시작이 안 됩니다.",
-            "CHARGER_BREAKDOWN",
-            Timestamp.valueOf(now.minusHours(6)),
-            "PENDING"
-    );
-    jdbcTemplate.update(
-            """
-            insert into request
-            (req_id, chger_id, stat_id, title, content, req_type, req_dt, status)
-            values (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            4L,
-            "03",
-            "ST000004",
-            "보조금 적용 여부 문의",
-            "정부 보조금 적용 대상인지 확인하는 방법과 신청 절차를 알려주세요.",
-            "SUBSIDY",
-            Timestamp.valueOf(now.minusHours(10)),
-            "PENDING"
-    );
-    jdbcTemplate.update(
-            """
-            insert into request
-            (req_id, chger_id, stat_id, title, content, req_type, req_dt, status)
-            values (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            5L,
-            "04",
-            "ST000005",
-            "결제 오류 발생",
-            "카드 결제가 계속 실패하고 앱에서도 결제 수단 등록이 되지 않습니다.",
-            "PAYMENT",
-            Timestamp.valueOf(now.minusDays(2)),
-            "PENDING"
     );
 
     jdbcTemplate.update(
