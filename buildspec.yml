@@ -12,7 +12,7 @@ phases:
       - cd backend
       - chmod +x gradlew
       - ./gradlew clean build -x test
-      - cd ../../..
+      - cd ../..
 
 artifacts:
   files:
