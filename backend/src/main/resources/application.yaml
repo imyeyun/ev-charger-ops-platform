@@ -7,6 +7,9 @@ spring:
     active: local
 # 로컬에서는 local로 배포시에 prod로 수정
 
+server:
+  forward-headers-strategy: framework
+
 # Swagger 설정 (WebMVC + WebFlux 공존 환경)
 springdoc:
   api-docs:
