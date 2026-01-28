@@ -189,3 +189,14 @@ export default function Header() {
         </header>
     );
 }
+
+
+let __monitoringDashboardState__ = null;
+
+export function setMonitoringDashboardState(state) {
+    __monitoringDashboardState__ = state;
+}
+
+export function getMonitoringDashboardState() {
+    return __monitoringDashboardState__;
+}

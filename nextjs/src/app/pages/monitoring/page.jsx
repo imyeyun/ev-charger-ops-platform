@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import Header from "@/app/components/Header";
+import Header, {
+    getMonitoringDashboardState,
+    setMonitoringDashboardState,
+} from "@/app/components/Header";
 import ChatWidget from "@/app/components/ChatWidget";
 import styles from "./page.module.css";
 
@@ -47,9 +50,37 @@ export default function MonitoringPage() {
     // 전체 사용 가능한 컴포넌트 목록 (고정)
     const availableComponents = useMemo(() => defaultLayout, []);
 
-    const [layout, setLayout] = useState(defaultLayout);
-    const [removedComponents, setRemovedComponents] = useState([]);
-    const [emptySlotSelections, setEmptySlotSelections] = useState({});
+    // ✅ [추가] 헤더 전역 저장값 로드
+    const [layout, setLayout] = useState(() => {
+        const saved = getMonitoringDashboardState();
+        if (saved && Array.isArray(saved.layout)) return saved.layout;
+        return defaultLayout;
+    });
+
+    // ✅ [추가] 삭제된 컴포넌트 복원
+    const [removedComponents, setRemovedComponents] = useState(() => {
+        const saved = getMonitoringDashboardState();
+        if (saved && Array.isArray(saved.removedComponents)) return saved.removedComponents;
+        return [];
+    });
+
+    // ✅ [추가] 빈 슬롯 선택 상태 복원
+    const [emptySlotSelections, setEmptySlotSelections] = useState(() => {
+        const saved = getMonitoringDashboardState();
+        if (saved && saved.emptySlotSelections && typeof saved.emptySlotSelections === "object") {
+            return saved.emptySlotSelections;
+        }
+        return {};
+    });
+
+    // ✅ [추가] 상태 변경 시마다 헤더 전역변수에 저장(로그아웃 전까지 유지)
+    useEffect(() => {
+        setMonitoringDashboardState({
+            layout,
+            removedComponents,
+            emptySlotSelections,
+        });
+    }, [layout, removedComponents, emptySlotSelections]);
 
     // 더미
     const stationList = useMemo(
@@ -158,23 +189,23 @@ export default function MonitoringPage() {
         const componentToAdd = removedComponents.find(c => c.id === componentToAddId);
         // 타겟 위치에 있던 컴포넌트 찾기 (빈 슬롯)
         const targetSlot = removedComponents.find(c => c.gridArea === targetGridArea);
-        
+
         if (!componentToAdd || !targetSlot) return;
 
         // 위치 교환
         // 1. 추가할 컴포넌트를 레이아웃에 타겟 위치로 추가
         const newComponent = { ...componentToAdd, gridArea: targetGridArea };
         setLayout([...layout, newComponent]);
-        
+
         // 2. 타겟 슬롯의 컴포넌트를 제거된 목록에서 추가할 컴포넌트가 있던 위치로 이동
         const updatedRemovedComponents = removedComponents.map(c => {
-            if (c.id === targetSlot.id) {
-                // 타겟 슬롯을 추가할 컴포넌트가 있던 위치로 이동
-                return { ...c, gridArea: componentToAdd.gridArea };
-            }
-            return c;
-        }).filter(c => c.id !== componentToAddId); // 추가된 컴포넌트는 제거
-        
+                if (c.id === targetSlot.id) {
+                    // 타겟 슬롯을 추가할 컴포넌트가 있던 위치로 이동
+                    return { ...c, gridArea: componentToAdd.gridArea };
+                }
+                return c;
+            }).filter(c => c.id !== componentToAddId); // 추가된 컴포넌트는 제거
+
         setRemovedComponents(updatedRemovedComponents);
     };
 
@@ -306,6 +337,7 @@ export default function MonitoringPage() {
                 </div>
             );
         }
+        return null;
     };
 
     // 🔲 빈 슬롯 렌더링
@@ -320,9 +352,10 @@ export default function MonitoringPage() {
                 style={{ gridArea }}
             >
                 <p className={styles.emptySlotText}>비어있는 공간</p>
-                <p className={styles.emptySlotText} style={{ fontSize: '11px', color: '#bbb', marginTop: '-8px' }}>
+                <p className={styles.emptySlotText} style={{ fontSize: "11px", color: "#bbb", marginTop: "-8px" }}>
                     (원래: {title})
                 </p>
+
                 {removedComponents.length > 0 && (
                     <>
                         <div className={styles.componentSelector}>
@@ -344,6 +377,7 @@ export default function MonitoringPage() {
                                 ))}
                             </select>
                         </div>
+
                         {selectedComponent && (
                             <button
                                 className={styles.addBtn}
@@ -404,7 +438,7 @@ export default function MonitoringPage() {
                                 </button>
                             )}
                             <button
-                                className={`${styles.editBtn} ${isEditMode ? styles.active : ''}`}
+                                className={`${styles.editBtn} ${isEditMode ? styles.active : ""}`}
                                 onClick={() => setIsEditMode(!isEditMode)}
                             >
                                 {isEditMode ? "완료" : "편집"}
@@ -416,7 +450,7 @@ export default function MonitoringPage() {
                             <>
                                 {/* 현재 레이아웃의 컴포넌트들 */}
                                 {layout.map(item => renderComponent(item))}
-                                
+
                                 {/* 삭제된 컴포넌트의 빈 슬롯 (편집 모드에서만 표시) */}
                                 {/* 삭제 당시의 실제 위치(gridArea)를 사용 */}
                                 {removedComponents.map(comp => renderEmptySlot(comp))}
