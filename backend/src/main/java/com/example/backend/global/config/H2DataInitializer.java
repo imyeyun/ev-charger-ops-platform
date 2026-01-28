@@ -285,6 +285,9 @@ public class H2DataInitializer implements ApplicationRunner {
             Timestamp.valueOf(now.minusMinutes(5)),
             3
     );
+    LocalDateTime sensorTimeA = now.minusMinutes(12);
+    LocalDateTime sensorTimeB = now.minusMinutes(7);
+
 
     jdbcTemplate.update(
             """
@@ -294,7 +297,7 @@ public class H2DataInitializer implements ApplicationRunner {
              charging_gun_temperature1, charging_gun_temperature2, types)
             values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            Timestamp.valueOf(now.minusMinutes(12)),
+      Timestamp.valueOf(sensorTimeA),
             "01",
             "ST000001",
             120.5,
@@ -316,7 +319,7 @@ public class H2DataInitializer implements ApplicationRunner {
              charging_gun_temperature1, charging_gun_temperature2, types)
             values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            Timestamp.valueOf(now.minusMinutes(7)),
+      Timestamp.valueOf(sensorTimeB),
             "01",
             "ST000002",
             80.0,
@@ -330,21 +333,66 @@ public class H2DataInitializer implements ApplicationRunner {
             41,
             2
     );
+    LocalDateTime imageTimeA = now.minusMinutes(20);
+    LocalDateTime imageTimeB = now.minusMinutes(9);
 
     jdbcTemplate.update(
             "insert into image_log (img_id, img_time, img_path, stat_id) values (?, ?, ?, ?)",
             1L,
-            Timestamp.valueOf(now.minusMinutes(20)),
+            Timestamp.valueOf(imageTimeA),
             "/static/images/sample-a.jpg",
             "ST000001"
     );
     jdbcTemplate.update(
             "insert into image_log (img_id, img_time, img_path, stat_id) values (?, ?, ?, ?)",
             2L,
-            Timestamp.valueOf(now.minusMinutes(9)),
+            Timestamp.valueOf(imageTimeB),
             "/static/images/sample-b.jpg",
             "ST000002"
     );
+    jdbcTemplate.update(
+      """
+      insert into multimodal_analysis
+      (multimodal_id, fire_yn, fire_details, broke_yn, broke_details, clean_yn, clean_details,
+       imgsensoranal_time, img_id, img_time, sensor_time, chger_id, stat_id)
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      """,
+      1L,
+      false,
+      "발화 징후 없음",
+      true,
+      "커넥터 파손 의심",
+      false,
+      "주변 청결 양호",
+      Timestamp.valueOf(now.minusMinutes(5)),
+      1L,
+      Timestamp.valueOf(imageTimeA),
+      Timestamp.valueOf(sensorTimeA),
+      "01",
+      "ST000001"
+    );
+    jdbcTemplate.update(
+      """
+      insert into multimodal_analysis
+      (multimodal_id, fire_yn, fire_details, broke_yn, broke_details, clean_yn, clean_details,
+       imgsensoranal_time, img_id, img_time, sensor_time, chger_id, stat_id)
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      """,
+      2L,
+      false,
+      "발화 징후 없음",
+      false,
+      "손상 징후 없음",
+      true,
+      "외관 오염 심함",
+      Timestamp.valueOf(now.minusMinutes(2)),
+      2L,
+      Timestamp.valueOf(imageTimeB),
+      Timestamp.valueOf(sensorTimeB),
+      "01",
+      "ST000002"
+    );
+
 
     // request, request_outbound 데이터 추가
     jdbcTemplate.update(
@@ -437,3 +485,4 @@ public class H2DataInitializer implements ApplicationRunner {
 
   }
 }
+
