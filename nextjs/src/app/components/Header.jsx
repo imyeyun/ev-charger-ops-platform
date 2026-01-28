@@ -11,8 +11,6 @@ const NAV = [
     { label: "Simulator", href: "/pages/simulator" },
 ];
 
-
-
 export default function Header() {
     const router = useRouter();
     const pathname = usePathname();
@@ -52,7 +50,6 @@ export default function Header() {
         textAlign: "center",
     };
 
-    // ✅ 로그아웃 기능 구현
     const handleLogout = async () => {
         try {
             // 1) (선택) 서버 세션/쿠키 기반이면 여기서 로그아웃 API 호출
@@ -65,7 +62,7 @@ export default function Header() {
                 // 필요하면 아래도 같이 정리
                 // sessionStorage.clear();
             }
-
+            sessionStorage.removeItem("chat_tid_next");
             // 3) 로그인 페이지로 이동
             router.push("/pages/login"); // ✅ 프로젝트 로그인 라우트에 맞게 경로만 바꿔줘
             router.refresh();

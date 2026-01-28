@@ -43,6 +43,8 @@ export default function Page() {
                 { employeeNum, password: pw },
                 { headers: { "Content-Type": "application/json" } }
             );
+            // 유저 아이디 저장
+            sessionStorage.setItem("login_employeeNum", employeeNum);
 
             router.push("/pages/monitoring");
             router.refresh(); // 너 말대로 일단 유지

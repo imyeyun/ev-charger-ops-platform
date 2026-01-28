@@ -9,7 +9,27 @@ export default function ChatWidget({ open, onClose }) {
     ]);
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
+    const [threadId, setThreadId] = useState(null);
     const listRef = useRef(null);
+    const employeeNum = sessionStorage.getItem("login_employeeNum");
+
+    // ✅ 챗봇 열 때마다 threadId 발급: 0,1,2...
+    useEffect(() => {
+        if (!open) return;
+
+        const saved = sessionStorage.getItem("chat_tid_next");
+        if (saved === null || saved === "") {
+            sessionStorage.setItem("chat_tid_next", "1");
+            setThreadId(String(employeeNum) + "0");
+            return;
+        }
+
+        // 저장된 값이 있으면, 그 값을 이번 threadId로 사용
+        setThreadId(Number(saved));
+        sessionStorage.setItem("chat_tid_next", String(Number(saved) + 1));
+        setThreadId(String(employeeNum) + Number(saved));
+    }, [open]);
+
 
     useEffect(() => {
         if (!open) return;
@@ -18,66 +38,88 @@ export default function ChatWidget({ open, onClose }) {
     }, [open, messages]);
 
 
-    const callQnaApi = async (prompt) => {
-        
+    async function callQnaApi(prompt) {
+        const res = await axios.post("/api/qnaApi", {
+            prompt: String(prompt),
+            threadId: threadId,
+        });
 
-        const res = await axios.post("/api/qnaApi", { prompt });
-        console.log("[QnA] response <=", res?.data);
-        return res?.data?.answer ?? "";
-    };
+        const data = res.data;
+        if (data && data.answer !== undefined && data.answer !== null) {
+            return String(data.answer);
+        }
+        return "";
+    }
 
-    const send = async () => {
+    async function send() {
         const text = input.trim();
-        if (!text || sending) return;
+        if (text.length === 0) return;
+        if (sending) return;
 
-        const userMsg = { id: Date.now(), role: "user", text };
-        setMessages((prev) => [...prev, userMsg]);
         setInput("");
-
         setSending(true);
 
-        // 로딩 메시지
-        const loadingId = Date.now() + 1;
-        setMessages((prev) => [
-            ...prev,
-            { id: loadingId, role: "bot", text: "답변 생성 중..." },
-        ]);
+        const userId = Date.now();
+        const loadingId = userId + 1;
+
+        setMessages(function (prev) {
+            return prev.concat(
+                { id: userId, role: "user", text: text },
+                { id: loadingId, role: "bot", text: "답변 생성 중..." }
+            );
+        });
 
         try {
             const answer = await callQnaApi(text);
 
-            const botText = answer?.trim()
-                ? answer
-                : "응답이 비어있습니다. (백 응답 형식 확인 필요)";
+            // 답이 비어있으면 기본 문구
+            let botText = "응답이 비어있습니다. (백 응답 형식 확인 필요)";
+            if (String(answer).trim().length > 0) {
+                botText = String(answer);
+            }
 
-            setMessages((prev) =>
-                prev.map((m) => (m.id === loadingId ? { ...m, text: botText } : m))
-            );
+            setMessages(function (prev) {
+                return prev.map(function (m) {
+                    if (m.id === loadingId) {
+                        return { id: m.id, role: m.role, text: botText };
+                    }
+                    return m;
+                });
+            });
         } catch (err) {
-            console.log("[QnA] error <=", err);
+            let msg = "요청 실패";
 
-            const msg =
-                err?.response?.data?.message ||
-                err?.response?.data?.error ||
-                err?.message ||
-                "요청 실패";
+            if (err && err.response && err.response.data) {
+                if (err.response.data.message) msg = String(err.response.data.message);
+                else if (err.response.data.error) msg = String(err.response.data.error);
+            } else if (err && err.message) {
+                msg = String(err.message);
+            }
 
-            setMessages((prev) =>
-                prev.map((m) =>
-                    m.id === loadingId ? { ...m, text: `요청 실패: ${msg}` } : m
-                )
-            );
+            setMessages(function (prev) {
+                return prev.map(function (m) {
+                    if (m.id === loadingId) {
+                        return { id: m.id, role: m.role, text: "요청 실패: " + msg };
+                    }
+                    return m;
+                });
+            });
         } finally {
             setSending(false);
         }
-    };
+    }
 
-    const onKeyDown = (e) => {
+    function handleClose() {
+        setThreadId(null);
+        onClose();
+    }
+
+    function onKeyDown(e) {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             send();
         }
-    };
+    }
 
     return (
         <div
@@ -114,7 +156,7 @@ export default function ChatWidget({ open, onClose }) {
                 <div style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>챗봇</div>
                 <button
                     type="button"
-                    onClick={onClose}
+                    onClick={handleClose}
                     style={{
                         width: 28,
                         height: 28,
