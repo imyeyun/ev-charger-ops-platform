@@ -26,7 +26,6 @@ import com.example.backend.requestoutbound.repository.RequestOutboundRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.annotation.Propagation;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -46,7 +45,7 @@ public class RequestOutboundService {
     private final MultimodalAnalysisRepository multimodalAnalysisRepository;
     private final AiComplaintClient aiComplaintClient;
 
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @Transactional
     public OutboundBatchRes processRequests(OutboundBatchReq req) {
         List<Long> reqIds = req.getReqIds();
         List<Request> requests = requestRepository.findAllById(reqIds);
@@ -72,7 +71,7 @@ public class RequestOutboundService {
         List<OutboundBatchRes.OutboundResult> results = new ArrayList<>();
         int successCount = 0;
 
-        for (Request request : orderedRequests) {
+            for (Request request : orderedRequests) {
             OutboundBatchRes.OutboundResult result = processSingleRequest(request);
             results.add(result);
             if ("PROCESSED".equals(result.getStatus())) {
@@ -88,10 +87,7 @@ public class RequestOutboundService {
                 .build();
     }
 
-    private OutboundBatchRes.OutboundResult processSingleRequest(Request request) {
-        request.updateStatus(RequestStatus.IN_PROGRESS);
-        requestRepository.save(request);
-
+  private OutboundBatchRes.OutboundResult processSingleRequest(Request request) {
         AiComplaintReq aiRequest = buildAiRequest(request);
         AiComplaintRes aiResponse = aiComplaintClient.generateAnswer(aiRequest);
 
@@ -104,7 +100,6 @@ public class RequestOutboundService {
         RequestOutbound saved = requestOutboundRepository.save(outbound);
 
         request.updateStatus(RequestStatus.COMPLETED);
-        requestRepository.save(request);
 
         return OutboundBatchRes.OutboundResult.builder()
                 .reqId(request.getReqId())

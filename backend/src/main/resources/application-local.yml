@@ -1,8 +1,12 @@
 spring:
   datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:backend;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
-    username: sa
+    #driver-class-name: org.h2.Driver
+    #url: jdbc:h2:mem:backend;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    #username: sa
+    #password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/backend?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: root
     password: 1234
 
   jpa:
@@ -11,17 +15,19 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
     open-in-view: false
 
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+  #h2:
+    #console:
+      #enabled: true
+      #path: /h2-console
 
   jackson:
     serialization:
       write-dates-as-timestamps: false
-
+server:
+  forward-headers-strategy: framework
 ai:
   server:
     url: http://localhost:8888
