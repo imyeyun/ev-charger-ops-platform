@@ -9,4 +9,6 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # 앱 실행
-nohup npm run start
+nohup npm run start > /dev/null 2>&1 &
+disown || true
+exit 0
