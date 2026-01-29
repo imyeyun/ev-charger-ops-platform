@@ -25,16 +25,14 @@ public class QnaService {
         String prompt = buildPromptWithContext(request.getPrompt());
 
         AiQnaReq aiRequest = AiQnaReq.builder()
-                //.prompt(request.getPrompt())
                 .prompt(prompt)
-                .sessionId("default-session") // ⭐ 세션 아이디 추가
+                .threadId(request.getThreadId()) // ✅ 프론트에서 받은 threadId 전달
                 .build();
 
         AiQnaRes aiResponse = aiQnaClient.askQuestion(aiRequest);
         if (aiResponse == null || aiResponse.getAnswer() == null || aiResponse.getAnswer().isBlank()) {
             throw new IllegalStateException("AI 응답이 비어 있습니다.");
         }
-
 
         return QnaRes.builder()
                 .answer(aiResponse.getAnswer())
@@ -59,6 +57,5 @@ public class QnaService {
         }
         contextBuilder.append("\n질문: ").append(prompt);
         return contextBuilder.toString();
-
     }
 }
