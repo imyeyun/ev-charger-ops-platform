@@ -10,7 +10,7 @@ fi
 
 echo "Starting $JAR_PATH" >> $APP_DIR/app.log
 
-nohup java -jar "$JAR_PATH" \
+exec java -jar "$JAR_PATH" \
   > $APP_DIR/app.log 2>&1 &
 
 echo $! > $APP_DIR/app.pid

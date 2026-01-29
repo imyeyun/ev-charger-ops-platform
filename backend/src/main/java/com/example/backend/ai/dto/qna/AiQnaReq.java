@@ -8,5 +8,5 @@ import lombok.Getter;
 public class AiQnaReq {
 
     private String prompt;
-    private String sessionId; // ⭐세션 id 추가
+    private String threadId; // ⭐스레드 id 추가
 }
