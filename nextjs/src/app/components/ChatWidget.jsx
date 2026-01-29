@@ -10,13 +10,20 @@ export default function ChatWidget({ open, onClose }) {
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
     const [threadId, setThreadId] = useState(null);
+    const [employeeNum, setEmployeeNum] = useState("");
     const listRef = useRef(null);
-    const employeeNum = sessionStorage.getItem("login_employeeNum");
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const stored = sessionStorage.getItem("login_employeeNum");
+        setEmployeeNum(stored || "");
+    }, []);
 
     // ✅ 챗봇 열 때마다 threadId 발급: 0,1,2...
     useEffect(() => {
         if (!open) return;
 
+        if (typeof window === "undefined") return;
         const saved = sessionStorage.getItem("chat_tid_next");
         if (saved === null || saved === "") {
             sessionStorage.setItem("chat_tid_next", "1");
