@@ -17,7 +17,8 @@ import UnconfirmRegionChart from "@/app/components/chart/UnconfirmRegionChart";
 import SummaryChart from "@/app/components/chart/SummaryChart";
 
 import Search from "@/app/components/search";
-import PagedList from "@/app/components/list/PagedList";
+import AnomalyList from "@/app/components/list/AnomalyList";
+import UncheckList from "@/app/components/list/UncheckList";
 
 export default function MonitoringPage() {
     const router = useRouter();
@@ -45,8 +46,8 @@ export default function MonitoringPage() {
         { id: "chart1", component: "UnconfirmStatusChart", title: "상태미확인 충전기 현황", gridArea: "2 / 2 / 3 / 3" },
         { id: "chart2", component: "UnconfirmRegionChart", title: "지역별 상태 미확인 비율", gridArea: "2 / 3 / 3 / 4" },
         { id: "chart3", component: "SummaryChart", title: "충전기 상태 현황", gridArea: "2 / 4 / 3 / 5" },
-        { id: "list1", component: "PagedList", title: "이상탐지 위험 충전소 리스트", dataKey: "risk", gridArea: "3 / 2 / 4 / 3" },
-        { id: "list2", component: "PagedList", title: "상태 미확인 충전소 리스트", dataKey: "unconfirmed", gridArea: "3 / 3 / 4 / 4" },
+        { id: "list1", component: "AnomalyList", title: "이상탐지 위험 충전소 리스트", dataKey: "risk", gridArea: "3 / 2 / 4 / 3" },
+        { id: "list2", component: "UncheckList", title: "상태 미확인 충전소 리스트", dataKey: "unconfirmed", gridArea: "3 / 3 / 4 / 4" },
     ];
 
     // 전체 사용 가능한 컴포넌트 목록 (고정)
@@ -60,7 +61,6 @@ export default function MonitoringPage() {
         return defaultLayout;
     });
 
-
     // ✅ [추가] 삭제된 컴포넌트 복원
     const [removedComponents, setRemovedComponents] = useState(() => {
         if (typeof window === "undefined") return [];
@@ -70,7 +70,6 @@ export default function MonitoringPage() {
         }
         return [];
     });
-
 
     // ✅ [추가] 빈 슬롯 선택 상태 복원
     const [emptySlotSelections, setEmptySlotSelections] = useState(() => {
@@ -82,7 +81,6 @@ export default function MonitoringPage() {
         return {};
     });
 
-
     // ✅ [추가] 상태 변경 시마다 헤더 전역변수에 저장(로그아웃 전까지 유지)
     useEffect(() => {
         const t = setTimeout(() => {
@@ -90,7 +88,6 @@ export default function MonitoringPage() {
         }, 300);
         return () => clearTimeout(t);
     }, [layout, removedComponents, emptySlotSelections]);
-
 
     // 더미
     const stationList = useMemo(
@@ -121,11 +118,7 @@ export default function MonitoringPage() {
         []
     );
 
-    const goDetail = (id) => {
-        if (typeof window === "undefined") return;
-        window.open(`/pages/monitoringDetail/${id}`, "_blank", "noopener,noreferrer");
-    };
-
+    const goDetail = (id) => router.push(`/pages/monitoringDetail/${id}`);
 
     const handleSearch = () => {
         console.log("검색:", { region, city, stationType, chargeType, stationName });
@@ -315,10 +308,7 @@ export default function MonitoringPage() {
             );
         }
 
-        if (item.component === "PagedList") {
-            const isRisk = item.dataKey === "risk";
-            const items = isRisk ? riskStations : unconfirmedStations;
-
+        if (item.component === "UncheckList") {
             return (
                 <div
                     key={item.id}
@@ -341,10 +331,45 @@ export default function MonitoringPage() {
                             <div className={styles.dragHint}>드래그하여 이동</div>
                         </>
                     )}
-                    <PagedList
+
+                    <UncheckList
                         styles={styles}
                         title={item.title}
-                        items={items}
+                        stations={unconfirmedStations} // 상태 미확인 충전소 리스트 데이터
+                        pageSize={5}
+                        onView={goDetail}
+                    />
+                </div>
+            );
+        }
+
+        if (item.component === "AnomalyList") {
+            return (
+                <div
+                    key={item.id}
+                    className={cardClass}
+                    style={cardStyle}
+                    draggable={isEditMode}
+                    onDragStart={(e) => handleDragStart(e, item)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, item)}
+                >
+                    {isEditMode && (
+                        <>
+                            <button
+                                className={styles.deleteBtn}
+                                onClick={() => handleRemoveComponent(item.id)}
+                                title="삭제"
+                            >
+                                ×
+                            </button>
+                            <div className={styles.dragHint}>드래그하여 이동</div>
+                        </>
+                    )}
+                    <AnomalyList
+                        styles={styles}
+                        title={item.title}
+                        items={riskStations} //
                         pageSize={5}
                         onView={goDetail}
                     />
