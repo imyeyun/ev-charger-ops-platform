@@ -3,10 +3,12 @@
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import Header, {
-    getMonitoringDashboardState,
-    setMonitoringDashboardState,
-} from "@/app/components/Header";
+import Header from "@/app/components/Header";
+import {
+    loadMonitoringDashboard,
+    saveMonitoringDashboard,
+} from "@/app/lib/monitoringDashboardStorage";
+
 import ChatWidget from "@/app/components/ChatWidget";
 import styles from "./page.module.css";
 
@@ -52,35 +54,43 @@ export default function MonitoringPage() {
 
     // ✅ [추가] 헤더 전역 저장값 로드
     const [layout, setLayout] = useState(() => {
-        const saved = getMonitoringDashboardState();
-        if (saved && Array.isArray(saved.layout)) return saved.layout;
+        if (typeof window === "undefined") return defaultLayout;
+        const saved = loadMonitoringDashboard();
+        if (saved?.layout && Array.isArray(saved.layout)) return saved.layout;
         return defaultLayout;
     });
 
+
     // ✅ [추가] 삭제된 컴포넌트 복원
     const [removedComponents, setRemovedComponents] = useState(() => {
-        const saved = getMonitoringDashboardState();
-        if (saved && Array.isArray(saved.removedComponents)) return saved.removedComponents;
+        if (typeof window === "undefined") return [];
+        const saved = loadMonitoringDashboard();
+        if (saved?.removedComponents && Array.isArray(saved.removedComponents)) {
+            return saved.removedComponents;
+        }
         return [];
     });
 
+
     // ✅ [추가] 빈 슬롯 선택 상태 복원
     const [emptySlotSelections, setEmptySlotSelections] = useState(() => {
-        const saved = getMonitoringDashboardState();
-        if (saved && saved.emptySlotSelections && typeof saved.emptySlotSelections === "object") {
+        if (typeof window === "undefined") return {};
+        const saved = loadMonitoringDashboard();
+        if (saved?.emptySlotSelections && typeof saved.emptySlotSelections === "object") {
             return saved.emptySlotSelections;
         }
         return {};
     });
 
+
     // ✅ [추가] 상태 변경 시마다 헤더 전역변수에 저장(로그아웃 전까지 유지)
     useEffect(() => {
-        setMonitoringDashboardState({
-            layout,
-            removedComponents,
-            emptySlotSelections,
-        });
+        const t = setTimeout(() => {
+            saveMonitoringDashboard({ layout, removedComponents, emptySlotSelections });
+        }, 300);
+        return () => clearTimeout(t);
     }, [layout, removedComponents, emptySlotSelections]);
+
 
     // 더미
     const stationList = useMemo(
@@ -111,7 +121,11 @@ export default function MonitoringPage() {
         []
     );
 
-    const goDetail = (id) => router.push(`/pages/monitoringDetail/${id}`);
+    const goDetail = (id) => {
+        if (typeof window === "undefined") return;
+        window.open(`/pages/monitoringDetail/${id}`, "_blank", "noopener,noreferrer");
+    };
+
 
     const handleSearch = () => {
         console.log("검색:", { region, city, stationType, chargeType, stationName });

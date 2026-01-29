@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { clearMonitoringDashboard } from "@/app/lib/monitoringDashboardStorage"; // ✅ 추가
 
 const NAV = [
     { label: "모니터링", href: "/pages/monitoring" },
@@ -10,6 +11,14 @@ const NAV = [
     { label: "민원처리", href: "/pages/ComplaintList" },
     { label: "Simulator", href: "/pages/simulator" },
 ];
+
+// ✅ 새 탭으로 열 메뉴(원하면 모니터링도 추가 가능)
+const NEW_TAB = new Set([
+    "/pages/report",
+    "/pages/ComplaintList",
+    "/pages/simulator",
+
+]);
 
 export default function Header() {
     const router = useRouter();
@@ -32,13 +41,12 @@ export default function Header() {
 
     const HEADER_H = 86;
 
-    // ✅ (수정) 탭 padding 최대값을 줄여서 마지막(Simulator)만 삐져나오는 현상 방지
     const baseTab = {
         height: HEADER_H,
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "0 clamp(16px, 2.2vw, 56px)", // ✅ max 90px → 56px로 축소
+        padding: "0 clamp(16px, 2.2vw, 56px)",
         fontWeight: 700,
         textDecoration: "none",
         userSelect: "none",
@@ -59,15 +67,16 @@ export default function Header() {
             if (typeof window !== "undefined") {
                 localStorage.removeItem("accessToken");
                 localStorage.removeItem("refreshToken");
-                // 필요하면 아래도 같이 정리
-                // sessionStorage.clear();
             }
             sessionStorage.removeItem("chat_tid_next");
+
+            // ✅ (선택) 모니터링 레이아웃도 로그아웃 시 초기화
+            clearMonitoringDashboard();
+
             // 3) 로그인 페이지로 이동
-            router.push("/pages/login"); // ✅ 프로젝트 로그인 라우트에 맞게 경로만 바꿔줘
+            router.push("/pages/login");
             router.refresh();
         } catch (e) {
-            // 실패해도 일단 로그인 화면으로 보내는 게 UX가 좋음
             router.push("/pages/login");
             router.refresh();
         }
@@ -98,7 +107,7 @@ export default function Header() {
                     style={{
                         display: "flex",
                         alignItems: "center",
-                        minWidth: 220, // ✅ (선택) 폭 약간만 줄여서 네비 영역 확보
+                        minWidth: 220,
                         flex: "0 0 auto",
                     }}
                 >
@@ -131,23 +140,25 @@ export default function Header() {
                             overflowX: "auto",
                             overflowY: "hidden",
                             scrollbarWidth: "none",
-                            paddingRight: 12, // ✅ (추가) 마지막 탭이 끝에 딱 걸려 잘리는 경우 방지
+                            paddingRight: 12,
                         }}
                     >
                         <style jsx>{`
-              div::-webkit-scrollbar {
-                display: none;
-              }
-            `}</style>
+                            div::-webkit-scrollbar {
+                                display: none;
+                            }
+                        `}</style>
 
                         {NAV.map((item) => {
                             const active = isActive(item.href);
+                            const openNewTab = NEW_TAB.has(item.href);
 
-                            // ✅ (선택) active도 Link로 통일하면 미세한 레이아웃 차이 가능성 제거
                             return (
                                 <Link
                                     key={item.href}
                                     href={item.href}
+                                    target={openNewTab ? "_blank" : undefined}
+                                    rel={openNewTab ? "noopener noreferrer" : undefined}
                                     aria-current={active ? "page" : undefined}
                                     style={{
                                         ...baseTab,
@@ -188,15 +199,4 @@ export default function Header() {
             </div>
         </header>
     );
-}
-
-
-let __monitoringDashboardState__ = null;
-
-export function setMonitoringDashboardState(state) {
-    __monitoringDashboardState__ = state;
-}
-
-export function getMonitoringDashboardState() {
-    return __monitoringDashboardState__;
 }
