@@ -1,11 +1,24 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/backend?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: root
-    password: 1234
+    url: ${MYSQL_URL}
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
     # DB 실제 생성후 맞는 유저, 패스워드 입력
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
     open-in-view: false
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+server:
+  forward-headers-strategy: framework
+ai:
+  server:
+    url: http://localhost:8888
