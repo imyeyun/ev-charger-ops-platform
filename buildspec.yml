@@ -1,0 +1,25 @@
+version: 0.2
+
+env:
+  variables:
+    APP_DIR: "nextjs"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+
+  build:
+    commands:
+      - cd $APP_DIR
+      - npm ci
+      - npm run build
+      - cd ..
+
+artifacts:
+  files:
+    - appspec.yml
+    - scripts/**/*
+    - nextjs/.next/**/*
+    - nextjs/package.json
+    - nextjs/package-lock.json

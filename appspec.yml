@@ -1,0 +1,30 @@
+version: 0.0
+os: linux
+
+files:
+  # 🔥 deploy/ 기준 전체를 그대로 복사 (구조 보존)
+  - source: /
+    destination: /home/ubuntu/app
+    overwrite: true
+
+permissions:
+  # 🔥 부모 디렉토리까지 포함 (권한 문제 종결)
+  - object: /home/ubuntu/app
+    pattern: "**"
+    owner: root
+    group: root
+    mode: 755
+    type:
+      - directory
+      - file
+
+hooks:
+  ApplicationStop:
+    - location: scripts/stop.sh
+      timeout: 60
+      runas: root
+
+  ApplicationStart:
+    - location: scripts/start.sh
+      timeout: 120
+      runas: root
