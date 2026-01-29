@@ -24,7 +24,7 @@ public class SwaggerConfig {
                                 .email("support@example.com")))
                 .servers(List.of(
                         new Server().url("http://localhost:8080").description("Local Server"),
-                        new Server().url("http://3.36.113.123:8080").description("AWS EC2 Server")
+                        new Server().url("http://43.203.126.91:8080").description("AWS EC2 Server")
                 ));
     }
 }
