@@ -61,8 +61,10 @@ export default function Header() {
     const handleLogout = async () => {
         try {
             // 1) (선택) 서버 세션/쿠키 기반이면 여기서 로그아웃 API 호출
-            // await fetch("/api/auth/logout", { method: "POST" });
-
+            await fetch("/api/authApi/logout", {
+                method: "POST",
+                credentials: "include",
+            });
             // 2) 로컬 토큰 기반이면 토큰 제거
             if (typeof window !== "undefined") {
                 localStorage.removeItem("accessToken");
