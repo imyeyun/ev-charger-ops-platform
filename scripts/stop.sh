@@ -4,6 +4,10 @@ set -eu
 APP_DIR="/home/ubuntu/app"
 PORT="3000"
 
+log() {
+  echo "[stop] $*" >&2
+}
+
 pids_from_ss() {
   # ss 출력에서 pid=NNNN 만 뽑아서 중복 제거
   # 예: users:(("next-server",pid=1927,fd=18))
