@@ -19,8 +19,8 @@ import DailyUnconfirmBarChart from "@/app/components/chart/DailyUnconfirmBarChar
 
 
 import Search from "@/app/components/search";
-import AnomalyList from "@/app/components/list/AnomalyList";
-import UncheckList from "@/app/components/list/UncheckList";
+// import AnomalyList from "@/app/components/list/AnomalyList";
+// import UncheckList from "@/app/components/list/UncheckList";
 
 export default function MonitoringPage() {
     const router = useRouter();
@@ -389,7 +389,8 @@ export default function MonitoringPage() {
         }
 
 
-if (item.component === "UncheckList") {
+/*
+        if (item.component === "UncheckList") {
             return (
                 <div
                     key={item.id}
@@ -457,6 +458,7 @@ if (item.component === "UncheckList") {
                 </div>
             );
         }
+*/
         return null;
     };
 
