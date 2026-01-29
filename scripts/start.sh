@@ -8,9 +8,27 @@ if [ -z "$JAR_PATH" ]; then
   exit 1
 fi
 
+MYSQL_URL=$(aws ssm get-parameter \
+  --name "/MYSQL/MYSQL_URL" \
+  --query "Parameter.Value" \
+  --output text)
+
+MYSQL_USERNAME=$(aws ssm get-parameter \
+  --name "/MYSQL/MYSQL_USERNAME" \
+  --query "Parameter.Value" \
+  --output text)
+
+MYSQL_PASSWORD=$(aws ssm get-parameter \
+  --name "/MYSQL/MYSQL_PASSWORD" \
+  --query "Parameter.Value" \
+  --output text)
+
+export MYSQL_URL
+export MYSQL_USERNAME
+export MYSQL_PASSWORD
+
 echo "Starting $JAR_PATH" >> $APP_DIR/app.log
 
-exec java -jar "$JAR_PATH" \
-  > $APP_DIR/app.log 2>&1 &
+exec java -jar "$JAR_PATH" --spring.profiles.active=prod
 
 echo $! > $APP_DIR/app.pid
