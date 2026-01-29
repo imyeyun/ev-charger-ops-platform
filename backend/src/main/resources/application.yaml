@@ -4,7 +4,7 @@ spring:
   application:
     name: backend
   profiles:
-    active: local
+    active: prod
 # 로컬에서는 local로 배포시에 prod로 수정
 
 server:
