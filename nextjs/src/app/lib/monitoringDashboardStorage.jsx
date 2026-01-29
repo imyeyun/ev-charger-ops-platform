@@ -1,3 +1,5 @@
+"use client";
+
 const KEY = "monitoring_dashboard_v1";
 
 export function loadMonitoringDashboard() {

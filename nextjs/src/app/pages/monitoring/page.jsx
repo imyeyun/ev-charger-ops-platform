@@ -15,6 +15,8 @@ import styles from "./page.module.css";
 import UnconfirmStatusChart from "@/app/components/chart/UnconfirmStatusChart";
 import UnconfirmRegionChart from "@/app/components/chart/UnconfirmRegionChart";
 import SummaryChart from "@/app/components/chart/SummaryChart";
+import DailyUnconfirmBarChart from "@/app/components/chart/DailyUnconfirmBarChart";
+
 
 import Search from "@/app/components/search";
 import AnomalyList from "@/app/components/list/AnomalyList";
@@ -36,18 +38,62 @@ export default function MonitoringPage() {
     const [stationName, setStationName] = useState("");
 
     const [chatOpen, setChatOpen] = useState(false);
+    // ✅ 일별 상태미확인 카운트 (API에서 받아옴)
+    const [dailyUnconfirm, setDailyUnconfirm] = useState([]);
+    const [dailyUnconfirmLoading, setDailyUnconfirmLoading] = useState(false);
+    const [dailyUnconfirmError, setDailyUnconfirmError] = useState(null);
+
 
     // 🎨 편집 모드 및 레이아웃 state
     const [isEditMode, setIsEditMode] = useState(false);
     const [draggedItem, setDraggedItem] = useState(null);
 
+    useEffect(() => {
+        const fetchDaily = async () => {
+            try {
+                const qs = new URLSearchParams({
+                    region,
+                    city,
+                    stationType,
+                    chargeType,
+                    stationName,
+                });
+
+                const res = await fetch(
+                    `/spring-api/monitoring/unconfirm/daily?${qs.toString()}`,
+                    { cache: "no-store" }
+                );
+
+                if (!res.ok) throw new Error();
+
+                const data = await res.json();
+
+                setDailyUnconfirm(
+                    Array.isArray(data)
+                        ? data.map(d => ({
+                            date: d.date,
+                            count: Number(d.count),
+                        }))
+                        : []
+                );
+            } catch {
+                setDailyUnconfirm([]);
+            }
+        };
+
+        fetchDaily();
+    }, [region, city, stationType, chargeType, stationName]);
+
+
     // 📊 기본 레이아웃 설정 (그리드 위치: row/col로 관리)
     const defaultLayout = [
-        { id: "chart1", component: "UnconfirmStatusChart", title: "상태미확인 충전기 현황", gridArea: "2 / 2 / 3 / 3" },
-        { id: "chart2", component: "UnconfirmRegionChart", title: "지역별 상태 미확인 비율", gridArea: "2 / 3 / 3 / 4" },
-        { id: "chart3", component: "SummaryChart", title: "충전기 상태 현황", gridArea: "2 / 4 / 3 / 5" },
-        { id: "list1", component: "AnomalyList", title: "이상탐지 위험 충전소 리스트", dataKey: "risk", gridArea: "3 / 2 / 4 / 3" },
-        { id: "list2", component: "UncheckList", title: "상태 미확인 충전소 리스트", dataKey: "unconfirmed", gridArea: "3 / 3 / 4 / 4" },
+        { id:"chart1", component:"UnconfirmStatusChart",  title:"상태미확인 충전기 현황",      gridArea:"2 / 2 / 3 / 3" },
+        { id:"chart2", component:"UnconfirmRegionChart",  title:"지역별 상태 미확인 비율",     gridArea:"2 / 3 / 3 / 4" },
+        { id:"chart3", component:"SummaryChart",          title:"충전기 상태 현황",            gridArea:"2 / 4 / 3 / 5" },
+
+        { id:"chart4", component:"DailyUnconfirmBarChart",title:"일별 상태 미확인 충전기 개수", gridArea:"3 / 2 / 4 / 3" },
+        { id:"list2",  component:"PagedList", title:"상태 미확인 충전소 리스트", dataKey:"unconfirmed", gridArea:"3 / 3 / 4 / 4" },
+        { id:"list1",  component:"PagedList", title:"이상탐지 위험 충전소 리스트", dataKey:"risk",       gridArea:"3 / 4 / 4 / 5" },
     ];
 
     // 전체 사용 가능한 컴포넌트 목록 (고정)
@@ -61,6 +107,7 @@ export default function MonitoringPage() {
         return defaultLayout;
     });
 
+
     // ✅ [추가] 삭제된 컴포넌트 복원
     const [removedComponents, setRemovedComponents] = useState(() => {
         if (typeof window === "undefined") return [];
@@ -70,6 +117,7 @@ export default function MonitoringPage() {
         }
         return [];
     });
+
 
     // ✅ [추가] 빈 슬롯 선택 상태 복원
     const [emptySlotSelections, setEmptySlotSelections] = useState(() => {
@@ -81,6 +129,7 @@ export default function MonitoringPage() {
         return {};
     });
 
+
     // ✅ [추가] 상태 변경 시마다 헤더 전역변수에 저장(로그아웃 전까지 유지)
     useEffect(() => {
         const t = setTimeout(() => {
@@ -88,6 +137,7 @@ export default function MonitoringPage() {
         }, 300);
         return () => clearTimeout(t);
     }, [layout, removedComponents, emptySlotSelections]);
+
 
     // 더미
     const stationList = useMemo(
@@ -308,7 +358,38 @@ export default function MonitoringPage() {
             );
         }
 
-        if (item.component === "UncheckList") {
+
+        if (item.component === "DailyUnconfirmBarChart") {
+            return (
+                <section
+                    key={item.id}
+                    className={cardClass}
+                    style={cardStyle}
+                    draggable={isEditMode}
+                    onDragStart={(e) => handleDragStart(e, item)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, item)}
+                >
+                    {isEditMode && (
+                        <>
+                            <button
+                                className={styles.deleteBtn}
+                                onClick={() => handleRemoveComponent(item.id)}
+                                title="삭제"
+                            >
+                                ×
+                            </button>
+                            <div className={styles.dragHint}>드래그하여 이동</div>
+                        </>
+                    )}
+                    <h3 className={styles.cardTitle}>{item.title}</h3>
+                    <DailyUnconfirmBarChart data={dailyUnconfirm} />
+                </section>
+            );
+        }
+
+
+if (item.component === "UncheckList") {
             return (
                 <div
                     key={item.id}
