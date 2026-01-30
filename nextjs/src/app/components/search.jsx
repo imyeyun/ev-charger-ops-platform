@@ -1,6 +1,6 @@
 "use client";
 
-import StationList from "@/app/components/list/StationList";
+import StationList from "@/app/components/list/UncheckList";
 
 export default function Search({
                                    styles,

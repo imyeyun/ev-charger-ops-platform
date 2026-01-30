@@ -19,8 +19,8 @@ import DailyUnconfirmBarChart from "@/app/components/chart/DailyUnconfirmBarChar
 
 
 import Search from "@/app/components/search";
-// import AnomalyList from "@/app/components/list/AnomalyList";
-// import UncheckList from "@/app/components/list/UncheckList";
+import AnomalyList from "@/app/components/list/AnomalyList";
+import UncheckList from "@/app/components/list/UncheckList";
 
 export default function MonitoringPage() {
     const router = useRouter();
@@ -92,8 +92,8 @@ export default function MonitoringPage() {
         { id:"chart3", component:"SummaryChart",          title:"충전기 상태 현황",            gridArea:"2 / 4 / 3 / 5" },
 
         { id:"chart4", component:"DailyUnconfirmBarChart",title:"일별 상태 미확인 충전기 개수", gridArea:"3 / 2 / 4 / 3" },
-        { id:"list2",  component:"PagedList", title:"상태 미확인 충전소 리스트", dataKey:"unconfirmed", gridArea:"3 / 3 / 4 / 4" },
-        { id:"list1",  component:"PagedList", title:"이상탐지 위험 충전소 리스트", dataKey:"risk",       gridArea:"3 / 4 / 4 / 5" },
+        { id:"list2",  component:"AnomalyList", title:"상태 미확인 충전소 리스트", dataKey:"unconfirmed", gridArea:"3 / 3 / 4 / 4" },
+        { id:"list1",  component:"UncheckList", title:"이상탐지 위험 충전소 리스트", dataKey:"risk",       gridArea:"3 / 4 / 4 / 5" },
     ];
 
     // 전체 사용 가능한 컴포넌트 목록 (고정)
@@ -168,7 +168,14 @@ export default function MonitoringPage() {
         []
     );
 
-    const goDetail = (id) => router.push(`/pages/monitoringDetail/${id}`);
+
+    /**/
+    const goDetail = (id) => {
+        const url = `/pages/monitoringDetail/${id}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+    };
+    /**/
+
 
     const handleSearch = () => {
         console.log("검색:", { region, city, stationType, chargeType, stationName });
@@ -389,7 +396,7 @@ export default function MonitoringPage() {
         }
 
 
-/*
+
         if (item.component === "UncheckList") {
             return (
                 <div
@@ -458,7 +465,7 @@ export default function MonitoringPage() {
                 </div>
             );
         }
-*/
+
         return null;
     };
 
