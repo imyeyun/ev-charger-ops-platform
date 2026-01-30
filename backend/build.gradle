@@ -30,6 +30,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
+	// AWS SDK v2 - S3 Presigned URL
+	implementation platform('software.amazon.awssdk:bom:2.29.51')
+	implementation 'software.amazon.awssdk:s3'
+
 	// ✅ Swagger/OpenAPI (Spring MVC) - Spring Boot 3.5.x 호환 버전
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4'
 
