@@ -5,7 +5,12 @@ spring:
     username: ${MYSQL_USERNAME}
     password: ${MYSQL_PASSWORD}
     # DB 실제 생성후 맞는 유저, 패스워드 입력
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data-prod.sql
   jpa:
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update
     properties:
@@ -21,7 +26,7 @@ server:
   forward-headers-strategy: framework
 ai:
   server:
-    url: http://localhost:8888
+    url: http://localhost:8888/
 
 cloud:
   aws:

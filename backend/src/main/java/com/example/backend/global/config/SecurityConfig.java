@@ -30,7 +30,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                //"/h2-console/**",
+                                "/h2-console/**",
                                 "/actuator/health",
                                 "/actuator/prometheus"
                         ).permitAll()
@@ -41,7 +41,7 @@ public class SecurityConfig {
                                 "/api/request_outbound",
                                 "/api/QnA", // ⭐ 오타 수정
                                 "/api/report",
-                                "api/charging_station/detail"
+                                "/api/charging_station/detail"
 
                         ).permitAll()
                         .anyRequest().authenticated()

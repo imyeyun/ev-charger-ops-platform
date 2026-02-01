@@ -4,15 +4,15 @@ spring:
     url: jdbc:h2:mem:backend;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
     username: sa
     password: 1234
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-#    url: ${MYSQL_URL}
-#    username: ${MYSQL_USERNAME}
-#    password: ${MYSQL_PASSWORD}
-  #  config:
-  #    import: "optional:file:.env[.properties]"
+#driver-class-name: com.mysql.cj.jdbc.Driver
+#url: ${MYSQL_URL}
+#username: ${MYSQL_USERNAME}
+#password: ${MYSQL_PASSWORD}
+#config:
+#import: "optional:file:.env[.properties]"
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     properties:
       hibernate:
         format_sql: true
@@ -31,4 +31,13 @@ server:
   forward-headers-strategy: framework
 ai:
   server:
-    url: http://localhost:8888
+    url: http://localhost:8888/
+
+cloud:
+  aws:
+    s3:
+      bucket: ${AWS_S3_BUCKET:test-bucket}
+    region: ap-northeast-2
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID:your-access-key}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:your-secret-key}
