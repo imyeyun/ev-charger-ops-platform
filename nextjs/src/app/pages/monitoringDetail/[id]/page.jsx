@@ -26,12 +26,12 @@ async function postJson(url, payload) {
     return data;
 }
 
-function buildCoordText(lat, lng) {
-    if (!lat && !lng) return "위도, 경도";
-    const a = lat ? String(lat) : "-";
-    const b = lng ? String(lng) : "-";
-    return a + ", " + b;
-}
+// function buildCoordText(lat, lng) {
+//     if (!lat && !lng) return "위도, 경도";
+//     const a = lat ? String(lat) : "-";
+//     const b = lng ? String(lng) : "-";
+//     return a + ", " + b;
+// }
 
 function toText(v) {
     if (v === undefined) return "";
@@ -137,7 +137,7 @@ export default function MonitoringDetail() {
                 chgerId: String(selectedChargerId),
             };
 
-            const res = await postJson("/api/monitoringApi/monitoring", payload);
+            const res = await postJson("/api/monitoringApi/multimodal_analysis", payload);
 
             const fireYN = res && res.fireYN !== undefined && res.fireYN !== null ? String(res.fireYN) : "-";
             const brokenYN = res && res.brokenYN !== undefined && res.brokenYN !== null ? String(res.brokenYN) : "-";
@@ -163,7 +163,7 @@ export default function MonitoringDetail() {
         }
     }
 
-    const coordText = buildCoordText(detailInfo.latitude, detailInfo.longitude);
+    // const coordText = buildCoordText(detailInfo.latitude, detailInfo.longitude);
 
     return (
         <>
@@ -224,7 +224,7 @@ export default function MonitoringDetail() {
                                     <label className={styles.label}>도로명주소</label>
                                     <div className={styles.row}>
                                         <div className={styles.box}>{detailInfo.address}</div>
-                                        <div className={styles.boxSmall}>{coordText}</div>
+                                        {/*<div className={styles.boxSmall}>{coordText}</div>*/}
                                     </div>
                                 </div>
 
