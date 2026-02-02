@@ -19,6 +19,9 @@ export async function POST(req) {
         ) {
             return NextResponse.json({ code: 200 }, { status: 200 });
         }
+        
+        const url = `${BACKEND_BASE}/api/user/login`;
+        console.log("[authApi/login] backend url =", url);
 
         const res = await axios.post(
             `${BACKEND_BASE}/api/user/login`,
