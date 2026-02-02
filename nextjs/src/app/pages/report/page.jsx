@@ -4,15 +4,13 @@ import { useState } from "react";
 import Header from "@/app/components/Header";
 import styles from "./page.module.css";
 
+import axios from "axios";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-
-import reportApi from "@/app/api/reportApi"; // repoetApi의 경우 로직이 복잡해 따로 reportApi.jsx 로 분리
-
 // 스피너
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -46,56 +44,7 @@ export default function Report() {
      * - reportApi.generateAndResolve()만 호출
      * - 결과로 받은 fileUrl을 미리보기/다운로드에 사용
      */
-    // const handleGenerateReport = async () => {
-    //     // ✅ UI 레벨 중복 차단
-    //     if (isGenerating) return;
-    //
-    //     // ✅ UX 검증은 page에서
-    //     if (!selectedReportType) {
-    //         setErrorMsg("보고서 유형을 선택해주세요.");
-    //         setOpenError(true);
-    //         return;
-    //     }
-    //     if (!prompt.trim()) {
-    //         setErrorMsg("프롬포트를 입력해주세요.");
-    //         setOpenError(true);
-    //         return;
-    //     }
-    //
-    //     setIsGenerating(true);
-    //     setFilePath(""); // 이전 미리보기 제거
-    //
-    //     try {
-    //         const { fileUrl } = await reportApi.generateAndResolve({
-    //             reportType: selectedReportType,
-    //             prompt,
-    //             dataStartTime: null,
-    //             dataEndTime: null,
-    //         });
-    //
-    //         setFilePath(fileUrl);
-    //     } catch (e) {
-    //         setErrorMsg(e?.message || "보고서 생성 중 오류가 발생했습니다.");
-    //         setOpenError(true);
-    //     } finally {
-    //         setIsGenerating(false);
-    //     }
-    // };
 
-    // ✅ 테스트용 파일 존재 체크
-    const existsFile = async (url) => {
-        try {
-            const res = await fetch(url, { method: "HEAD" });
-            return res.ok;
-        } catch {
-            return false;
-        }
-    };
-
-    /**
-     * ✅ 테스트 버전(백엔드 없이)
-     * - 1초 딜레이 후 testPath로 미리보기 띄우기
-     */
     const handleGenerateReport = async () => {
         if (isGenerating) return;
 
@@ -111,23 +60,45 @@ export default function Report() {
         }
 
         setIsGenerating(true);
+        setFilePath("");
 
-        setTimeout(async () => {
-            const testPath = "/pdf/test-report.pdf";
-            const ok = await existsFile(testPath);
+        try {
+            const payload = {
+                reportType: selectedReportType,
+                prompt,
+                dataStartTime: null,
+                dataEndTime: null,
+            };
 
-            if (!ok) {
-                setFilePath("");
-                setErrorMsg("보고서 파일을 찾을 수 없습니다. 다시 생성해주세요.");
-                setOpenError(true);
-                setIsGenerating(false);
-                return;
+            // ✅ route 호출 (여기서 백엔드 호출/정규화/존재체크까지 완료됨)
+            const res = await axios.post("/api/reportApi", payload, {
+                headers: { "Content-Type": "application/json" },
+                validateStatus: () => true,
+            });
+
+            if (res.status < 200 || res.status >= 300) {
+                const msg =
+                    res.data?.message ||
+                    res.data?.msg ||
+                    res.data?.error ||
+                    "보고서 생성 중 오류가 발생했습니다.";
+                throw new Error(msg);
             }
 
-            setFilePath(testPath);
+            const fileUrl = res.data?.fileUrl;
+            if (!fileUrl) {
+                throw new Error("fileUrl을 받지 못했습니다. 응답을 확인해주세요.");
+            }
+
+            setFilePath(fileUrl);
+        } catch (e) {
+            setErrorMsg(e?.message || "보고서 생성 중 오류가 발생했습니다.");
+            setOpenError(true);
+        } finally {
             setIsGenerating(false);
-        }, 1000);
+        }
     };
+
 
 
     /**
@@ -159,7 +130,6 @@ export default function Report() {
                     <Typography variant="body2">보고서 생성 중...</Typography>
                 </Stack>
             </Backdrop>
-
             <div className={styles.container}>
                 <div className={styles.reportWrapper}>
                     {/* 사이드바 */}
