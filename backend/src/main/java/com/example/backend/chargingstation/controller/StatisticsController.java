@@ -26,7 +26,7 @@ public class StatisticsController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @Operation(summary = "상태 미확인 충전소 리스트", description = "비정상 상태(0,1,4,5)인 충전소 리스트 조회")
+    @Operation(summary = "상태 미확인 충전소 리스트", description = "비정상 상태(9,1,4,5)인 충전소 리스트 조회")
     @GetMapping("/uncheckList")
     public ResponseEntity<ApiResponse<UncheckListRes>> getUncheckList() {
         UncheckListRes response = statisticsService.getUncheckList();

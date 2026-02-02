@@ -6,8 +6,8 @@ import java.util.Set;
 
 public class ChargerStatusUtil {
 
-    // 충전기 상태 코드
-    public static final int STATUS_UNKNOWN = 0;      // 알수없음
+    // 충전기 상태 코드 - DB에서 0 대신 9 사용
+    public static final int STATUS_UNKNOWN = 9;      // 알수없음
     public static final int STATUS_COMM_ERROR = 1;   // 통신이상
     public static final int STATUS_AVAILABLE = 2;    // 충전가능
     public static final int STATUS_CHARGING = 3;     // 충전중
