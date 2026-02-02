@@ -42,8 +42,9 @@ public class MonitoringService {
         MonitoringRes.ChargerStatCount chargerStat = buildChargerStatCount(statCountMap);
         MonitoringRes.ChargerStatBadCase chargerStatBadCase = buildChargerStatBadCase(statCountMap);
 
+        // DB에서 0 대신 9 사용
         Set<String> badCaseStatIds = latestLogs.stream()
-                .filter(log -> log.getStat() == 0 || log.getStat() == 1 ||
+                .filter(log -> log.getStat() == 9 || log.getStat() == 1 ||
                                log.getStat() == 4 || log.getStat() == 5)
                 .map(ChargerLog::getStatId)
                 .collect(Collectors.toSet());
@@ -78,7 +79,8 @@ public class MonitoringService {
     }
 
     private MonitoringRes.ChargerStatCount buildChargerStatCount(Map<Integer, Long> statCountMap) {
-        int unknown = statCountMap.getOrDefault(0, 0L).intValue();
+        // DB에서 0 대신 9 사용
+        int unknown = statCountMap.getOrDefault(9, 0L).intValue();
         int commError = statCountMap.getOrDefault(1, 0L).intValue();
         int available = statCountMap.getOrDefault(2, 0L).intValue();
         int charging = statCountMap.getOrDefault(3, 0L).intValue();
@@ -97,7 +99,8 @@ public class MonitoringService {
     }
 
     private MonitoringRes.ChargerStatBadCase buildChargerStatBadCase(Map<Integer, Long> statCountMap) {
-        int unknown = statCountMap.getOrDefault(0, 0L).intValue();
+        // DB에서 0 대신 9 사용
+        int unknown = statCountMap.getOrDefault(9, 0L).intValue();
         int commError = statCountMap.getOrDefault(1, 0L).intValue();
         int stopped = statCountMap.getOrDefault(4, 0L).intValue();
         int maintenance = statCountMap.getOrDefault(5, 0L).intValue();
