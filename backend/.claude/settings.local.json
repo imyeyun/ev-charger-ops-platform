@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git restore:*)",
+      "Bash(./gradlew compileJava:*)",
+      "Bash(git pull:*)",
+      "Bash(./gradlew bootRun:*)",
+      "Bash(./gradlew build:*)"
+    ]
+  }
+}

@@ -37,10 +37,22 @@ public interface ChargerLogRepository extends JpaRepository<ChargerLog, ChargerL
            "WHERE cl2.statId = cl.statId AND cl2.chgerId = cl.chgerId)")
     List<ChargerLog> findLatestLogsByStatId(@Param("statId") String statId);
 
-    //@Query("SELECT cs FROM ChargingStation cs " +
-    //        "JOIN FETCH cs.regionCode " +
-    //        "JOIN FETCH cs.regionDetailCode " +
-    //        "JOIN FETCH cs.agency")
-    //List<ChargingStation> findAllWithCodes();
+    // 일별 비정상 상태 충전기 개수 조회 (상태 0, 1, 4, 5)
+    @Query("SELECT CAST(cl.chgerTime AS LocalDate) as date, COUNT(cl) as cnt " +
+           "FROM ChargerLog cl " +
+           "WHERE cl.stat IN (0, 1, 4, 5) " +
+           "GROUP BY CAST(cl.chgerTime AS LocalDate) " +
+           "ORDER BY CAST(cl.chgerTime AS LocalDate) DESC")
+    List<Object[]> countBadCaseByDate();
+
+    // 지역(zscode)별 비정상 상태 충전기 개수 조회
+    @Query("SELECT cs.zscode, COUNT(DISTINCT cl.statId) " +
+           "FROM ChargerLog cl " +
+           "JOIN ChargingStation cs ON cl.statId = cs.statId " +
+           "WHERE cl.stat IN (0, 1, 4, 5) " +
+           "AND cl.chgerTime = (SELECT MAX(cl2.chgerTime) FROM ChargerLog cl2 " +
+           "WHERE cl2.chgerId = cl.chgerId AND cl2.statId = cl.statId) " +
+           "GROUP BY cs.zscode")
+    List<Object[]> countBadCaseByRegion();
 
 }

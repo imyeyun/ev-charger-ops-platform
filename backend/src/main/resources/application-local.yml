@@ -16,7 +16,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
+        # H2 사용 시 dialect 자동 선택 (MySQL 호환 모드는 URL에서 설정됨)
     open-in-view: false
 
   h2:
