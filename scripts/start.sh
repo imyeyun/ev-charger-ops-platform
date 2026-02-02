@@ -1,5 +1,6 @@
 #!/bin/bash
 APP_DIR="/home/ubuntu/app/nextjs"
+LOG_FILE="$APP_DIR/next.log"
 
 cd "$APP_DIR"
 
@@ -9,6 +10,7 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # 앱 실행
-nohup npm run start > /dev/null 2>&1 &
+echo "=== $(date -Is) starting nextjs ===" >> "$LOG_FILE"
+nohup npm run start >> "$LOG_FILE" 2>&1 &
 disown || true
 exit 0
