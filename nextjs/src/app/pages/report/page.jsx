@@ -13,6 +13,11 @@ import Typography from "@mui/material/Typography";
 
 import reportApi from "@/app/api/reportApi"; // repoetApi의 경우 로직이 복잡해 따로 reportApi.jsx 로 분리
 
+// 스피너
+import Backdrop from "@mui/material/Backdrop";
+import CircularProgress from "@mui/material/CircularProgress";
+import Stack from "@mui/material/Stack";
+
 export default function Report() {
     const [selectedReportType, setSelectedReportType] = useState("");
     const [prompt, setPrompt] = useState("");
@@ -143,6 +148,17 @@ export default function Report() {
     return (
         <>
             <Header />
+
+            {/*스피너 기능*/}
+            <Backdrop
+                open={isGenerating}
+                sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.modal + 1 }}
+            >
+                <Stack alignItems="center" spacing={2}>
+                    <CircularProgress color="inherit" />
+                    <Typography variant="body2">보고서 생성 중...</Typography>
+                </Stack>
+            </Backdrop>
 
             <div className={styles.container}>
                 <div className={styles.reportWrapper}>
