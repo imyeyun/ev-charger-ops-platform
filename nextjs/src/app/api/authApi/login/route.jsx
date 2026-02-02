@@ -1,8 +1,6 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
-
-const BACKEND_BASE =
-    process.env.API_BASE_URL || "http://localhost:8080";
+import { BACKEND_BASE } from "@/app/api/url";
 
 // 프론트 전용 임시 계정
 const TEMP_LOGIN = {

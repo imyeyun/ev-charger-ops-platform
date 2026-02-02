@@ -1,7 +1,6 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
-
-const BACKEND_BASE = process.env.API_BASE_URL || "http://localhost:8080";
+import { BACKEND_BASE } from "@/app/api/url";
 
 export async function GET(req) {
     try {
