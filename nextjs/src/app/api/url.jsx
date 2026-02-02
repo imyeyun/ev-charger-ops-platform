@@ -1,12 +1,11 @@
+import { headers } from "next/headers";
+
 let BACKEND_BASE = "http://localhost:8080";
 
-// 브라우저 환경에서만 체크
-if (typeof window !== "undefined") {
-  const host = window.location.hostname;
+const host = headers().get("host"); // 예: aivle-test.duckdns.org
 
-  if (host !== "localhost" || host !== "127.0.0.1") {
-    BACKEND_BASE = "http://aivle-test.duckdns.org/spring-api";
-  }
+if (host && host !== "localhost" && !host.startsWith("127.0.0.1")) {
+  BACKEND_BASE = "http://aivle-test.duckdns.org/spring-api";
 }
 
 export { BACKEND_BASE };
