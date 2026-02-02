@@ -1,3 +1,1 @@
-let BACKEND_BASE = "http://aivle-test.duckdns.org/spring-api";
-
-export { BACKEND_BASE };
+export const BACKEND_BASE = "http://aivle-test.duckdns.org/spring-api";
