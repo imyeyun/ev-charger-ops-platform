@@ -47,17 +47,7 @@ export default function Search({
                         </div>
                     </div>
 
-                    <div className={styles.filterGroup}>
-                        <div className={styles.label}>충전소 분류</div>
-
-                        <select
-                            className={styles.selectFull}
-                            value={stationType}
-                            onChange={(e) => setStationType(e.target.value)}
-                        >
-                            <option value="">전체</option>
-                        </select>
-                    </div>
+                    <div style={{ height: 10 }} />
 
                     <div className={styles.filterGroup}>
                         <div className={styles.label}>충전소 타입</div>
