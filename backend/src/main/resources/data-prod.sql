@@ -14,7 +14,7 @@ INSERT IGNORE INTO agency (busi_id, busid_description) VALUES ('AA', '테스트�
 
 -- 충전소
 INSERT IGNORE INTO charging_station
-(stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, install_year)
+(stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, year)
 VALUES
 ('ST000001', '11', '11000', 'AA', '테스트 충전소 A', '서울시 강남구 테스트로 1', 37.4979, 127.0276, '02-1234-5678', '테스트용 초기 데이터', 2022);
 
