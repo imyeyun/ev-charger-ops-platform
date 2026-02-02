@@ -53,7 +53,7 @@ public class UserController {
     }
 
     @Operation(summary = "로그아웃")
-    @PostMapping("/logout")
+    @GetMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(HttpSession session) {
         session.invalidate();
         return ResponseEntity.ok(ApiResponse.success("로그아웃 성공", null));

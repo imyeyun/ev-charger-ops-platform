@@ -53,9 +53,6 @@ public class ChargingStation {
     @Column(name = "note", length = 200, nullable = false)
     private String note;
 
-    //@Column(name = "install_year", nullable = false)
-    //private Integer year;
-
     @Column(name = "year", nullable = false)
     private Integer year;
 

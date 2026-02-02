@@ -4,12 +4,14 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @Profile("local")
+@DependsOn("entityManagerFactory")
 public class H2DataInitializer implements ApplicationRunner {
 
   private final JdbcTemplate jdbcTemplate;
@@ -20,13 +22,16 @@ public class H2DataInitializer implements ApplicationRunner {
 
   @Override
   public void run(ApplicationArguments args) {
-    Integer existingCount = jdbcTemplate.queryForObject(
-            "select count(*) from charging_station",
-            Integer.class
-    );
-
-    if (existingCount != null && existingCount > 0) {
-      return;
+    try {
+      Integer existingCount = jdbcTemplate.queryForObject(
+              "select count(*) from charging_station",
+              Integer.class
+      );
+      if (existingCount != null && existingCount > 0) {
+        return;
+      }
+    } catch (Exception e) {
+      // 테이블이 아직 없으면 데이터 삽입 진행
     }
 
     jdbcTemplate.update(
@@ -60,7 +65,7 @@ public class H2DataInitializer implements ApplicationRunner {
     jdbcTemplate.update(
             """
             insert into charging_station
-            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, install_year)
+            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, year)
             values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             "ST000001",
@@ -78,7 +83,7 @@ public class H2DataInitializer implements ApplicationRunner {
     jdbcTemplate.update(
             """
             insert into charging_station
-            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, install_year)
+            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, year)
             values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             "ST000002",
@@ -96,7 +101,7 @@ public class H2DataInitializer implements ApplicationRunner {
     jdbcTemplate.update(
             """
             insert into charging_station
-            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, install_year)
+            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, year)
             values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             "ST000003",
@@ -114,7 +119,7 @@ public class H2DataInitializer implements ApplicationRunner {
     jdbcTemplate.update(
             """
             insert into charging_station
-            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, install_year)
+            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, year)
             values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             "ST000004",
@@ -132,7 +137,7 @@ public class H2DataInitializer implements ApplicationRunner {
     jdbcTemplate.update(
             """
             insert into charging_station
-            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, install_year)
+            (stat_id, zcode, zscode, busi_id, stat_nm, addr, lat, lng, busi_call, note, year)
             values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             "ST000005",

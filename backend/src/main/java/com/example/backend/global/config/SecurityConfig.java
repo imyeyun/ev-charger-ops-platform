@@ -37,12 +37,20 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/user/signup",
                                 "/api/user/login",
-                                "/api/request", //API 임시 테스트용
+                                "/api/user/logout",
+                                "/api/request",
                                 "/api/request_outbound",
-                                "/api/QnA", // ⭐ 오타 수정
+                                "/api/QnA",
                                 "/api/report",
-                                "/api/charging_station/detail"
-
+                                "/api/charging_station/detail",
+                                "/api/monitoring",
+                                "/api/search",
+                                "/api/uncheckList",
+                                "/api/anomaly",
+                                "/api/uncheck",
+                                "/api/uncheckRg",
+                                "/api/condition",
+                                "/api/uncheckDaily"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
