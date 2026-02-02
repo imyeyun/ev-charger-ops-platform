@@ -2,23 +2,9 @@ import axios from "axios";
 import { NextResponse } from "next/server";
 import { BACKEND_BASE } from "@/app/api/url";
 
-// 프론트 전용 임시 계정
-const TEMP_LOGIN = {
-    employeeNum: "admin",
-    password: "1234",
-};
-
 export async function POST(req) {
     try {
         const { employeeNum, password } = await req.json();
-
-        // ✅ 임시 계정은 백엔드 없이 성공 처리
-        if (
-            employeeNum === TEMP_LOGIN.employeeNum &&
-            password === TEMP_LOGIN.password
-        ) {
-            return NextResponse.json({ code: 200 }, { status: 200 });
-        }
         
         const url = `${BACKEND_BASE}/api/user/login`;
         console.log("[authApi/login] backend url =", url);
