@@ -3,6 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
+// ✅ 지역 옵션(시/도 + 시/군/구) 데이터는 별도 파일에서 import
+import {
+    SIDO_OPTIONS,
+    SIGUN_OPTIONS,
+    SIDO_NAME_BY_CODE,
+    SIGUN_NAME_BY_CODE,
+} from "@/app/lib/regionOptions";
+
 /**
  * 충전기 상태(stat) → 라벨
  * - 0, 9, 1 => 상태미확인
@@ -39,26 +47,54 @@ function pickStatusClass(styles, status) {
     return styles.badgeAvailable; // 사용가능
 }
 
+/**
+ * 필터 적용
+ * - region/city는 "코드"를 value로 사용
+ * - 백엔드 row에 코드필드가 있으면(code 우선) 그걸 쓰고,
+ *   없으면 description(이름)으로도 비교 가능하게 fallback 처리
+ */
 function applyFilters(rows, { region, city, chargeType, stationName }) {
     const base = Array.isArray(rows) ? rows : [];
     const nameQ = (stationName ?? "").trim();
+
+    const regionName = region ? SIDO_NAME_BY_CODE[region] : "";
+    const cityName = city ? SIGUN_NAME_BY_CODE[city] : "";
 
     return base.filter((row) => {
         const cs = row?.chargingStation;
         const ch = row?.charger;
 
-        const csRegion = cs?.zcodeDescription ?? "";
-        const csCity = cs?.zscodeDescription ?? "";
+        // ✅ 코드(있으면 우선)
+        const csRegionCode = String(cs?.zcode ?? cs?.zCode ?? cs?.zcodeId ?? "");
+        const csCityCode = String(cs?.zscode ?? cs?.zsCode ?? cs?.zscodeId ?? "");
+
+        // ✅ 이름(description) fallback
+        const csRegionName = String(cs?.zcodeDescription ?? cs?.zCodeDescription ?? "");
+        const csCityName = String(cs?.zscodeDescription ?? cs?.zsCodeDescription ?? "");
+
         const csName = cs?.statNm ?? "";
 
-        if (region && csRegion !== region) return false;
-        if (city && csCity !== city) return false;
+        // 시/도 필터
+        if (region) {
+            const matchByCode = csRegionCode && csRegionCode === region;
+            const matchByName = regionName && csRegionName && csRegionName === regionName;
+            if (!matchByCode && !matchByName) return false;
+        }
 
+        // 시/군/구 필터
+        if (city) {
+            const matchByCode = csCityCode && csCityCode === city;
+            const matchByName = cityName && csCityName && csCityName === cityName;
+            if (!matchByCode && !matchByName) return false;
+        }
+
+        // 급속/완속 필터
         if (chargeType) {
             const speed = mapChgerTypeToSpeedLabel(ch?.chgerType);
             if (speed !== chargeType) return false;
         }
 
+        // 충전소명 검색(부분 포함)
         if (nameQ) {
             if (!String(csName).includes(nameQ)) return false;
         }
@@ -92,6 +128,12 @@ export default function Search({
     // 원본 + 표시용(검색 결과)
     const [allRows, setAllRows] = useState([]);
     const [rows, setRows] = useState([]);
+
+    // ✅ 시/도 선택에 따라 시/군 옵션을 줄여서 보여줌
+    const filteredSigunOptions = useMemo(() => {
+        if (!region) return [];
+        return SIGUN_OPTIONS.filter((x) => x.code.startsWith(region));
+    }, [region]);
 
     // ✅ API 호출 (마운트 시 1회) - alive 체크 패턴
     useEffect(() => {
@@ -141,6 +183,13 @@ export default function Search({
         };
     }, []);
 
+    // ✅ 시/도 변경 시 시/군 초기화
+    const handleChangeRegion = (e) => {
+        const nextRegion = e.target.value;
+        setRegion(nextRegion);
+        setCity(""); // 중요: 시/도 바뀌면 시/군 선택값 제거
+    };
+
     // 검색/초기화 버튼 (프론트 필터링)
     const handleSearch = () => {
         setRows(applyFilters(allRows, { region, city, chargeType, stationName }));
@@ -179,20 +228,30 @@ export default function Search({
                         <div className={styles.label}>지역 선택</div>
 
                         <div className={styles.row2}>
-                            <select
-                                className={styles.select}
-                                value={region}
-                                onChange={(e) => setRegion(e.target.value)}
-                            >
+                            {/* ✅ 시/도 */}
+                            <select className={styles.select} value={region} onChange={handleChangeRegion}>
                                 <option value="">시/도</option>
+                                {SIDO_OPTIONS.map((opt) => (
+                                    <option key={opt.code} value={opt.code}>
+                                        {opt.name}
+                                    </option>
+                                ))}
                             </select>
 
+                            {/* ✅ 시/군/구 (시/도 선택 시에만 표시/활성화) */}
                             <select
                                 className={styles.select}
                                 value={city}
                                 onChange={(e) => setCity(e.target.value)}
+                                disabled={!region}
+                                title={!region ? "시/도를 먼저 선택하세요" : ""}
                             >
                                 <option value="">시/군</option>
+                                {filteredSigunOptions.map((opt) => (
+                                    <option key={opt.code} value={opt.code}>
+                                        {opt.name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                     </div>
@@ -232,7 +291,7 @@ export default function Search({
                         </button>
                     </div>
 
-                    {/* 로딩/에러 표시(원하면 위치 옮겨도 됨) */}
+                    {/* 로딩/에러 표시 */}
                     {(loading || error) && (
                         <div style={{ marginTop: 8, fontSize: 12, color: error ? "#c00" : "#666" }}>
                             {loading ? "로딩중..." : ""}
@@ -242,14 +301,11 @@ export default function Search({
                 </div>
             </section>
 
-            {/* 검색 결과 리스트 (UncheckList 형식 복사) */}
+            {/* 검색 결과 리스트 */}
             <section className={styles.card}>
                 <h3 className={styles.subTitle}>검색 결과</h3>
 
-                <div
-                    className={styles.leftList}
-                    style={{ "--leftListMaxHeight": `${maxHeightPx}px` }}
-                >
+                <div className={styles.leftList} style={{ "--leftListMaxHeight": `${maxHeightPx}px` }}>
                     {listItems.map((station) => {
                         if (!station.id) return null;
 
@@ -270,9 +326,7 @@ export default function Search({
                                 <div className={styles.stationName}>{station.name}</div>
 
                                 {station.status && (
-                                    <span className={`${styles.badgeStatus} ${statusClass}`}>
-                    {station.status}
-                  </span>
+                                    <span className={`${styles.badgeStatus} ${statusClass}`}>{station.status}</span>
                                 )}
 
                                 <span className={styles.badgeType}>{station.type}</span>
