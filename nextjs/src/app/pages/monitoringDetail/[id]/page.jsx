@@ -110,13 +110,33 @@ export default function MonitoringDetail() {
                     };
                 });
 
+
                 setChargers(mapped);
 
                 if (mapped.length > 0 && mapped[0].id) setSelectedChargerId(mapped[0].id);
                 else setSelectedChargerId("");
 
-                if (data.image && typeof data.image === "string") setImageUrl(String(data.image).trim());
-                else setImageUrl("");
+                try {
+                    const imgRes = await fetch(
+                        `/api/monitoringApi/charging_station_image?statId=${encodeURIComponent(statIdStr)}`,
+                        { cache: "no-store" }
+                    );
+
+                    const imgData = await imgRes.json().catch(() => null);
+
+                    if (imgRes.ok && imgData) {
+                        const url =
+                            imgData.presignedUrl && String(imgData.presignedUrl).trim()
+                                ? String(imgData.presignedUrl).trim()
+                                : "";
+
+                        setImageUrl(url);
+                    } else {
+                        setImageUrl("");
+                    }
+                } catch {
+                    setImageUrl("");
+                }
             } catch (e) {
                 setError(String(e.message || "Internal Server Error"));
             } finally {
