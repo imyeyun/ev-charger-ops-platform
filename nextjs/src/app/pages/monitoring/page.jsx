@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 import Header from "@/app/components/Header";
 import {
@@ -23,7 +22,6 @@ import AnomalyList from "@/app/components/list/AnomalyList";
 import UncheckList from "@/app/components/list/UncheckList";
 
 export default function MonitoringPage() {
-    const router = useRouter();
 
     const LEFT_LIST_VISIBLE_COUNT = 7;
     const LEFT_ROW_HEIGHT = 36;
@@ -33,56 +31,21 @@ export default function MonitoringPage() {
 
     const [region, setRegion] = useState("");
     const [city, setCity] = useState("");
-    const [stationType, setStationType] = useState("");
     const [chargeType, setChargeType] = useState("");
     const [stationName, setStationName] = useState("");
 
-    const [chatOpen, setChatOpen] = useState(false);
-    // ✅ 일별 상태미확인 카운트 (API에서 받아옴)
-    const [dailyUnconfirm, setDailyUnconfirm] = useState([]);
-    const [dailyUnconfirmLoading, setDailyUnconfirmLoading] = useState(false);
-    const [dailyUnconfirmError, setDailyUnconfirmError] = useState(null);
+    const [appliedFilters, setAppliedFilters] = useState({
+        region: "",
+        city: "",
+        chargeType: "",
+        stationName: "",
+    });
 
+    const [chatOpen, setChatOpen] = useState(false);
 
     // 🎨 편집 모드 및 레이아웃 state
     const [isEditMode, setIsEditMode] = useState(false);
     const [draggedItem, setDraggedItem] = useState(null);
-
-    useEffect(() => {
-        const fetchDaily = async () => {
-            try {
-                const qs = new URLSearchParams({
-                    region,
-                    city,
-                    stationType,
-                    chargeType,
-                    stationName,
-                });
-
-                const res = await fetch(
-                    `/spring-api/monitoring/unconfirm/daily?${qs.toString()}`,
-                    { cache: "no-store" }
-                );
-
-                if (!res.ok) throw new Error();
-
-                const data = await res.json();
-
-                setDailyUnconfirm(
-                    Array.isArray(data)
-                        ? data.map(d => ({
-                            date: d.date,
-                            count: Number(d.count),
-                        }))
-                        : []
-                );
-            } catch {
-                setDailyUnconfirm([]);
-            }
-        };
-
-        fetchDaily();
-    }, [region, city, stationType, chargeType, stationName]);
 
 
     // 📊 기본 레이아웃 설정 (그리드 위치: row/col로 관리)
@@ -95,9 +58,6 @@ export default function MonitoringPage() {
         { id:"list2",  component:"AnomalyList", title:"상태 미확인 충전소 리스트", dataKey:"unconfirmed", gridArea:"3 / 3 / 4 / 4" },
         { id:"list1",  component:"UncheckList", title:"이상탐지 위험 충전소 리스트", dataKey:"risk",       gridArea:"3 / 4 / 4 / 5" },
     ];
-
-    // 전체 사용 가능한 컴포넌트 목록 (고정)
-    const availableComponents = useMemo(() => defaultLayout, []);
 
     // ✅ [추가] 헤더 전역 저장값 로드
     const [layout, setLayout] = useState(() => {
@@ -139,59 +99,44 @@ export default function MonitoringPage() {
     }, [layout, removedComponents, emptySlotSelections]);
 
 
-    // 더미
-    const stationList = useMemo(
-        () => [
-            { id: 1, name: "충전소명 1", status: "사용가능", type: "완속" },
-            { id: 2, name: "충전소명 2", status: "사용가능", type: "완속" },
-            { id: 3, name: "충전소명 3", status: "사용중", type: "급속" },
-            { id: 4, name: "충전소명 4", status: "사용가능", type: "완속" },
-            { id: 5, name: "충전소명 5", status: "상태미확인", type: "완속" },
-            { id: 6, name: "충전소명 6", status: "사용가능", type: "급속" },
-            { id: 7, name: "충전소명 7", status: "사용가능", type: "완속" },
-            { id: 8, name: "충전소명 8", status: "사용가능", type: "완속" },
-            { id: 9, name: "충전소명 9", status: "사용가능", type: "완속" },
-            { id: 10, name: "충전소명 10", status: "사용가능", type: "완속" },
-            { id: 11, name: "충전소명 11", status: "사용가능", type: "급속" },
-            { id: 12, name: "충전소명 12", status: "사용가능", type: "완속" },
-        ],
-        []
-    );
-
-    const riskStations = useMemo(
-        () => Array.from({ length: 12 }, (_, i) => ({ id: i + 1, name: `충전소명 ${i + 1}` })),
-        []
-    );
-
-    const unconfirmedStations = useMemo(
-        () => Array.from({ length: 12 }, (_, i) => ({ id: i + 1, name: `충전소명 ${i + 1}` })),
-        []
-    );
+    // const riskStations = useMemo(
+    //     () => Array.from({ length: 12 }, (_, i) => ({ id: i + 1, name: `충전소명 ${i + 1}` })),
+    //     []
+    // );
+    //
+    // const unconfirmedStations = useMemo(
+    //     () => Array.from({ length: 12 }, (_, i) => ({ id: i + 1, name: `충전소명 ${i + 1}` })),
+    //     []
+    // );
 
 
-    /**/
     const goDetail = (id) => {
         const url = `/pages/monitoringDetail/${id}`;
         window.open(url, "_blank", "noopener,noreferrer");
-    };
-    /**/
-
-
-    const handleSearch = () => {
-        console.log("검색:", { region, city, stationType, chargeType, stationName });
-    };
-
-    const handleReset = () => {
-        setRegion("");
-        setCity("");
-        setStationType("");
-        setChargeType("");
-        setStationName("");
     };
 
     const handleAlarmSend = () => {
         alert("알림 전송(임시) - API 연결 시 실제 전송 로직으로 교체");
     };
+
+    const handleApplyFilters = () => {
+        setAppliedFilters({
+            region,
+            city,
+            chargeType,
+            stationName,
+        });
+    };
+
+    const handleResetFilters = () => {
+        setAppliedFilters({
+            region: "",
+            city: "",
+            chargeType: "",
+            stationName: "",
+        });
+    };
+
 
     // 🎨 드래그 앤 드롭 핸들러
     const handleDragStart = (e, item) => {
@@ -360,7 +305,7 @@ export default function MonitoringPage() {
                         </>
                     )}
                     <h3 className={styles.cardTitle}>{item.title}</h3>
-                    <SummaryChart total={152} />
+                    <SummaryChart />
                 </section>
             );
         }
@@ -390,7 +335,7 @@ export default function MonitoringPage() {
                         </>
                     )}
                     <h3 className={styles.cardTitle}>{item.title}</h3>
-                    <DailyUnconfirmBarChart data={dailyUnconfirm} />
+                    <DailyUnconfirmBarChart />
                 </section>
             );
         }
@@ -424,7 +369,6 @@ export default function MonitoringPage() {
                     <UncheckList
                         styles={styles}
                         title={item.title}
-                        stations={unconfirmedStations} // 상태 미확인 충전소 리스트 데이터
                         pageSize={5}
                         onView={goDetail}
                     />
@@ -458,7 +402,6 @@ export default function MonitoringPage() {
                     <AnomalyList
                         styles={styles}
                         title={item.title}
-                        items={riskStations} //
                         pageSize={5}
                         onView={goDetail}
                     />
@@ -542,17 +485,15 @@ export default function MonitoringPage() {
                                 setRegion={setRegion}
                                 city={city}
                                 setCity={setCity}
-                                stationType={stationType}
-                                setStationType={setStationType}
                                 chargeType={chargeType}
                                 setChargeType={setChargeType}
                                 stationName={stationName}
                                 setStationName={setStationName}
-                                onSearch={handleSearch}
-                                onReset={handleReset}
-                                stations={stationList}
                                 maxHeightPx={leftListMaxHeightPx}
                                 onSelect={goDetail}
+                                // ✅ [추가] Search 버튼 클릭 시 MonitoringPage도 동기화
+                                onApplied={handleApplyFilters}
+                                onResetApplied={handleResetFilters}
                             />
                         </div>
 
