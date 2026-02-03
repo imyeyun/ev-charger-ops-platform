@@ -2,11 +2,50 @@
 
 import { useMemo, useState, useEffect } from "react";
 
+let _cachedItems = null;        // [{id,name}]
+let _inflight = null;           // Promise
+
+async function getUncheckItems() {
+    if (_cachedItems) return _cachedItems;
+    if (_inflight) return _inflight;
+
+    _inflight = (async () => {
+        const res = await fetch("/api/componentApi/UncheckList", {
+            method: "GET",
+            cache: "no-store",
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+            const msg = data?.error || "리스트를 불러오지 못했습니다.";
+            throw new Error(msg);
+        }
+
+        const list = Array.isArray(data?.chargerBadCaseList) ? data.chargerBadCaseList : [];
+        const mapped = list.map((x) => ({
+            id: x.statId ? String(x.statId) : "",
+            name: x.statNm ? String(x.statNm) : "",
+        }));
+
+        _cachedItems = mapped;
+        return mapped;
+    })();
+
+    try {
+        return await _inflight;
+    } finally {
+        _inflight = null;
+    }
+}
+
 export default function UncheckList({
                                         styles,
                                         title,
                                         pageSize = 5,
                                         onView,
+                                        renderRow,
+                                        onPageIdsChange,
                                     }) {
     const [items, setItems] = useState([]); // ✅ state로 관리
     const [loading, setLoading] = useState(false);
@@ -14,45 +53,19 @@ export default function UncheckList({
 
     // ✅ API 호출
     useEffect(() => {
-        // API 요청은 시간이 걸리는 작업이므로 현재 컴포넌트가 살아있는지 체크하기 위함
         let alive = true;
 
         async function run() {
-            setLoading(true); // 로딩 UI를 보여주기 위함
-            setError(""); // 이전 에러가 존재한다면 지우기
+            setLoading(true);
+            setError("");
 
             try {
-                const res = await fetch("/api/componentApi/UncheckList", {
-                    method: "GET",
-                    cache: "no-store", // 캐시된 값 사용 x, 매번 새로 요청
-                });
-
-                const data = await res.json().catch(() => null); // 응답 JSON 파싱
-
-                if (!res.ok) {
-                    const msg = data?.error || "리스트를 불러오지 못했습니다.";
-                    throw new Error(msg);
-                }
-
-                // ✅ route가 payload 그대로 반환한다는 전제:
-                // 스펙: { chargerBadCaseList: [{ statId, statNm }, ...] }
-                const list = Array.isArray(data?.chargerBadCaseList)
-                    ? data.chargerBadCaseList
-                    : [];
-
-                // ✅ UI에서 쓰는 형태로 매핑: { id, name }
-                // statId -> id
-                // statNm -> name
-                const mapped = list.map((x) => ({
-                    id: x.statId ? String(x.statId) : "",
-                    name: x.statNm ? String(x.statNm) : "",
-                }));
-
-                if (alive) setItems(mapped); // state 업데이트
+                const mapped = await getUncheckItems();
+                if (alive) setItems(mapped);
             } catch (e) {
-                if (alive) setError(String(e.message || "리스트를 불러오지 못했습니다."));
+                if (alive) setError(String(e?.message || "리스트를 불러오지 못했습니다."));
             } finally {
-                if (alive) setLoading(false); // 로딩 종료
+                if (alive) setLoading(false);
             }
         }
 
@@ -73,6 +86,11 @@ export default function UncheckList({
         const start = (page - 1) * pageSize;
         return items.slice(start, start + pageSize);
     }, [items, page, pageSize]);
+
+    useEffect(() => {
+        if (typeof onPageIdsChange !== "function") return;
+        onPageIdsChange(pageItems.map((x) => x.id).filter(Boolean));
+    }, [pageItems, onPageIdsChange]);
 
     const getPagination = (current, total) => {
         if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
@@ -99,14 +117,20 @@ export default function UncheckList({
 
             {!loading && !error && (
                 <div className={styles.listBody}>
-                    {pageItems.map((s) => (
-                        <div key={s.id} className={styles.listItemRow}>
-                            <span className={styles.listItemText}>{s.name}</span>
-                            <button className={styles.viewBtn} onClick={() => onView?.(s.id)}>
-                                보기
-                            </button>
-                        </div>
-                    ))}
+                    {pageItems.map((s) => {
+                        // ✅ [수정] 커스텀 렌더가 있으면 그걸 사용
+                        if (typeof renderRow === "function") return renderRow(s);
+
+                        // ✅ 기존 렌더 그대로
+                        return (
+                            <div key={s.id} className={styles.listItemRow}>
+                                <span className={styles.listItemText}>{s.name}</span>
+                                <button className={styles.viewBtn} onClick={() => onView?.(s.id)}>
+                                    보기
+                                </button>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 

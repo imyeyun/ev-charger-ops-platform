@@ -21,6 +21,8 @@ import Search from "@/app/components/search";
 import AnomalyList from "@/app/components/list/AnomalyList";
 import UncheckList from "@/app/components/list/UncheckList";
 
+import Notification from "@/app/components/notification";
+
 export default function MonitoringPage() {
 
     const LEFT_LIST_VISIBLE_COUNT = 7;
@@ -34,12 +36,14 @@ export default function MonitoringPage() {
     const [chargeType, setChargeType] = useState("");
     const [stationName, setStationName] = useState("");
 
-    const [appliedFilters, setAppliedFilters] = useState({
-        region: "",
-        city: "",
-        chargeType: "",
-        stationName: "",
-    });
+    const[aralmOpen, setAralmOpen] = useState(false);
+
+    // const [appliedFilters, setAppliedFilters] = useState({
+    //     region: "",
+    //     city: "",
+    //     chargeType: "",
+    //     stationName: "",
+    // });
 
     const [chatOpen, setChatOpen] = useState(false);
 
@@ -99,24 +103,13 @@ export default function MonitoringPage() {
     }, [layout, removedComponents, emptySlotSelections]);
 
 
-    // const riskStations = useMemo(
-    //     () => Array.from({ length: 12 }, (_, i) => ({ id: i + 1, name: `충전소명 ${i + 1}` })),
-    //     []
-    // );
-    //
-    // const unconfirmedStations = useMemo(
-    //     () => Array.from({ length: 12 }, (_, i) => ({ id: i + 1, name: `충전소명 ${i + 1}` })),
-    //     []
-    // );
-
-
     const goDetail = (id) => {
         const url = `/pages/monitoringDetail/${id}`;
         window.open(url, "_blank", "noopener,noreferrer");
     };
 
     const handleAlarmSend = () => {
-        alert("알림 전송(임시) - API 연결 시 실제 전송 로직으로 교체");
+       setAralmOpen(true)
     };
 
     const handleApplyFilters = () => {
@@ -536,6 +529,16 @@ export default function MonitoringPage() {
 
                 <ChatWidget open={chatOpen} onClose={() => setChatOpen(false)} />
             </main>
+
+
+            <Notification
+                open={aralmOpen}
+                onClose={() => setAralmOpen(false)}
+                styles={styles}
+                title="알람 전송"
+                pageSize={9}
+                onView={goDetail}
+            />
 
             <div className={styles.fixedButtons}>
                 <button className={styles.chatBtn} onClick={() => setChatOpen((p) => !p)}>
