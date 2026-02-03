@@ -21,7 +21,7 @@ server:
   forward-headers-strategy: framework
 ai:
   server:
-    url: http://localhost:8888/
+    url: http://aivle-test-ai.duckdns.org:8000/
 
 cloud:
   aws:
