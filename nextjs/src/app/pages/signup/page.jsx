@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import styles from './page.module.css';
+
+import { SERVICE_TEXT } from '@/app/legal/service';
+import { PRIVACY_TEXT } from '@/app/legal/privacy';
 
 export default function Signup() {
     const router = useRouter();
@@ -21,6 +24,12 @@ export default function Signup() {
         passwordConfirm: '',
     });
     const [isIdVerified, setIsIdVerified] = useState(false);
+
+    // ✅ 두 개 모두 체크되어야만 true
+    const canSubmit = useMemo(
+        () => agreements.personalInfo && agreements.terms,
+        [agreements.personalInfo, agreements.terms]
+    );
 
     const handleAgreementChange = (type) => {
         if (type === 'all') {
@@ -59,6 +68,7 @@ export default function Signup() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // (disabled라 보통 여기까지 안 오지만, 혹시 몰라 2중 안전장치)
         if (!agreements.personalInfo || !agreements.terms) {
             alert('개인정보 및 약관에 동의해주세요.');
             return;
@@ -138,27 +148,43 @@ export default function Signup() {
 
                     <div className={styles.agreementSection}>
                         <h2 className={styles.sectionTitle}>개인정보 및 약관 동의 내용</h2>
+
                         <div className={styles.agreementList}>
-                            <label className={styles.agreementItem}>
-                                <input
-                                    type="checkbox"
-                                    checked={agreements.personalInfo}
-                                    onChange={() => handleAgreementChange('personalInfo')}
-                                    className={styles.checkbox}
-                                />
-                                <span>개인정보 처리방침 동의</span>
-                                <button type="button" className={styles.agreeButton}>동의함</button>
-                            </label>
-                            <label className={styles.agreementItem}>
-                                <input
-                                    type="checkbox"
-                                    checked={agreements.terms}
-                                    onChange={() => handleAgreementChange('terms')}
-                                    className={styles.checkbox}
-                                />
-                                <span>서비스 이용약관 동의</span>
-                                <button type="button" className={styles.agreeButton}>동의함</button>
-                            </label>
+                            {/* 개인정보처리방침 */}
+                            <div className={styles.agreementBlock}>
+                                <label className={styles.agreementItem}>
+                                    <input
+                                        type="checkbox"
+                                        checked={agreements.personalInfo}
+                                        onChange={() => handleAgreementChange('personalInfo')}
+                                        className={styles.checkbox}
+                                    />
+                                    <span>개인정보 처리방침 동의 (필수)</span>
+                                </label>
+
+                                <div className={styles.agreementBox} aria-label="개인정보처리방침">
+                                    <pre className={styles.agreementText}>{PRIVACY_TEXT}</pre>
+                                </div>
+                            </div>
+
+                            {/* 서비스 이용약관 */}
+                            <div className={styles.agreementBlock}>
+                                <label className={styles.agreementItem}>
+                                    <input
+                                        type="checkbox"
+                                        checked={agreements.terms}
+                                        onChange={() => handleAgreementChange('terms')}
+                                        className={styles.checkbox}
+                                    />
+                                    <span>서비스 이용약관 동의 (필수)</span>
+                                </label>
+
+                                <div className={styles.agreementBox} aria-label="서비스 이용약관">
+                                    <pre className={styles.agreementText}>{SERVICE_TEXT}</pre>
+                                </div>
+                            </div>
+
+                            {/* 전체 동의 */}
                             <label className={styles.agreementItem}>
                                 <input
                                     type="checkbox"
@@ -173,6 +199,7 @@ export default function Signup() {
 
                     <div className={styles.inputSection}>
                         <h2 className={styles.sectionTitle}>개인정보 입력</h2>
+
                         <form onSubmit={handleSubmit}>
                             <div className={styles.inputGroup}>
                                 <input
@@ -241,7 +268,13 @@ export default function Signup() {
                                 )}
                             </div>
 
-                            <button type="submit" className={styles.signupButton}>
+                            {/* ✅ canSubmit이 false면 disabled + 회색 */}
+                            <button
+                                type="submit"
+                                className={`${styles.signupButton} ${!canSubmit ? styles.signupButtonDisabled : ''}`}
+                                disabled={!canSubmit}
+                                aria-disabled={!canSubmit}
+                            >
                                 회원가입
                             </button>
                         </form>
