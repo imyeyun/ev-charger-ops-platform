@@ -18,7 +18,7 @@ public class SwaggerConfig {
                 .info(new Info()
                         .title("EV 충전소 관리 시스템 API")
                         .description("전기차 충전소 모니터링 및 관리를 위한 백엔드 API")
-                        .version("v1.0.2")
+                        .version("v1.0.3")
                         .contact(new Contact()
                                 .name("Backend Team")
                                 .email("support@example.com")))
