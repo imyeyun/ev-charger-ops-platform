@@ -11,6 +11,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
+
 // 스피너
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -19,6 +20,43 @@ import Stack from "@mui/material/Stack";
 export default function Report() {
     const [selectedReportType, setSelectedReportType] = useState("");
     const [prompt, setPrompt] = useState("");
+
+    // ✅ 날짜 추가
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+
+    const handleStartDateChange = (e) => {
+        const next = e.target.value;
+
+        // ✅ 날짜 선택 시점에서 검증
+        if (endDate && next && next > endDate) {
+            setErrorMsg("시작일은 종료일보다 늦을 수 없습니다.");
+            setOpenError(true);
+            return; // 값 반영 안 함(유지)
+        }
+        setStartDate(next);
+    };
+
+    const handleEndDateChange = (e) => {
+        const next = e.target.value;
+
+        // ✅ 날짜 선택 시점에서 검증
+        if (startDate && next && startDate > next) {
+            setErrorMsg("종료일은 시작일보다 빠를 수 없습니다.");
+            setOpenError(true);
+            return; // 값 반영 안 함(유지)
+        }
+        setEndDate(next);
+    };
+
+    const today = (() => {
+        const now = new Date(); // 로컬(=한국 PC면 KST)
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, "0");
+        const d = String(now.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+    })();
+
 
     // 서버가 준 PDF URL(프론트에서 열 수 있는 형태)
     const [filePath, setFilePath] = useState("");
@@ -39,14 +77,22 @@ export default function Report() {
         else if (type === "custom") setPrompt("맞춤 보고서 기본 프롬포트 형식...");
     };
 
+    const resetDates = () => {
+        setStartDate("");
+        setEndDate("");
+    };
+
     /**
      * ✅ 백엔드 연동 버전
-     * - reportApi.generateAndResolve()만 호출
-     * - 결과로 받은 fileUrl을 미리보기/다운로드에 사용
      */
-
     const handleGenerateReport = async () => {
         if (isGenerating) return;
+
+        if (!startDate || !endDate) {
+            setErrorMsg("기간(시작일/종료일)을 선택해주세요.");
+            setOpenError(true);
+            return;
+        }
 
         if (!selectedReportType) {
             setErrorMsg("보고서 유형을 선택해주세요.");
@@ -66,11 +112,10 @@ export default function Report() {
             const payload = {
                 reportType: selectedReportType,
                 prompt,
-                dataStartTime: null,
-                dataEndTime: null,
+                dataStartTime: startDate,
+                dataEndTime: endDate,
             };
 
-            // ✅ route 호출 (여기서 백엔드 호출/정규화/존재체크까지 완료됨)
             const res = await axios.post("/api/reportApi", payload, {
                 headers: { "Content-Type": "application/json" },
                 validateStatus: () => true,
@@ -99,10 +144,10 @@ export default function Report() {
         }
     };
 
-
-
     /**
      * ✅ 다운로드 확인
+     * - 원래 reportApi.validateDownload(filePath) 쓰려면 reportApi import가 필요함
+     * - 지금은 최소 동작으로 filePath를 바로 오픈
      */
     const confirmDownload = async () => {
         try {
@@ -120,7 +165,7 @@ export default function Report() {
         <>
             <Header />
 
-            {/*스피너 기능*/}
+            {/* 스피너 */}
             <Backdrop
                 open={isGenerating}
                 sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.modal + 1 }}
@@ -130,43 +175,93 @@ export default function Report() {
                     <Typography variant="body2">보고서 생성 중...</Typography>
                 </Stack>
             </Backdrop>
+
             <div className={styles.container}>
                 <div className={styles.reportWrapper}>
                     {/* 사이드바 */}
                     <div className={styles.sidebar}>
-                        <h2 className={styles.sidebarTitle}>보고서 유형</h2>
-                        <div className={styles.reportTypeList}>
-                            <button
-                                disabled={isGenerating}
-                                className={`${styles.reportTypeButton} ${
-                                    selectedReportType === "audit" ? styles.active : ""
-                                }`}
-                                onClick={() => handleReportTypeSelect("audit")}
-                            >
-                                감사용 보고서
-                            </button>
+                        {/* ✅ 기간 선택 박스 */}
+                        <div className={styles.sidebarBox}>
+                            <h2 className={styles.sidebarTitle}>기간 선택</h2>
+
+                            <div className={styles.dateRow}>
+                                <label className={styles.dateLabel}>시작일</label>
+                                <input
+                                    type="date"
+                                    className={styles.dateInput}
+                                    value={startDate}
+                                    onChange={handleStartDateChange}
+                                    disabled={isGenerating}
+                                    max={today}
+                                    onKeyDown={(e) => e.preventDefault()}
+                                    onPaste={(e) => e.preventDefault()}
+                                    onDrop={(e) => e.preventDefault()}
+                                />
+                            </div>
+
+                            <div className={styles.dateRow}>
+                                <label className={styles.dateLabel}>종료일</label>
+                                <input
+                                    type="date"
+                                    className={styles.dateInput}
+                                    value={endDate}
+                                    onChange={handleEndDateChange}
+                                    disabled={isGenerating}
+                                    max={today}
+                                    onKeyDown={(e) => e.preventDefault()}
+                                    onPaste={(e) => e.preventDefault()}
+                                    onDrop={(e) => e.preventDefault()}
+                                />
+                            </div>
 
                             <button
-                                disabled={isGenerating}
-                                className={`${styles.reportTypeButton} ${
-                                    selectedReportType === "monthly" ? styles.active : ""
-                                }`}
-                                onClick={() => handleReportTypeSelect("monthly")}
+                                type="button"
+                                className={styles.dateResetButton}
+                                onClick={resetDates}
+                                disabled={isGenerating || (!startDate && !endDate)}
                             >
-                                월별 보고서
-                            </button>
-
-                            <button
-                                disabled={isGenerating}
-                                className={`${styles.reportTypeButton} ${
-                                    selectedReportType === "custom" ? styles.active : ""
-                                }`}
-                                onClick={() => handleReportTypeSelect("custom")}
-                            >
-                                맞춤 보고서
+                                기간 초기화
                             </button>
                         </div>
+
+                        {/* ✅ 보고서 유형 박스 */}
+                        <div className={styles.sidebarBox}>
+                            <h2 className={styles.sidebarTitle}>보고서 유형</h2>
+
+                            <div className={styles.reportTypeList}>
+                                <button
+                                    disabled={isGenerating}
+                                    className={`${styles.reportTypeButton} ${
+                                        selectedReportType === "audit" ? styles.active : ""
+                                    }`}
+                                    onClick={() => handleReportTypeSelect("audit")}
+                                >
+                                    감사용 보고서
+                                </button>
+
+                                <button
+                                    disabled={isGenerating}
+                                    className={`${styles.reportTypeButton} ${
+                                        selectedReportType === "monthly" ? styles.active : ""
+                                    }`}
+                                    onClick={() => handleReportTypeSelect("monthly")}
+                                >
+                                    월별 보고서
+                                </button>
+
+                                <button
+                                    disabled={isGenerating}
+                                    className={`${styles.reportTypeButton} ${
+                                        selectedReportType === "custom" ? styles.active : ""
+                                    }`}
+                                    onClick={() => handleReportTypeSelect("custom")}
+                                >
+                                    맞춤 보고서
+                                </button>
+                            </div>
+                        </div>
                     </div>
+
 
                     {/* 메인 */}
                     <div className={styles.mainContent}>
@@ -232,7 +327,7 @@ export default function Report() {
                     </div>
                 </div>
 
-                {/* MUI 팝업: PDF 다운로드 */}
+                {/* 다운로드 팝업 */}
                 <Dialog
                     open={openDownload}
                     onClose={() => setOpenDownload(false)}
@@ -249,11 +344,7 @@ export default function Report() {
                         <Button onClick={() => setOpenDownload(false)} variant="outlined">
                             취소
                         </Button>
-                        <Button
-                            onClick={confirmDownload}
-                            variant="contained"
-                            disabled={!filePath}
-                        >
+                        <Button onClick={confirmDownload} variant="contained" disabled={!filePath}>
                             확인
                         </Button>
                     </DialogActions>
