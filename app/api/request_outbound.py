@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional, Union, List, Dict, Any, Iterable
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.api.openai_vectorstore_rag import rag_pipeline
 
@@ -198,7 +198,7 @@ class MultimodalAnalysisSummary(BaseModel):
     chgerType: Optional[str] = None
     output: Optional[str] = None
     method: Optional[str] = None
-    sensorTime: Optional[datetime] = None
+    transactionId: Optional[str] = Field(default=None, alias="transaction_id")
     multimodalId: Optional[int] = None
     fireYn: Optional[bool] = None
     fireDetails: Optional[str] = None
@@ -207,6 +207,10 @@ class MultimodalAnalysisSummary(BaseModel):
     cleanYn: Optional[bool] = None
     cleanDetails: Optional[str] = None
     imgsensoranalTime: Optional[datetime] = None
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
 
 
 class RequestInfo(BaseModel):
