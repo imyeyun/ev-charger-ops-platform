@@ -5,6 +5,12 @@ spring:
     username: ${MYSQL_USERNAME}
     password: ${MYSQL_PASSWORD}
     # DB 실제 생성후 맞는 유저, 패스워드 입력
+    hikari:
+      connection-timeout: 30000
+      validation-timeout: 5000
+      data-source-properties:
+        connectTimeout: 5000
+        socketTimeout: 60000
   jpa:
     hibernate:
       ddl-auto: update
@@ -22,6 +28,9 @@ server:
 ai:
   server:
     url: http://aivle-test-ai.duckdns.org:8000/
+    connect-timeout: 180000
+    read-timeout: 180000
+    write-timeout: 180000
 
 cloud:
   aws:
