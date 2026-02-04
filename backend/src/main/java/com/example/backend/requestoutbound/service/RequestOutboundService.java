@@ -178,11 +178,9 @@ public class RequestOutboundService {
                         .year(station.getYear())
                         .multimodalId(analysis.getMultimodalId())
                         .fireYn(analysis.getFireYn())
-                        .fireDetails(analysis.getFireDetails())
                         .brokeYn(analysis.getBrokeYn())
-                        .brokeDetails(analysis.getBrokeDetails())
-                        .cleanYn(analysis.getCleanYn())
-                        .cleanDetails(analysis.getCleanDetails())
+                        .dirtyYn(analysis.getDirtyYn())
+                        .notes(analysis.getNotes()) // 추가
                         .imgsensoranalTime(analysis.getImgsensoranalTime())
                         .build();
             }

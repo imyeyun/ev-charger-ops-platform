@@ -42,13 +42,17 @@ public class MultimodalAnalysisService {
         AiMultimodalReq aiRequest = buildAiRequest(imageLog, sensorLog);
         AiMultimodalRes aiResponse = aiMultimodalClient.analyze(aiRequest);
 
+        // 밑에 notes 부분 추가
+        String notes = null;
+        if (aiResponse.getVerdict() != null) {
+            notes = aiResponse.getVerdict().getNotes();
+        }
+
         MultimodalAnalysis analysis = MultimodalAnalysis.builder()
                 .fireYn(aiResponse.getFireYN())
-                .fireDetails(aiResponse.getFireDetails())
                 .brokeYn(aiResponse.getBrokenYN())
-                .brokeDetails(aiResponse.getBrokeDetails())
-                .cleanYn(aiResponse.getCleanYN())
-                .cleanDetails(aiResponse.getCleanDetails())
+                .dirtyYn(aiResponse.getDirtyYN()) // 변수명 수정
+                .notes(notes) // 추가
                 .imgsensoranalTime(LocalDateTime.now())
                 .imgId(imageLog.getImgId())
                 .imgTime(imageLog.getImgTime())
@@ -61,11 +65,9 @@ public class MultimodalAnalysisService {
 
         return MultimodalAnalysisRes.builder()
                 .fireYN(aiResponse.getFireYN())
-                .fireDetails(aiResponse.getFireDetails())
                 .brokenYN(aiResponse.getBrokenYN())
-                .brokeDetails(aiResponse.getBrokeDetails())
-                .cleanYN(aiResponse.getCleanYN())
-                .cleanDetails(aiResponse.getCleanDetails())
+                .dirtyYN(aiResponse.getDirtyYN()) // 변수명 수정
+                .notes(notes) // 추가
                 .build();
     }
 

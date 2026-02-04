@@ -8,10 +8,8 @@ import lombok.Getter;
 public class MultimodalAnalysisRes {
 
     private Boolean fireYN;
-    private String fireDetails;
     private Boolean brokenYN;
-    private String brokeDetails;
-    private Boolean cleanYN;
-    private String cleanDetails;
+    private Boolean dirtyYN;
+    private String notes; // 추가
 }
 

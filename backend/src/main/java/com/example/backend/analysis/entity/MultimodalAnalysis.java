@@ -117,20 +117,14 @@ public class MultimodalAnalysis {
     @Column(name = "fire_yn", nullable = false)
     private Boolean fireYn;
 
-    @Column(name = "fire_details", nullable = false, length = 200)
-    private String fireDetails;
-
     @Column(name = "broke_yn", nullable = false)
     private Boolean brokeYn;
 
-    @Column(name = "broke_details", nullable = false, length = 200)
-    private String brokeDetails;
+    @Column(name = "dirty_yn", nullable = true)  //변수명 수정, rule-based로 fire로 판정되면” dirty가 null로 처리하기로 해서 nullable = true
+    private Boolean dirtyYn;
 
-    @Column(name = "clean_yn", nullable = false)
-    private Boolean cleanYn;
-
-    @Column(name = "clean_details", nullable = false, length = 200)
-    private String cleanDetails;
+    @Column(name = "notes", length = 300) // llm 응답 부분 추가
+    private String notes;
 
     @Column(name = "imgsensoranal_time", nullable = false)
     private LocalDateTime imgsensoranalTime;
@@ -175,24 +169,15 @@ public class MultimodalAnalysis {
     })
     private SensorLog sensorlog;
 
-
-
-
-
-
-
-
     @Builder
-    public MultimodalAnalysis(Boolean fireYn, String fireDetails, Boolean brokeYn, String brokeDetails,
-                              Boolean cleanYn, String cleanDetails, LocalDateTime imgsensoranalTime,
+    public MultimodalAnalysis(Boolean fireYn, Boolean brokeYn, String notes, // detail 지우고 notes 추가
+                              Boolean dirtyYn, LocalDateTime imgsensoranalTime,
                               Long imgId, LocalDateTime imgTime, LocalDateTime sensorTime,
                               String chgerId2, String statId2) {
         this.fireYn = fireYn;
-        this.fireDetails = fireDetails;
         this.brokeYn = brokeYn;
-        this.brokeDetails = brokeDetails;
-        this.cleanYn = cleanYn;
-        this.cleanDetails = cleanDetails;
+        this.dirtyYn = dirtyYn;
+        this.notes = notes;
         this.imgsensoranalTime = imgsensoranalTime;
         this.imgId = imgId;
         this.imgTime = imgTime;
