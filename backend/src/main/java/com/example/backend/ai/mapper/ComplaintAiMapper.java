@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ComplaintAiMapper {
-
+    /*
     public AiComplaintReq.ChargerStatusInfo toChargerStatusInfo(
             ChargingStation station,
             Charger charger,
@@ -39,7 +39,7 @@ public class ComplaintAiMapper {
                 .stat(log != null ? log.getStat() : null)
                 .build();
     }
-
+    */
     public AiComplaintReq.MultimodalAnalysisInfo toMultimodalAnalysisInfo(
             ChargingStation station,
             MultimodalAnalysis analysis,

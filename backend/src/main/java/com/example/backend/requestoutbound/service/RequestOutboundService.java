@@ -40,8 +40,8 @@ public class RequestOutboundService {
     private final RequestOutboundRepository requestOutboundRepository;
     private final RequestRepository requestRepository;
     private final ChargingStationRepository chargingStationRepository;
-    private final ChargerRepository chargerRepository;
-    private final ChargerLogRepository chargerLogRepository;
+    //private final ChargerRepository chargerRepository;
+    //private final ChargerLogRepository chargerLogRepository;
     private final MultimodalAnalysisRepository multimodalAnalysisRepository;
     private final AiComplaintClient aiComplaintClient;
 
@@ -114,7 +114,7 @@ public class RequestOutboundService {
         Optional<ChargingStation> stationOpt = chargingStationRepository.findByStatId(request.getStatId())
                 .stream().findFirst();
 
-        AiComplaintReq.ChargerStatusInfo chargerStatusInfo = null;
+        /*AiComplaintReq.ChargerStatusInfo chargerStatusInfo = null;
         AiComplaintReq.MultimodalAnalysisInfo multimodalInfo = null;
 
         if (stationOpt.isPresent()) {
@@ -155,6 +155,14 @@ public class RequestOutboundService {
 
             Optional<MultimodalAnalysis> analysisOpt = multimodalAnalysisRepository
                     .findTopByOrderByImgsensoranalTimeDesc();
+        */
+        AiComplaintReq.MultimodalAnalysisInfo multimodalInfo = null;
+
+        if (stationOpt.isPresent()) {
+            ChargingStation station = stationOpt.get();
+
+            Optional<MultimodalAnalysis> analysisOpt = multimodalAnalysisRepository
+                    .findTopByOrderByImgsensoranalTimeDesc();
 
             if (analysisOpt.isPresent()) {
                 MultimodalAnalysis analysis = analysisOpt.get();
@@ -182,17 +190,21 @@ public class RequestOutboundService {
 
         AiComplaintReq.RequestInfo requestInfo = AiComplaintReq.RequestInfo.builder()
                 .reqId(request.getReqId())
+                .statId(request.getStatId())
+                .chgerId(request.getChgerId())
                 .title(request.getTitle())
                 .content(request.getContent())
                 .reqType(request.getReqType().name())
                 .build();
 
         return AiComplaintReq.builder()
-                .chargerStatus(chargerStatusInfo)
                 .multimodalAnalysis(multimodalInfo)
                 .request(requestInfo)
                 .build();
     }
+
+
+
 
     private String getZcodeDescription(ChargingStation station) {
         return station.getRegionCode() != null ? station.getRegionCode().getZcodeDescription() : station.getZcode();
