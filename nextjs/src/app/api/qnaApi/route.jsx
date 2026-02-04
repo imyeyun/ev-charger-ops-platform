@@ -1,12 +1,12 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
-
+import { BACKEND_BASE} from "@/app/api/url";
 
 
 const api = axios.create({
-    baseURL: process.env.BACKEND_URL || "http://localhost:8080",
+    baseURL: BACKEND_BASE,
     headers: { "Content-Type": "application/json" },
-    timeout: 15000,
+    timeout: 60000,
 });
 
 function assertSuccess(response) {

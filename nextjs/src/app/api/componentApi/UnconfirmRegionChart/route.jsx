@@ -22,8 +22,8 @@ export async function GET() {
 
         const payload = { chargingStation: {} };
 
-        if (raw) {
-            payload.chargingStation = toPlainObject(raw.chargingStation);
+        if (raw && raw.data && raw.data.chargingStation) {
+            payload.chargingStation = toPlainObject(raw.data.chargingStation);
         }
 
         return NextResponse.json(payload, { status: 200 });

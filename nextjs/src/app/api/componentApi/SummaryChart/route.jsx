@@ -13,12 +13,16 @@ export async function GET() {
         const res = await api.get("/api/condition");
         const conditionRaw = res ? res.data : null;
 
-        const payload = { chargerStat: null };
+        const payload = { chargerStat: {"9":0, "1":0, "2":0, "3":0, "4":0, "5":0} };
 
-        if (conditionRaw) {
-            if (conditionRaw.chargerStat !== undefined && conditionRaw.chargerStat !== null) {
-                payload.chargerStat = conditionRaw.chargerStat;
-            }
+        if (conditionRaw.data) {
+            payload.chargerStat["9"] = Number(conditionRaw.data["0"]) || 0;
+            payload.chargerStat["1"] = Number(conditionRaw.data["1"]) || 0;
+            payload.chargerStat["2"] = Number(conditionRaw.data["2"]) || 0;
+            payload.chargerStat["3"] = Number(conditionRaw.data["3"]) || 0;
+            payload.chargerStat["4"] = Number(conditionRaw.data["4"]) || 0;
+            payload.chargerStat["5"] = Number(conditionRaw.data["5"]) || 0;
+
         }
 
         return NextResponse.json(payload, { status: 200 });

@@ -28,6 +28,13 @@ function polar(cx, cy, r, a) {
     };
 }
 
+function colorOfKey(key) {
+    if (key === "gA") return "#F5C542";
+    if (key === "gB") return "#2F6BFF";
+    if (key === "gC") return "#E53935";
+    return "#999";
+}
+
 function buildRingSegmentPath(cx, cy, rOuter, rInner, a0, a1) {
     const p0 = polar(cx, cy, rOuter, a0);
     const p1 = polar(cx, cy, rOuter, a1);
@@ -117,7 +124,7 @@ export default function ChartChargerStatusSummary(props) {
     }, []);
 
     const grouped = useMemo(() => {
-        const a = getCount(chargerStat, "0(9)") + getCount(chargerStat, "1");
+        const a = getCount(chargerStat, "9") + getCount(chargerStat, "1");
         const b = getCount(chargerStat, "2") + getCount(chargerStat, "3");
         const c = getCount(chargerStat, "4") + getCount(chargerStat, "5");
 
@@ -130,6 +137,14 @@ export default function ChartChargerStatusSummary(props) {
             total,
         };
     }, [chargerStat]);
+
+    const segments = useMemo(() => {
+        const out = [];
+        out.push({ key: "gA", label: "상태 미확인", value: grouped.a });
+        out.push({ key: "gB", label: "정상", value: grouped.b });
+        out.push({ key: "gC", label: "고장", value: grouped.c });
+        return out;
+    }, [grouped]);
 
     if (loading) {
         return (
@@ -153,13 +168,7 @@ export default function ChartChargerStatusSummary(props) {
         );
     }
 
-    const segments = useMemo(() => {
-        const out = [];
-        out.push({ key: "gA", label: "상태 미확인", value: grouped.a });
-        out.push({ key: "gB", label: "정상", value: grouped.b });
-        out.push({ key: "gC", label: "고장", value: grouped.c });
-        return out;
-    }, [grouped]);
+
 
 
     // SVG 설정 (상단 반 도넛)
@@ -169,8 +178,8 @@ export default function ChartChargerStatusSummary(props) {
     const cx = 160;
     const cy = 160;
 
-    const rOuter = 120;
-    const rInner = 78;
+    const rOuter = 140;
+    const rInner = 80;
 
     const startBase = Math.PI;
     const endBase = Math.PI * 2;
@@ -200,8 +209,19 @@ export default function ChartChargerStatusSummary(props) {
 
     return (
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
-                <svg width={w} height={h}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center", width: "100%", maxWidth: 360, boxSizing: "border-box", overflow: "hidden" }}>
+                {/* ✅ [수정] 고정폭(width=320) 제거 → 반응형 SVG */}
+                <svg
+                    viewBox={`0 0 ${w} ${h}`}
+                    preserveAspectRatio="xMidYMid meet"
+                    style={{
+                        display: "block",
+                        width: "100%",        // ✅ [수정]
+                        maxWidth: w,          // ✅ [수정] 320 이상 커지지 않게
+                        height: "auto",       // ✅ [수정]
+                        margin: "0 auto",
+                    }}
+                >
                     <path
                         d={buildRingSegmentPath(cx, cy, rOuter, rInner, startBase, endBase)}
                         fill="#eee"
@@ -234,8 +254,8 @@ export default function ChartChargerStatusSummary(props) {
                     </text>
                 </svg>
 
-                <div style={{ fontSize: 12, color: "#333", width: 160 }}>
-                    <div style={{ fontWeight: 800, marginBottom: 8 }}>충전기 상태 현황</div>
+                <div style={{ fontSize: 12, color: "#333", width: "100%", padding: "0 12px", boxSizing: "border-box" }}>
+                    <div style={{ maxWidth: 260, margin: "0 auto" }}>
 
                     {segments.map((s) => {
                         const cnt = s.value;
@@ -245,16 +265,38 @@ export default function ChartChargerStatusSummary(props) {
                         return (
                             <div
                                 key={s.key}
-                                style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 4,               // ✅ [수정] 가로 간격 축소 (8 → 6)
+                                    marginBottom: 1,      // ✅ [수정] 세로 간격 축소 (4 → 2)
+                                    width: "100%",
+                                }}
                             >
-                                <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
-                                <div style={{ flex: 1 }}>
+                                {/*라벨링 색 네모*/}
+                                <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flex: "0 0 auto" }} />
+
+                                <div
+                                    style={{
+                                        flex: "1 1 auto",
+                                        minWidth: 0,
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                    }}
+                                >
                                     {s.label} <span style={{ color: "#999" }}>({cnt})</span>
                                 </div>
-                                <div style={{ width: 42, textAlign: "right", color: "#555" }}>{pct}%</div>
+
+                                <div style={{ marginLeft: 6, flex: "0 0 auto", textAlign: "right", color: "#555" }}>
+                                    {pct}%
+                                </div>
+
                             </div>
+
                         );
                     })}
+                    </div>
                 </div>
             </div>
         </div>

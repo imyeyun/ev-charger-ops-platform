@@ -2,25 +2,6 @@
 
 import { useMemo, useState, useEffect } from "react";
 
-function toNum(v) {
-    if (v === undefined) return 0;
-    if (v === null) return 0;
-
-    const n = Number(v);
-    if (Number.isNaN(n)) return 0;
-
-    return n;
-}
-
-function getCount(stat, key) {
-    if (!stat) return 0;
-
-    if (stat[key] === undefined) return 0;
-    if (stat[key] === null) return 0;
-
-    return toNum(stat[key]);
-}
-
 function buildPiePaths(cx, cy, r, segments) {
     const full = Math.PI * 2;
     let acc = 0;
@@ -68,52 +49,51 @@ function buildPiePaths(cx, cy, r, segments) {
 
 function colorOfKey(key) {
     // 상태별 고정 색(원하면 바꿔도 됨)
-    if (key === "0(9)") return "#F5C542"; // 노랑
+    if (key === "9") return "#F5C542"; // 노랑
     if (key === "1") return "#2F6BFF";    // 파랑
     if (key === "2") return "#E67E22";    // 주황
     if (key === "4") return "#E53935";    // 빨강
     return "#999";
 }
 
+// 라벨링
 function labelOfKey(key) {
-    if (key === "0(9)") return "상태미확인(0/9)";
-    if (key === "1") return "상태 1";
-    if (key === "2") return "상태 2";
-    if (key === "4") return "상태 4";
+    if (key === "9") return "알 수 없음";
+    if (key === "1") return "통신 이상";
+    if (key === "2") return "운영 중지";
+    if (key === "4") return "점검 중";
     return String(key);
 }
 
-export default function ChartUnconfirmedStatus(props) {
-    const external = props && props.chargerStat ? props.chargerStat : null;
 
-    const apiUrl =
-        (props && typeof props.apiUrl === "string" && props.apiUrl.trim())
-            ? props.apiUrl.trim()
-            : "/api/componentApi/UnconfirmStatusChart"; // ✅ 너 route 경로에 맞게 수정
-
-    const [chargerStat, setChargerStat] = useState(external);
-    const [loading, setLoading] = useState(!external);
+export default function ChartUnconfirmedStatus() {
+    const [chargerStat, setChargerStat] = useState({ "9": 0, "1": 0, "4": 0, "5": 0 });
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        if (external) {
-            setChargerStat(external);
-            setLoading(false);
-            setError("");
-        }
-    }, [external]);
+    const v9 = chargerStat["9"];
+    const v1 = chargerStat["1"];
+    const v4 = chargerStat["4"];
+    const v5 = chargerStat["5"];
+
+    const total = v9 + v1 + v4 + v5;
+
+    const segments = [
+        { key: "9", value: v9, total: total, title: labelOfKey("9") + " " + String(v9) },
+        { key: "1", value: v1, total: total, title: labelOfKey("1") + " " + String(v1) },
+        { key: "4", value: v4, total: total, title: labelOfKey("4") + " " + String(v4) },
+        { key: "5", value: v5, total: total, title: labelOfKey("5") + " " + String(v5) },
+    ];
 
     useEffect(() => {
         let alive = true;
-
-        if (external) return;
 
         async function run() {
             setLoading(true);
             setError("");
 
             try {
-                const res = await fetch(apiUrl, {
+                const res = await fetch("/api/componentApi/UnconfirmStatusChart", {
                     method: "GET",
                     cache: "no-store",
                 });
@@ -121,20 +101,19 @@ export default function ChartUnconfirmedStatus(props) {
                 const data = await res.json().catch(() => null);
 
                 if (!res.ok) {
-                    const msg = (data && (data.error || data.message)) || "데이터를 불러오지 못했습니다.";
-                    throw new Error(String(msg));
+                    let msg = "데이터를 불러오지 못했습니다.";
+                    if (data && data.error) msg = String(data.error);
+                    if (data && data.message) msg = String(data.message);
+                    throw new Error(msg);
                 }
+                let next = { "9": 0, "1": 0, "4": 0, "5": 0 };
+                if (data && data.chargerStat) next = data.chargerStat;
 
-                const stat =
-                    (data && data.chargerStat && typeof data.chargerStat === "object" && !Array.isArray(data.chargerStat))
-                        ? data.chargerStat
-                        : (data && typeof data === "object" && !Array.isArray(data) ? data : null);
-
-                if (alive) setChargerStat(stat);
+                if (alive) setChargerStat(next);
             } catch (e) {
                 if (alive) {
                     setError(String((e && e.message) || "데이터를 불러오지 못했습니다."));
-                    setChargerStat(null);
+                    setChargerStat({ "9": 0, "1": 0, "4": 0, "5": 0 });
                 }
             } finally {
                 if (alive) setLoading(false);
@@ -145,39 +124,8 @@ export default function ChartUnconfirmedStatus(props) {
         return () => {
             alive = false;
         };
-    }, [apiUrl, external]);
+    }, []);
 
-    const counts = useMemo(() => {
-        const out = {
-            k0: 0,
-            k1: 0,
-            k2: 0,
-            k4: 0,
-            total: 0,
-        };
-
-        if (chargerStat) {
-            out.k0 = getCount(chargerStat, "0(9)");
-            out.k1 = getCount(chargerStat, "1");
-            out.k2 = getCount(chargerStat, "2");
-            out.k4 = getCount(chargerStat, "4");
-        }
-
-        out.total = out.k0 + out.k1 + out.k2 + out.k4;
-
-        return out;
-    }, [chargerStat]);
-
-    const segments = useMemo(() => {
-        const total = counts.total;
-
-        return [
-            { key: "0(9)", value: counts.k0, total: total, title: "0(9) " + String(counts.k0) },
-            { key: "1", value: counts.k1, total: total, title: "1 " + String(counts.k1) },
-            { key: "2", value: counts.k2, total: total, title: "2 " + String(counts.k2) },
-            { key: "4", value: counts.k4, total: total, title: "4 " + String(counts.k4) },
-        ];
-    }, [counts]);
 
     if (loading) {
         return (
@@ -193,7 +141,7 @@ export default function ChartUnconfirmedStatus(props) {
             </div>
         );
     }
-    if (!chargerStat || counts.total <= 0) {
+    if (total <= 0) {
         return (
             <div style={{ width: "100%", height: 240, background: "#f2f2f2", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#999", fontSize: 12 }}>
                 데이터 없음
@@ -203,16 +151,37 @@ export default function ChartUnconfirmedStatus(props) {
 
     const w = 320;
     const h = 240;
-    const cx = 120;
-    const cy = 120;
-    const r = 80;
+    const cx = w/2;
+    const cy = h/2;
+    const r = 100;
 
     const paths = buildPiePaths(cx, cy, r, segments);
 
     return (
         <div style={{ width: "100%", height: 240, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
-                <svg width={w} height={h}>
+            <div
+                style={{
+                    display: "flex",
+                    flexDirection: "column",   // ✅ [수정]
+                    gap: 8,                    // ✅ [수정] 간격 축소
+                    alignItems: "center",
+                    width: "100%",             // ✅ [수정]
+                    maxWidth: "100%",          // ✅ [수정]
+                    boxSizing: "border-box",   // ✅ [수정]
+                }}
+            >
+                {/* ✅ [수정] 고정 width/height SVG 제거 → viewBox 기반 반응형 */}
+                <svg
+                    viewBox={`0 0 ${w} ${h}`}                 // ✅ [수정]
+                    preserveAspectRatio="xMidYMid meet"       // ✅ [수정]
+                    style={{
+                        display: "block",
+                        width: "100%",                        // ✅ [수정]
+                        maxWidth: w,                          // ✅ [수정] 원래 크기 이상 커지지 않게
+                        height: "auto",                       // ✅ [수정]
+                        margin: "0 auto",
+                    }}
+                >
                     {paths.map(function (p) {
                         const color = colorOfKey(p.key);
                         return (
@@ -221,31 +190,54 @@ export default function ChartUnconfirmedStatus(props) {
                             </path>
                         );
                     })}
-                    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 18, fontWeight: 800, fill: "#111" }}>
-                        {counts.total}
+                    <text
+                        x={cx}
+                        y={cy}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{ fontSize: 18, fontWeight: 800, fill: "#111" }}
+                    >
+                        {/*{total}*/}
                     </text>
                 </svg>
+                <div
+                    style={{
+                        fontSize: 12,
+                        color: "#333",
+                        width: "100%",               // ✅ [수정]
+                        padding: "0 8px",            // ✅ [수정]
+                        boxSizing: "border-box",     // ✅ [수정]
+                    }}
+                >
+                    <div style={{ maxWidth: 260, margin: "0 auto" }}> {/* ✅ [수정] 너무 넓어지지 않게 */}
 
-                <div style={{ fontSize: 12, color: "#333", width: 160 }}>
-                    <div style={{ fontWeight: 800, marginBottom: 8 }}>상태 미확인</div>
+                        {segments.map(function (s) {
+                            const cnt = s.value;
+                            const pct = Math.round((cnt * 100) / (total > 0 ? total : 1));
+                            const color = colorOfKey(s.key);
 
-                    {segments.map(function (s) {
-                        const cnt = s.value;
-                        const pct = Math.round((cnt * 100) / (counts.total > 0 ? counts.total : 1));
-                        const color = colorOfKey(s.key);
-
-                        return (
-                            <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
-                                <div style={{ flex: 1 }}>
-                                    {labelOfKey(s.key)} <span style={{ color: "#999" }}>({cnt})</span>
+                            return (
+                                <div
+                                    key={s.key}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 4,          // ✅ [수정] 라벨/값 사이 간격 더 좁게
+                                        marginBottom: 1, // ✅ [수정] 행 간격 더 좁게
+                                        width: "100%",
+                                    }}
+                                >
+                                    <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flex: "0 0 auto" }} />
+                                    <div style={{ flex: "1 1 auto", minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                        {labelOfKey(s.key)} <span style={{ color: "#999" }}>({cnt})</span>
+                                    </div>
+                                    <div style={{ flex: "0 0 auto", width: 36, textAlign: "right", color: "#555" }}> {/* ✅ [수정] 폭 축소 */}
+                                        {pct}%
+                                    </div>
                                 </div>
-                                <div style={{ width: 42, textAlign: "right", color: "#555" }}>{pct}%</div>
-                            </div>
-                        );
-                    })}
-
-                    <div style={{ marginTop: 10, color: "#999", fontSize: 11 }}>합계 {counts.total}</div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </div>
