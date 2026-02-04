@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 @Builder
 public class AiComplaintReq {
 
-    private ChargerStatusInfo chargerStatus;
+    //private ChargerStatusInfo chargerStatus;
     private MultimodalAnalysisInfo multimodalAnalysis;
     private RequestInfo request;
-
+    /*
     @Getter
     @Builder
     public static class ChargerStatusInfo {
@@ -34,7 +34,7 @@ public class AiComplaintReq {
         private LocalDateTime statUpdDt;
         private Integer stat;
     }
-
+    */
     @Getter
     @Builder
     public static class MultimodalAnalysisInfo {
@@ -65,6 +65,8 @@ public class AiComplaintReq {
     @Builder
     public static class RequestInfo {
         private Long reqId;
+        private String statId;
+        private String chgerId;
         private String title;
         private String content;
         private String reqType;
