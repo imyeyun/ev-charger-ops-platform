@@ -17,6 +17,7 @@ __pycache__/
 
 # --- model artifacts ---
 app/api/model/
+app/data/chargerLog/
 
 
 generate_anomaly_detection_model.ipynb
