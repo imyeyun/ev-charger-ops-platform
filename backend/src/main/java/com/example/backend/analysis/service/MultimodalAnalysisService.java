@@ -28,7 +28,7 @@ public class MultimodalAnalysisService {
     private final SensorLogRepository sensorLogRepository;
     private final AiMultimodalClient aiMultimodalClient;
 
-        @Transactional
+    @Transactional
     public MultimodalAnalysisRes analyze(MultimodalAnalysisReq request) {
         String statId = request.getStatId();
         String chgerId = request.getChgerId();
@@ -36,7 +36,7 @@ public class MultimodalAnalysisService {
         ImageLog imageLog = imageLogRepository.findLatestByStatId(statId)
                 .orElseThrow(() -> new NotFoundException("이미지 정보를 찾을 수 없습니다."));
 
-        SensorLog sensorLog = sensorLogRepository.findLatestByStatIdAndChgerId(statId, chgerId)
+        SensorLog sensorLog = sensorLogRepository.findTopByStatIdAndChgerIdOrderByTransactionIdDesc(statId, chgerId)
                 .orElseThrow(() -> new NotFoundException("센서 정보를 찾을 수 없습니다."));
 
         AiMultimodalReq aiRequest = buildAiRequest(imageLog, sensorLog);
@@ -56,7 +56,7 @@ public class MultimodalAnalysisService {
                 .imgsensoranalTime(LocalDateTime.now())
                 .imgId(imageLog.getImgId())
                 .imgTime(imageLog.getImgTime())
-                .sensorTime(sensorLog.getSensorTime())
+                .transactionId(sensorLog.getTransactionId())
                 .chgerId2(chgerId)
                 .statId2(statId)
                 .build();
@@ -77,7 +77,7 @@ public class MultimodalAnalysisService {
                 .build();
 
         AiMultimodalReq.SensorLogInfo sensorInfo = AiMultimodalReq.SensorLogInfo.builder()
-                .sensorTime(sensorLog.getSensorTime())
+                .transactionId(sensorLog.getTransactionId())
                 .chgerId(sensorLog.getChgerId())
                 .statId(sensorLog.getStatId())
                 .totalChargingKwh(sensorLog.getTotalChargingKwh())
@@ -89,7 +89,7 @@ public class MultimodalAnalysisService {
                 .outPower(sensorLog.getOutPower())
                 .chargingGunTemperature1(sensorLog.getChargingGunTemperature1())
                 .chargingGunTemperature2(sensorLog.getChargingGunTemperature2())
-                .types(sensorLog.getTypes())
+                .detailLabel(sensorLog.getDetailLabel())
                 .build();
 
         return AiMultimodalReq.builder()

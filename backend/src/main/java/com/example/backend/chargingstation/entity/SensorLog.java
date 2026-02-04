@@ -4,7 +4,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ManyToOne;
@@ -13,24 +12,19 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "sensor_log")
-@IdClass(SensorLogId.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SensorLog {
 
     @Id
-    @Column(name = "sensor_time")
-    private LocalDateTime sensorTime;
+    @Column(name = "transaction_id", length = 10)
+    private String transactionId;
 
-    @Id
     @Column(name = "chger_id", length = 2)
     private String chgerId;
 
-    @Id
     @Column(name = "stat_id", length = 8)
     private String statId;
 
@@ -61,8 +55,8 @@ public class SensorLog {
     @Column(name = "charging_gun_temperature2", nullable = false)
     private Integer chargingGunTemperature2;
 
-    @Column(name = "types", nullable = false)
-    private Integer types;
+    @Column(name = "detail_label", nullable = false)
+    private Integer detailLabel;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
