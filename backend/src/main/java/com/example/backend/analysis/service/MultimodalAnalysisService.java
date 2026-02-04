@@ -12,6 +12,7 @@ import com.example.backend.chargingstation.entity.SensorLog;
 import com.example.backend.chargingstation.repository.ImageLogRepository;
 import com.example.backend.chargingstation.repository.SensorLogRepository;
 import com.example.backend.global.exception.NotFoundException;
+import com.example.backend.global.storage.S3PresignedUrlService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,10 +24,13 @@ import java.time.LocalDateTime;
 @Transactional(readOnly = true)
 public class MultimodalAnalysisService {
 
+    private static final String DIRTY_IMAGE_KEY = "image/dirty/dirty_1.png";
+
     private final MultimodalAnalysisRepository multimodalAnalysisRepository;
     private final ImageLogRepository imageLogRepository;
     private final SensorLogRepository sensorLogRepository;
     private final AiMultimodalClient aiMultimodalClient;
+    private final S3PresignedUrlService presignedUrlService;
 
     @Transactional
     public MultimodalAnalysisRes analyze(MultimodalAnalysisReq request) {
@@ -72,8 +76,10 @@ public class MultimodalAnalysisService {
     }
 
     private AiMultimodalReq buildAiRequest(ImageLog imageLog, SensorLog sensorLog) {
+        // TODO: 이미지 경로를 DB에서 받아 실제 이미지 로그 경로를 사용할 때는 imageLog.getImgPath()로 교체 필요
+        String dirtyImageUrl = presignedUrlService.generateGetUrl(DIRTY_IMAGE_KEY);
         AiMultimodalReq.ImageInfo imageInfo = AiMultimodalReq.ImageInfo.builder()
-                .imgPath(imageLog.getImgPath())
+                .imgPath(dirtyImageUrl)
                 .build();
 
         AiMultimodalReq.SensorLogInfo sensorInfo = AiMultimodalReq.SensorLogInfo.builder()
