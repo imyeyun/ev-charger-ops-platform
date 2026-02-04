@@ -53,11 +53,9 @@ public class AiComplaintReq {
         private LocalDateTime sensorTime;
         private Long multimodalId;
         private Boolean fireYn;
-        private String fireDetails;
         private Boolean brokeYn;
-        private String brokeDetails;
-        private Boolean cleanYn;
-        private String cleanDetails;
+        private Boolean dirtyYn; // 변수명 수정
+        private String notes; // 추가
         private LocalDateTime imgsensoranalTime;
     }
 

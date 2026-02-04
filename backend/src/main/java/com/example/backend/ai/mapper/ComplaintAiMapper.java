@@ -58,11 +58,9 @@ public class ComplaintAiMapper {
                 .year(station.getYear())
                 .multimodalId(analysis.getMultimodalId())
                 .fireYn(analysis.getFireYn())
-                .fireDetails(analysis.getFireDetails())
                 .brokeYn(analysis.getBrokeYn())
-                .brokeDetails(analysis.getBrokeDetails())
-                .cleanYn(analysis.getCleanYn())
-                .cleanDetails(analysis.getCleanDetails())
+                .dirtyYn(analysis.getDirtyYn()) // 변수명 수정
+                .notes(analysis.getNotes()) // 추가
                 .imgsensoranalTime(analysis.getImgsensoranalTime())
                 .build();
     }
