@@ -50,7 +50,7 @@ public class AiComplaintReq {
         private String chgerType;
         private String output;
         private String method;
-        private LocalDateTime sensorTime;
+        private String transactionId;
         private Long multimodalId;
         private Boolean fireYn;
         private Boolean brokeYn;

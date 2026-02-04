@@ -22,7 +22,7 @@ public class MultimodalAiMapper {
             return null;
         }
         return AiMultimodalReq.SensorLogInfo.builder()
-                .sensorTime(sensorLog.getSensorTime())
+                .transactionId(sensorLog.getTransactionId())
                 .totalChargingKwh(sensorLog.getTotalChargingKwh())
                 .totalChargingMin(sensorLog.getTotalChargingMin())
                 .currentSoc(sensorLog.getCurrentSoc())
@@ -32,7 +32,7 @@ public class MultimodalAiMapper {
                 .outPower(sensorLog.getOutPower())
                 .chargingGunTemperature1(sensorLog.getChargingGunTemperature1())
                 .chargingGunTemperature2(sensorLog.getChargingGunTemperature2())
-                .types(sensorLog.getTypes())
+                .detailLabel(sensorLog.getDetailLabel())
                 .build();
     }
 }

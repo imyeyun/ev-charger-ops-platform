@@ -3,8 +3,6 @@ package com.example.backend.ai.dto.multimodal;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Builder
 public class AiMultimodalReq {
@@ -21,7 +19,7 @@ public class AiMultimodalReq {
     @Getter
     @Builder
     public static class SensorLogInfo {
-        private LocalDateTime sensorTime;
+        private String transactionId;
         private Double totalChargingKwh;
         private Integer totalChargingMin;
         private Integer currentSoc;
@@ -31,7 +29,7 @@ public class AiMultimodalReq {
         private Double outPower;
         private Integer chargingGunTemperature1;
         private Integer chargingGunTemperature2;
-        private Integer types;
+        private Integer detailLabel;
         private String chgerId;
         private String statId;
     }
