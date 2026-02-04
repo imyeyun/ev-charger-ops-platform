@@ -1,14 +1,13 @@
-# app/api/multimodal_analysis.py
-
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any, Dict, List, Tuple
 import os
 import logging
 from pathlib import Path
 import json
 import re
+import tempfile
 
 import numpy as np
 import pandas as pd
@@ -18,7 +17,9 @@ from ultralytics import YOLO
 from tensorflow.keras.applications.resnet import preprocess_input
 from PIL import Image
 
-from fastapi import APIRouter, Request, HTTPException
+import requests  # ✅ URL 이미지 다운로드용
+
+from fastapi import APIRouter, Request, HTTPException, Body
 from pydantic import BaseModel, Field
 from openai import OpenAI
 
@@ -94,6 +95,10 @@ T_SENSOR = float(os.getenv("T_SENSOR", "0.60"))
 USE_LLM_NOTES = os.getenv("USE_LLM_NOTES", "1") == "1"
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
+# URL download guard
+MAX_IMAGE_BYTES = int(os.getenv("MAX_IMAGE_BYTES", str(10 * 1024 * 1024)))  # 10MB
+IMG_DOWNLOAD_TIMEOUT = float(os.getenv("IMG_DOWNLOAD_TIMEOUT", "10"))
+
 # ✅ OpenAI client: lazy init (API KEY 없으면 서버 부팅되게)
 _OPENAI_CLIENT: Optional[OpenAI] = None
 
@@ -116,7 +121,8 @@ def _get_openai_client() -> Optional[OpenAI]:
 # 1) SCHEMAS
 # ----------------------------
 class ImageInput(BaseModel):
-    imgPath: Optional[str] = None
+    imgPath: Optional[str] = None  # 로컬 개발용 (서버 머신 로컬 경로)
+    imgUrl: Optional[str] = None   # 배포/운영용 (S3 presigned URL 등)
 
 
 class SensorLog(BaseModel):
@@ -144,7 +150,7 @@ class MultimodalAnalysisRequest(BaseModel):
 class Verdict(BaseModel):
     fireYN: bool = False
     dirtyYN: Optional[bool] = None  # 문제 있으면 True, fire 케이스는 None 가능
-    faultYN: bool = False           # 센서 고장 위험
+    brokenYN: bool = False          # 센서 고장 위험
     notes: str = ""
 
 
@@ -160,7 +166,7 @@ class MultimodalAnalysisResponse(BaseModel):
     # 하위호환 필드(기존)
     fireYN: bool = False
     brokenYN: bool = False
-    cleanYN: bool = True
+    dirtyYN: Optional[bool] = None
 
     # 디버깅/설명용
     details: Dict[str, Any] = Field(default_factory=dict)
@@ -181,6 +187,60 @@ def _extract_json(text: str) -> dict:
     if not m:
         raise ValueError(f"No JSON found in model output:\n{text[:400]}")
     return json.loads(m.group(0))
+
+
+def _download_image_to_temp(url: str) -> str:
+    """
+    presigned URL 등에서 이미지를 내려받아 임시파일 경로를 반환한다.
+    반환된 파일은 호출 측에서 삭제(cleanup)해주는 게 원칙.
+    """
+    with requests.get(url, stream=True, timeout=IMG_DOWNLOAD_TIMEOUT) as r:
+        r.raise_for_status()
+
+        cl = r.headers.get("Content-Length")
+        if cl and int(cl) > MAX_IMAGE_BYTES:
+            raise ValueError(f"Image too large (Content-Length={cl})")
+
+        ct = (r.headers.get("Content-Type") or "").lower()
+        ext = ".jpg"
+        if "png" in ct:
+            ext = ".png"
+        elif "webp" in ct:
+            ext = ".webp"
+        elif "jpeg" in ct or "jpg" in ct:
+            ext = ".jpg"
+
+        fd, tmp_path = tempfile.mkstemp(prefix="mm_", suffix=ext)
+        os.close(fd)
+
+        size = 0
+        with open(tmp_path, "wb") as f:
+            for chunk in r.iter_content(chunk_size=1024 * 256):
+                if not chunk:
+                    continue
+                size += len(chunk)
+                if size > MAX_IMAGE_BYTES:
+                    raise ValueError("Image too large while downloading")
+                f.write(chunk)
+
+    return tmp_path
+
+
+def resolve_image(image: ImageInput) -> Tuple[str, Optional[str]]:
+    """
+    imgPath 또는 imgUrl 중 하나를 받아 최종적으로 '로컬 파일 경로'로 통일한다.
+    return: (img_path_local, temp_path_if_downloaded)
+    """
+    if image.imgPath:
+        # 로컬 모드: 서버 머신에 실제 존재하는 경로여야 함
+        return ensure_real_image(image.imgPath), None
+
+    if image.imgUrl:
+        # 배포 모드: URL -> 다운로드 -> 로컬 경로로 변환
+        tmp = _download_image_to_temp(image.imgUrl)
+        return tmp, tmp
+
+    raise HTTPException(status_code=422, detail="image.imgPath or image.imgUrl is required")
 
 
 # ----------------------------
@@ -214,6 +274,9 @@ def preprocess_for_keras(img_path: str) -> np.ndarray:
 # 4) LOAD MODELS (요청 때 1회만 로드)
 # ----------------------------
 def _ensure_models_loaded(app) -> None:
+    if app is None:
+        raise RuntimeError("request.app is None (FastAPI Request not provided)")
+
     if getattr(app.state, "models_loaded", False):
         return
 
@@ -326,7 +389,7 @@ def apply_rules_for_prefinal(
     if yolo_yes < T_YOLO:
         status = "REJECT"
         reasons = ["no_target"]
-        verdict_seed = {"fireYN": False, "dirtyYN": None, "faultYN": False}
+        verdict_seed = {"fireYN": False, "dirtyYN": None, "brokenYN": False}
         scores["overall"] = 0.0
         scores["dirty_risk_eff"] = None
 
@@ -336,7 +399,7 @@ def apply_rules_for_prefinal(
             "verdict": {
                 "fireYN": False,
                 "dirtyYN": None,
-                "faultYN": False,
+                "brokenYN": False,
                 "notes": "충전기를 찾을 수 없습니다. 사업수행기관에게 CCTV 영상 교체 요청을 하십시오.",
             },
         }
@@ -384,9 +447,9 @@ def apply_rules_for_prefinal(
 
     # (4) verdict_seed
     fireYN = bool(is_fire or is_smoke)
-    faultYN = bool(sensor_risk >= T_SENSOR)
+    brokenYN = bool(sensor_risk >= T_SENSOR)
     dirtyYN = None if (resnet_mut["clean"] is None) else bool(dirty_eff >= T_DIRTY)
-    verdict_seed = {"fireYN": fireYN, "dirtyYN": dirtyYN, "faultYN": faultYN}
+    verdict_seed = {"fireYN": fireYN, "dirtyYN": dirtyYN, "brokenYN": brokenYN}
 
     scores["overall"] = float(max(fire_p, smoke_p, dirty_eff, float(sensor_risk)))
 
@@ -412,13 +475,13 @@ def llm_notes_only(summary: dict) -> dict:
 반드시 JSON만 출력(추가 텍스트/마크다운 금지).
 출력 status는 INPUT.status 그대로.
 출력 reasons는 INPUT.reasons 그대로(수정/번역/추가 금지).
-출력 verdict.fireYN/dirtyYN/faultYN은 INPUT.verdict_seed 값을 그대로 복사(변경 금지).
+출력 verdict.fireYN/dirtyYN/brokenYN은 INPUT.verdict_seed 값을 그대로 복사(변경 금지).
 너는 verdict.notes만 1~2문장 한국어로 유도리 있게 작성한다.
 
 notes 작성 가이드:
 - reasons에 fire_detected가 있으면: "화재 위험" 중심(연기 단정 X, 오염 언급 X)
 - reasons에 smoke_detected_possible_fire가 있으면: "연기 징후로 화재 가능성" (화재 단정 금지)
-- verdict_seed.faultYN이 true면: "고장/센서 이상 가능성" 언급 (false면 언급 금지)
+- verdict_seed.brokenYN이 true면: "고장/센서 이상 가능성" 언급 (false면 언급 금지)
 - verdict_seed.dirtyYN이 true면: "오염/관리 필요" 언급
 - dirtyYN이 null이면 오염/청결 관련 단정 금지.
 - 점수로 강도 조절:
@@ -433,7 +496,7 @@ notes 작성 가이드:
   "verdict": {{
     "fireYN": true,
     "dirtyYN": true,
-    "faultYN": false,
+    "brokenYN": false,
     "notes": "string"
   }}
 }}
@@ -456,106 +519,129 @@ INPUT:
 # ----------------------------
 # 8) ROUTE
 # ----------------------------
-from fastapi import APIRouter, Request, HTTPException, Body
-
 @router.post("/api/multimodal_analysis", response_model=MultimodalAnalysisResponse)
 async def multimodal_analysis(
     payload: MultimodalAnalysisRequest = Body(...),
     request: Request = None,
 ) -> MultimodalAnalysisResponse:
-    _ensure_models_loaded(request.app if request else None)
+    if request is None:
+        raise HTTPException(status_code=500, detail="FastAPI Request not provided")
 
-    # ✅ 기존 req 파싱 대신 payload 그대로 사용
+    _ensure_models_loaded(request.app)
+
     req = payload
 
-    if not req.image or not req.image.imgPath:
-        raise HTTPException(status_code=422, detail="image.imgPath is required")
+    if not req.image:
+        raise HTTPException(status_code=422, detail="image is required")
     if not req.sensorLog:
         raise HTTPException(status_code=422, detail="sensorLog is required")
 
+    # ✅ image(imgPath/imgUrl) -> local file path 통일
+    tmp_path = None
     try:
-        img_path = ensure_real_image(req.image.imgPath)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        try:
+            img_path, tmp_path = resolve_image(req.image)
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
-    sensor_row = req.sensorLog.model_dump()
-    sensor_row.update({
-        "total_charging_kwh": req.sensorLog.totalChargingKwh,
-        "total_charging_min": req.sensorLog.totalChargingMin,
-        "current_soc": req.sensorLog.currentSoc,
-        "current_energy_meter_value": req.sensorLog.currentEnergyMeterValue,
-        "out_power": req.sensorLog.outPower,
-        "charging_gun_temperature1": req.sensorLog.chargingGunTemperature1,
-        "charging_gun_temperature2": req.sensorLog.chargingGunTemperature2,
-    })
+        # sensor row
+        sensor_row = req.sensorLog.model_dump()
+        sensor_row.update({
+            "total_charging_kwh": req.sensorLog.totalChargingKwh,
+            "total_charging_min": req.sensorLog.totalChargingMin,
+            "current_soc": req.sensorLog.currentSoc,
+            "current_energy_meter_value": req.sensorLog.currentEnergyMeterValue,
+            "out_power": req.sensorLog.outPower,
+            "charging_gun_temperature1": req.sensorLog.chargingGunTemperature1,
+            "charging_gun_temperature2": req.sensorLog.chargingGunTemperature2,
+        })
 
-    yolo_out = run_yolo_cls(request.app.state.yolo_model, img_path)
-    resnet_out = run_resnet(request.app.state.resnet_model, img_path)
-    sensor_out = run_sensor_ml(request.app.state.sensor_model, sensor_row)
+        yolo_out = run_yolo_cls(request.app.state.yolo_model, img_path)
+        resnet_out = run_resnet(request.app.state.resnet_model, img_path)
+        sensor_out = run_sensor_ml(request.app.state.sensor_model, sensor_row)
 
-    yolo_yes = float(yolo_out.get("score_yes", 0.0))
-    sensor_risk = float(sensor_out.get("score_risk", 0.0))
+        yolo_yes = float(yolo_out.get("score_yes", 0.0))
+        sensor_risk = float(sensor_out.get("score_risk", 0.0))
 
-    rule = apply_rules_for_prefinal(yolo_yes, resnet_out, sensor_risk)
+        rule = apply_rules_for_prefinal(yolo_yes, resnet_out, sensor_risk)
 
-    status = rule["status"]
-    reasons = rule["reasons"]
-    scores = rule["scores"]
-    verdict_seed = rule["verdict_seed"]
-    resnet_mut = rule["resnet_mut"]
+        status = rule["status"]
+        reasons = rule["reasons"]
+        scores = rule["scores"]
+        verdict_seed = rule["verdict_seed"]
+        resnet_mut = rule["resnet_mut"]
 
-    llm_review = None
-    if status == "REJECT":
-        llm_review = rule["llm_review_fixed"]
-        verdict = llm_review["verdict"]
-    else:
-        verdict = {
-            "fireYN": verdict_seed["fireYN"],
-            "dirtyYN": verdict_seed["dirtyYN"],
-            "faultYN": verdict_seed["faultYN"],
-            "notes": "",
+        llm_review = None
+        if status == "REJECT":
+            llm_review = rule["llm_review_fixed"]
+            verdict = llm_review["verdict"]
+        else:
+            verdict = {
+                "fireYN": verdict_seed["fireYN"],
+                "dirtyYN": verdict_seed["dirtyYN"],
+                "brokenYN": verdict_seed["brokenYN"],
+                "notes": "",
+            }
+
+            if USE_LLM_NOTES and os.getenv("OPENAI_API_KEY"):
+                try:
+                    summary = {"status": status, "reasons": reasons, "scores": scores, "verdict_seed": verdict_seed}
+                    llm_out = llm_notes_only(summary)
+
+                    llm_out["status"] = status
+                    llm_out["reasons"] = reasons
+                    llm_out.setdefault("verdict", {})
+                    llm_out["verdict"]["fireYN"] = verdict_seed["fireYN"]
+                    llm_out["verdict"]["dirtyYN"] = verdict_seed["dirtyYN"]
+                    llm_out["verdict"]["brokenYN"] = verdict_seed["brokenYN"]
+                    llm_out["verdict"].setdefault("notes", "")
+
+                    llm_review = llm_out
+                    verdict = llm_out["verdict"]
+                except Exception as e:
+                    verdict["notes"] = f"LLM_ERROR: {e}"
+
+        fireYN = bool(verdict_seed["fireYN"])
+        brokenYN = bool(verdict_seed["brokenYN"])
+        dirtyYN = verdict_seed["dirtyYN"]
+
+        details = {
+            "thresholds": {
+                "T_YOLO": T_YOLO,
+                "T_FIRE": T_FIRE,
+                "T_SMOKE": T_SMOKE,
+                "T_DIRTY": T_DIRTY,
+                "T_SENSOR": T_SENSOR
+            },
+            "image_input": {
+                "used": "imgPath" if req.image.imgPath else "imgUrl",
+                "imgPath": req.image.imgPath,
+                "imgUrl": req.image.imgUrl,
+            },
+            "yolo": yolo_out,
+            "resnet": resnet_mut,
+            "sensor": sensor_out,
+            "rule_scores": scores,
+            "llm_review": llm_review,
         }
 
-        if USE_LLM_NOTES and os.getenv("OPENAI_API_KEY"):
+        return MultimodalAnalysisResponse(
+            code=200,
+            status=status,
+            reasons=reasons,
+            verdict=Verdict(**verdict),
+            fireYN=fireYN,
+            brokenYN=brokenYN,
+            dirtyYN=dirtyYN,
+            details=details,
+        )
+
+    finally:
+        # ✅ URL 다운로드 임시파일 cleanup
+        if tmp_path:
             try:
-                summary = {"status": status, "reasons": reasons, "scores": scores, "verdict_seed": verdict_seed}
-                llm_out = llm_notes_only(summary)
-
-                llm_out["status"] = status
-                llm_out["reasons"] = reasons
-                llm_out.setdefault("verdict", {})
-                llm_out["verdict"]["fireYN"] = verdict_seed["fireYN"]
-                llm_out["verdict"]["dirtyYN"] = verdict_seed["dirtyYN"]
-                llm_out["verdict"]["faultYN"] = verdict_seed["faultYN"]
-                llm_out["verdict"].setdefault("notes", "")
-
-                llm_review = llm_out
-                verdict = llm_out["verdict"] 
-            except Exception as e:
-                verdict["notes"] = f"LLM_ERROR: {e}"
-
-    fireYN = bool(verdict_seed["fireYN"])
-    brokenYN = bool(verdict_seed["faultYN"])
-    dirtyYN = verdict_seed["dirtyYN"]
-    cleanYN = True if dirtyYN is None else (not bool(dirtyYN))
-
-    details = {
-        "thresholds": {"T_YOLO": T_YOLO, "T_FIRE": T_FIRE, "T_SMOKE": T_SMOKE, "T_DIRTY": T_DIRTY, "T_SENSOR": T_SENSOR},
-        "yolo": yolo_out,
-        "resnet": resnet_mut,
-        "sensor": sensor_out,
-        "rule_scores": scores,
-        "llm_review": llm_review,
-    }
-
-    return MultimodalAnalysisResponse(
-        code=200,
-        status=status,
-        reasons=reasons,
-        verdict=Verdict(**verdict),
-        fireYN=fireYN,
-        brokenYN=brokenYN,
-        cleanYN=cleanYN,
-        details=details,
-    )
-
+                os.remove(tmp_path)
+            except Exception:
+                pass
