@@ -21,10 +21,27 @@ public interface ChargerLogRepository extends JpaRepository<ChargerLog, ChargerL
 
        Optional<ChargerLog> findTopByStatIdAndChgerIdOrderByChgerTimeDesc(String statId, String chgerId);
 
-       @Query("SELECT cl FROM ChargerLog cl WHERE cl.chgerTime = " +
-              "(SELECT MAX(cl2.chgerTime) FROM ChargerLog cl2 " +
-              "WHERE cl2.chgerId = cl.chgerId AND cl2.statId = cl.statId)")
+       @Query(value =
+              "SELECT " +
+              "  cl.chger_time, " +
+              "  cl.chger_id, " +
+              "  cl.stat_id, " +
+              "  COALESCE(NULLIF(cl.last_tsdt,   0), '1970-01-01 00:00:00') AS last_tsdt, " +
+              "  COALESCE(NULLIF(cl.last_tedt,   0), '1970-01-01 00:00:00') AS last_tedt, " +
+              "  COALESCE(NULLIF(cl.stat_upd_dt, 0), '1970-01-01 00:00:00') AS stat_upd_dt, " +
+              "  cl.stat " +
+              "FROM backend.charger_log cl " +
+              "JOIN ( " +
+              "    SELECT chger_id, stat_id, MAX(chger_time) AS max_time " +
+              "    FROM backend.charger_log " +
+              "    GROUP BY chger_id, stat_id " +
+              ") t " +
+              "  ON t.chger_id = cl.chger_id " +
+              " AND t.stat_id  = cl.stat_id " +
+              " AND t.max_time = cl.chger_time",
+              nativeQuery = true)
        List<ChargerLog> findLatestLogs();
+
 
        @Query(value =
               "SELECT cl.stat AS stat, COUNT(*) AS cnt " +
@@ -38,7 +55,7 @@ public interface ChargerLogRepository extends JpaRepository<ChargerLog, ChargerL
               " AND t.stat_id = cl.stat_id " +
               " AND t.max_time = cl.chger_time " +
               "GROUP BY cl.stat",
-       nativeQuery = true)
+              nativeQuery = true)
        List<Object[]> countByStatGrouped();
 
        @Query("SELECT cl FROM ChargerLog cl WHERE cl.statId = :statId " +
