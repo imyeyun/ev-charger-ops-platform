@@ -58,9 +58,26 @@ public interface ChargerLogRepository extends JpaRepository<ChargerLog, ChargerL
               nativeQuery = true)
        List<Object[]> countByStatGrouped();
 
-       @Query("SELECT cl FROM ChargerLog cl WHERE cl.statId = :statId " +
-              "AND cl.chgerTime = (SELECT MAX(cl2.chgerTime) FROM ChargerLog cl2 " +
-              "WHERE cl2.statId = cl.statId AND cl2.chgerId = cl.chgerId)")
+       @Query(value =
+               "SELECT " +
+                       "  cl.chger_time, " +
+                       "  cl.chger_id, " +
+                       "  cl.stat_id, " +
+                       "  COALESCE(NULLIF(cl.last_tsdt,   0), '1970-01-01 00:00:00') AS last_tsdt, " +
+                       "  COALESCE(NULLIF(cl.last_tedt,   0), '1970-01-01 00:00:00') AS last_tedt, " +
+                       "  COALESCE(NULLIF(cl.stat_upd_dt, 0), '1970-01-01 00:00:00') AS stat_upd_dt, " +
+                       "  cl.stat " +
+                       "FROM backend.charger_log cl " +
+                       "JOIN ( " +
+                       "    SELECT chger_id, stat_id, MAX(chger_time) AS max_time " +
+                       "    FROM backend.charger_log " +
+                       "    WHERE stat_id = :statId " +
+                       "    GROUP BY chger_id, stat_id " +
+                       ") t " +
+                       "  ON t.chger_id = cl.chger_id " +
+                       " AND t.stat_id  = cl.stat_id " +
+                       " AND t.max_time = cl.chger_time",
+               nativeQuery = true)
        List<ChargerLog> findLatestLogsByStatId(@Param("statId") String statId);
 
        // 일별 비정상 상태 충전기 개수 조회 (상태 9, 1, 4, 5) - DB에서 0 대신 9 사용
