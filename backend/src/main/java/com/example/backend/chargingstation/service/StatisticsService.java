@@ -70,15 +70,9 @@ public class StatisticsService {
      * GET /api/uncheckList
      */
     public UncheckListRes getUncheckList() {
-        List<ChargerLog> latestLogs = chargerLogRepository.findLatestLogs();
+        // DB에서 비정상 상태(9, 1, 4, 5)인 충전소 ID만 직접 조회 (성능 최적화)
+        List<String> badCaseStatIds = chargerLogRepository.findBadCaseStatIds();
         List<ChargingStation> stations = chargingStationRepository.findAllWithCodes();
-
-        // 비정상 상태(9, 1, 4, 5)인 충전소 ID 추출 - DB에서 0 대신 9 사용
-        Set<String> badCaseStatIds = latestLogs.stream()
-                .filter(log -> log.getStat() == 9 || log.getStat() == 1 ||
-                               log.getStat() == 4 || log.getStat() == 5)
-                .map(ChargerLog::getStatId)
-                .collect(Collectors.toSet());
 
         // 충전소 정보 매핑
         Map<String, ChargingStation> stationMap = stations.stream()
@@ -147,9 +141,8 @@ public class StatisticsService {
             statCountMap.put(stat, count);
         }
 
-        // DB에서 0 대신 9를 사용하므로, stat9 값을 stat0에 매핑
         return ChargerStatRes.builder()
-                .stat0(statCountMap.getOrDefault(9, 0L).intValue())
+                .stat9(statCountMap.getOrDefault(9, 0L).intValue())
                 .stat1(statCountMap.getOrDefault(1, 0L).intValue())
                 .stat2(statCountMap.getOrDefault(2, 0L).intValue())
                 .stat3(statCountMap.getOrDefault(3, 0L).intValue())

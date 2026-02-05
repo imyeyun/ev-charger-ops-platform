@@ -36,3 +36,7 @@ out/
 ### VS Code ###
 .vscode/
 .claude/
+
+### Local config ###
+application-local2.yml
+nul
