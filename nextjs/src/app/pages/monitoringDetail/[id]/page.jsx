@@ -26,13 +26,6 @@ async function postJson(url, payload) {
     return data;
 }
 
-// function buildCoordText(lat, lng) {
-//     if (!lat && !lng) return "위도, 경도";
-//     const a = lat ? String(lat) : "-";
-//     const b = lng ? String(lng) : "-";
-//     return a + ", " + b;
-// }
-
 function toText(v) {
     if (v === undefined) return "";
     if (v === null) return "";
@@ -57,8 +50,6 @@ export default function MonitoringDetail() {
     const [chargers, setChargers] = useState([]);
     const [detailInfo, setDetailInfo] = useState({
         address: "",
-        latitude: "",
-        longitude: "",
         organization: "",
         contactNumber: "",
         installYear: "",
@@ -93,8 +84,6 @@ export default function MonitoringDetail() {
 
                 setDetailInfo({
                     address: station.addr ? String(station.addr) : "",
-                    latitude: station.lat !== undefined && station.lat !== null ? String(station.lat) : "",
-                    longitude: station.lng !== undefined && station.lng !== null ? String(station.lng) : "",
                     organization: station.busidDescription ? String(station.busidDescription) : "",
                     contactNumber: station.busiCall ? String(station.busiCall) : "",
                     installYear: station.year !== undefined && station.year !== null ? String(station.year) : "",
@@ -183,8 +172,6 @@ export default function MonitoringDetail() {
         }
     }
 
-    // const coordText = buildCoordText(detailInfo.latitude, detailInfo.longitude);
-
     return (
         <>
             <Header />
@@ -243,9 +230,7 @@ export default function MonitoringDetail() {
                                 <div className={styles.field}>
                                     <label className={styles.label}>도로명주소</label>
                                     <div className={styles.row}>
-                                        <div className={styles.box}>{detailInfo.address}</div>
-                                        {/*<div className={styles.boxSmall}>{coordText}</div>*/}
-                                    </div>
+                                        <div className={styles.box}>{detailInfo.address}</div></div>
                                 </div>
 
                                 <div className={styles.field2}>
@@ -300,3 +285,6 @@ export default function MonitoringDetail() {
         </>
     );
 }
+
+
+
