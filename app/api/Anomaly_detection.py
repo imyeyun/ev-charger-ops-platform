@@ -62,7 +62,7 @@ def _fetch_24h(conn: sqlite3.Connection, as_of: datetime) -> pd.DataFrame:
     t0 = (as_of - timedelta(hours=24)).isoformat()
     t1 = as_of.isoformat()
     sql = """
-    SELECT event_at, statId, chgerId, prev_stat, new_stat
+    SELECT event_at, statId, chgerId, prev_stat, new_stat, stat_nm
     FROM state_change
     WHERE event_at IS NOT NULL AND event_at >= ? AND event_at <= ?
     ORDER BY statId, chgerId, event_at
@@ -122,6 +122,7 @@ def _build_last_event_features(df: pd.DataFrame, as_of: datetime) -> pd.DataFram
             "charger_key": ck,
             "statId": str(last["statId"]),
             "chgerId": str(last["chgerId"]),
+            "stat_nm": last.get("stat_nm"),
             "event_at": t.to_pydatetime().isoformat(),
             "prev_stat": int(last["prev_stat"]),
             "new_stat": int(last["new_stat"]),
@@ -188,24 +189,62 @@ def db_scan(req: DBScanRequest):
             return {"as_of": as_of.isoformat(), "n_chargers": 0, "rows": []}
 
         p_raw, p = _predict(df_feat)
-        out = df_feat[["charger_key", "statId", "chgerId", "event_at"]].copy()
+        out = df_feat[["statId", "stat_nm", "chgerId", "event_at"]].copy()
         out["p_raw"] = p_raw
         out["p"] = p
 
-        sc = req.score_col
-        out = out[out[sc] >= float(req.threshold)].copy()
-        out = out.sort_values(sc, ascending=False)
+        # =========================
+        # 🔹 statId 기준 집계
+        # =========================
+        agg = (
+            out.groupby(["statId", "stat_nm"], as_index=False)
+            .agg({
+                "chgerId": lambda x: ",".join(sorted(set(map(str, x)))),  # chargerId 합치기
+                "event_at": "max",        # 가장 최근 이벤트
+                "p_raw": "max",           # 가장 위험한 충전기 기준
+                "p": "max",
+            })
+        )
 
+        sc = req.score_col
+
+        # 1) charger 단위에서 threshold 먼저 적용
+        out = out[out[sc] >= float(req.threshold)].copy()
+
+        if out.empty:
+            return {
+                "as_of": as_of.isoformat(),
+                "threshold": req.threshold,
+                "score_col": sc,
+                "top_n": req.top_n,
+                "n_stations": 0,
+                "rows": [],
+            }
+
+        # 2) 그 다음 statId 기준 집계
+        agg = (
+            out.groupby(["statId", "stat_nm"], as_index=False)
+            .agg({
+                "chgerId": lambda x: ",".join(sorted(set(map(str, x)))),
+                "event_at": "max",
+                "p_raw": "max",
+                "p": "max",
+            })
+            .sort_values(sc, ascending=False)
+        )
+
+        # 3) top_n도 station 기준으로 적용
         if req.top_n is not None:
-            out = out.head(int(req.top_n)).copy()
+            agg = agg.head(int(req.top_n)).copy()
 
         return {
             "as_of": as_of.isoformat(),
             "threshold": req.threshold,
             "score_col": sc,
             "top_n": req.top_n,
-            "n_chargers": int(out["charger_key"].nunique()) if not out.empty else 0,
-            "rows": out.to_dict(orient="records"),
+            "n_stations": int(len(agg)),
+            "rows": agg.to_dict(orient="records"),
         }
+
     finally:
         conn.close()
