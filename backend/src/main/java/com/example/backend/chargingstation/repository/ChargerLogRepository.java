@@ -98,4 +98,19 @@ public interface ChargerLogRepository extends JpaRepository<ChargerLog, ChargerL
               "GROUP BY cs.zscode")
        List<Object[]> countBadCaseByRegion();
 
+       // 비정상 상태(9, 1, 4, 5)인 충전소 ID 목록만 조회 (최신 로그 기준)
+       @Query(value =
+              "SELECT DISTINCT cl.stat_id " +
+              "FROM charger_log cl " +
+              "JOIN ( " +
+              "    SELECT chger_id, stat_id, MAX(chger_time) AS max_time " +
+              "    FROM charger_log " +
+              "    GROUP BY chger_id, stat_id " +
+              ") t ON t.chger_id = cl.chger_id " +
+              "   AND t.stat_id = cl.stat_id " +
+              "   AND t.max_time = cl.chger_time " +
+              "WHERE cl.stat IN (9, 1, 4, 5)",
+              nativeQuery = true)
+       List<String> findBadCaseStatIds();
+
 }

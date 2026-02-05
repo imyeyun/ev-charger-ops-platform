@@ -8,8 +8,8 @@ import lombok.Getter;
 @Builder
 public class ChargerStatRes {
 
-    @JsonProperty("0")
-    private int stat0;  // 알수없음
+    @JsonProperty("9")
+    private int stat9;  // 알수없음
 
     @JsonProperty("1")
     private int stat1;  // 통신이상
