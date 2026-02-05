@@ -6,6 +6,8 @@ spring:
     password: ${MYSQL_PASSWORD}
     # DB 실제 생성후 맞는 유저, 패스워드 입력
     hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
       connection-timeout: 30000
       validation-timeout: 5000
       data-source-properties:
