@@ -13,6 +13,20 @@ const COMPLAINT_TYPE_LABEL = {
     OTHER: "기타",
 };
 
+function formatKstYmdHm(isoLike) {
+    if (!isoLike) return "-";
+
+    // 이미 Z 또는 +09:00 같은 타임존이 있으면 그대로 사용
+    const hasTz = /[zZ]|[+-]\d{2}:\d{2}$/.test(isoLike);
+    const safe = hasTz ? isoLike : `${isoLike}+09:00`; // ✅ KST로 강제
+
+    const d = new Date(safe);
+    if (Number.isNaN(d.getTime())) return isoLike;
+
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function ComplaintDetail() {
     const router = useRouter();
     const params = useParams();
@@ -120,7 +134,7 @@ export default function ComplaintDetail() {
                                     </div>
                                     <div className={styles.metaCell}>
                                         <div className={styles.metaLabel}>접수 일시</div>
-                                        <div className={styles.metaValue}>{complaint.receivedDate}</div>
+                                        <div className={styles.metaValue}>{formatKstYmdHm(complaint.receivedDate)}</div>
                                     </div>
                                 </div>
 
@@ -145,7 +159,7 @@ export default function ComplaintDetail() {
 
                                     <div className={styles.replyMeta}>
                                         <span className={styles.replyMetaLabel}>답변 일시</span>
-                                        <span className={styles.replyMetaValue}>{replyDateText}</span>
+                                        <span className={styles.replyMetaValue}>{formatKstYmdHm(replyDateText)}</span>
                                     </div>
                                 </div>
 

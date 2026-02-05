@@ -9,6 +9,24 @@ const api = axios.create({
   timeout: 15000,
 });
 
+// 에이전트 실행 시 시간 많이 걸리므로 긴 호출용 axios 인스턴스 생성
+const apiLong = axios.create({
+    baseURL: BACKEND_BASE,
+    headers: { "Content-Type": "application/json" },
+    timeout: 180000, // 3분
+});
+
+function getBackendMessage(error) {
+    // 백엔드가 내려준 { code, message }의 message를 우선 사용하고, 없으면 axios 기본 메시지 -> 그래도 없으면 기본 문구
+    // socket hang up/timeout 등의 경우 response가 없으므로 ?. 추가하여 방어하기 위함
+    return error?.response?.data?.message || error?.message || "요청 처리 중 오류가 발생했습니다.";
+}
+
+function getHttpStatus(error) {
+    // 백 바디에 404, 409가 있으면 그걸 우선 사용 -> 없으면 HTTP status(404/409 등) 사용 -> 둘 다 없으면 500
+    return error?.response?.data?.code || error?.response?.status || 500;
+}
+
 // 공통 응답 처리 핸들러
 function assertSuccess(response) {
   const payload = response.data; //백엔드가 준 실제 데이터
@@ -41,18 +59,9 @@ export async function GET(request) {
   } catch (error) {
     console.error("Error fetching complaint list:", error);
 
-    // ✅ 안전장치: error.code가 숫자가 아니면 500으로 강제 지정
-    // (현재 백 연결이 안돼서 ECONNREFUSED 같은 문자열이 들어오는 것을 방지)
-    const safeStatus = Number.isInteger(error.code) && error.code >= 200 && error.code <= 599 
-      ? error.code 
-      : 500;
-
     return NextResponse.json(
-      { 
-        error: error.message || "민원 리스트를 불러오지 못했습니다.",
-        debug: error.code // 브라우저에서 원인을 알 수 있게 에러 코드는 본문에 포함
-      },
-      { status: safeStatus }
+        { error: getBackendMessage(error), debug: error?.response?.data?.code || error?.code },
+        { status: getHttpStatus(error) }
     );
   }
 }
@@ -109,7 +118,7 @@ export async function POST(request) {
 
             // 민원 답변 생성 후 일괄 처리 API 호출
             // - 백엔드 스펙: POST /api/request_outbound body: { reqIds: [12, 15] }
-            const res = await api.post("/api/request_outbound", { reqIds });
+            const res = await apiLong.post("/api/request_outbound", { reqIds });
 
             // 공통 응답 핸들링
             const payload = assertSuccess(res);
@@ -129,18 +138,9 @@ export async function POST(request) {
         // 네트워크 오류(ECONNREFUSED/ETIMEDOUT), 백엔드 에러 코드 등을 콘솔에서 확인
         console.error("Error in complaintsApi route:", error);
 
-        // error.code가 숫자(HTTP status)인 경우만 status로 사용, 아니면 500
-        const safeStatus =
-            Number.isInteger(error.code) && error.code >= 200 && error.code <= 599
-                ? error.code
-                : 500;
-
         return NextResponse.json(
-            {
-                error: error.message || "요청 처리 중 오류가 발생했습니다.",
-                debug: error.code, // 클라이언트에서도 원인 파악 가능하게
-            },
-            { status: safeStatus }
+            { error: getBackendMessage(error), debug: error?.response?.data?.code || error?.code },
+            { status: getHttpStatus(error) }
         );
     }
 }

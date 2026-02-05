@@ -22,6 +22,20 @@ const COMPLAINT_TYPE_LABEL = {
     OTHER: "기타",
 };
 
+function formatKstYmdHm(isoLike) { // 백 응답으로 오는 시간 예쁘게 변환
+    if (!isoLike) return "-";
+
+    // 이미 Z 또는 +09:00 같은 타임존이 있으면 그대로 사용
+    const hasTz = /[zZ]|[+-]\d{2}:\d{2}$/.test(isoLike);
+    const safe = hasTz ? isoLike : `${isoLike}+09:00`; // ✅ KST로 강제
+
+    const d = new Date(safe);
+    if (Number.isNaN(d.getTime())) return isoLike;
+
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function ComplaintList() {
     const router = useRouter();
     /// ✅ 입력 중인 값(화면의 폼)
@@ -40,6 +54,9 @@ export default function ComplaintList() {
 
     const [allComplaints, setAllComplaints] = useState([]); // 서버에서 받아온 원본 민원 리스트를 저장하는 상태
     const [loading, setLoading] = useState(true); // 서버 통신 중인지 여부
+
+    const [isProcessing, setIsProcessing] = useState(false); // 민원 답변 생성 시 스피너 설정 위함
+    const [processingMsg, setProcessingMsg] = useState("");
 
     // 기존에 존재하던 중복 mapped를 제거하기 위해 매핑 함수와 로딩 함수 추가
     // 1) 백 list item -> 화면용 item으로 매핑
@@ -203,6 +220,9 @@ export default function ComplaintList() {
         // 선택된 민원 일괄 처리(Agent 처리)
         // action으로 분기하던 코드 삭제(complaintsApi 코드도 함께 수정)
         try {
+            setIsProcessing(true); // 답변 생성 중일 때 true
+            setProcessingMsg("선택한 민원 답변을 생성 중입니다..."); // 민원 답변 생성중일 때 사용자에게 표시 위함
+
             const result = await axios.post('/api/complaintsApi', { reqIds: selectedItems });
 
             const data = result.data; // res.data -> HTTP 응답 바디 전체이므로 실제 데이터 필드를 꺼내기 위함
@@ -214,7 +234,15 @@ export default function ComplaintList() {
 
             setSelectedItems([]); // 선택 해제
         } catch (e) {
-            openModal(e.message || '민원 처리 중 오류가 발생했습니다.');
+            const msg =
+                e?.response?.data?.error ||          // ✅ Next route가 내려준 사용자 메시지(이미 등록된 답변입니다 등)
+                e?.message ||                        // axios 기본 메시지
+                "민원 처리 중 오류가 발생했습니다.";
+
+            openModal(msg);
+        } finally {
+            setIsProcessing(false); // 답변 생성 끝나면 다시 false
+            setProcessingMsg("");
         }
     };
 
@@ -269,6 +297,18 @@ export default function ComplaintList() {
     return (
         <>
             <Header />
+
+            {isProcessing && (
+                <div className={styles.processingOverlay} role="status" aria-live="polite">
+                    <div className={styles.processingBox}>
+                        <div className={styles.spinner} />
+                        <div className={styles.processingText}>{processingMsg}</div>
+                        <div className={styles.processingSubText}>
+                            잠시만 기다려주세요.
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ✅ 중앙 모달 (확인 버튼만) */}
             {modalMessage && (
@@ -389,13 +429,13 @@ export default function ComplaintList() {
                             <span className={styles.totalCount}>총 {totalCount}건 등록({currentPage}/{totalPages || 1})</span>
 
                             {/* 항상 표시되도록 변경 */}
+                            {/*선택된 민원이 0건 또는 답변 처리 진행 중일 때 버튼 비활성화*/}
                             <button
                                 className={styles.agentProcessButton}
                                 onClick={handleAgentProcess}
-                                disabled={selectedItems.length === 0}
-                                title={selectedItems.length === 0 ? '민원을 선택하면 처리할 수 있습니다.' : ''}
+                                disabled={selectedItems.length === 0 || isProcessing}
                             >
-                                선택 민원 Agent 처리
+                                {isProcessing ? "처리 중..." : "선택 민원 Agent 처리"}
                             </button>
 
                             <span className={styles.itemsPerPage}>{itemsPerPage}개씩</span>
@@ -449,7 +489,7 @@ export default function ComplaintList() {
                                             </td>
                                             <td className={styles.titleColumn}>{complaint.title}</td>
                                             <td className={styles.categoryColumn}>{COMPLAINT_TYPE_LABEL[complaint.category]}</td>
-                                            <td className={styles.dateColumn}>{complaint.date}</td>
+                                            <td className={styles.dateColumn}>{formatKstYmdHm(complaint.date)}</td>
                                         </tr>
                                     ))
                                 )}
