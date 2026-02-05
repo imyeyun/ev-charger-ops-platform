@@ -6,6 +6,13 @@ import axios from 'axios';
 import styles from './page.module.css';
 import Header from '@/app/components/Header'; // 1. Header 컴포넌트 임포트
 
+const COMPLAINT_TYPE_LABEL = {
+    CHARGER_BREAKDOWN: "충전기 고장",
+    PAYMENT: "결제 오류",
+    SUBSIDY: "보조금",
+    OTHER: "기타",
+};
+
 export default function ComplaintDetail() {
     const router = useRouter();
     const params = useParams();
@@ -21,38 +28,29 @@ export default function ComplaintDetail() {
             try {
                 setLoading(true);
 
-                const response = await axios.post('/api/complaintsApi', {
-                    action: 'detail',
-                    reqId: Number(complaintId),
-                });
+                const response = await axios.post('/api/complaintsApi', { reqId: Number(complaintId) });
 
                 const { request, outbounds } = response.data;
 
-                // ✅ 백 응답 → 화면용 state로 매핑
-                // (필드명은 백이 확정되면 여기만 조정하면 됨)
+                // 답변 이력(outbounds)이 여러 개 있을 수 있으므로 배열의 마지막 원소를 꺼내, 화면에서는 가장 최신 답변 1개만 보여주기 위함
+                // (추가) outbounds 정렬 순서에 따라 마지막 원소 또는 첫번째 원소를 꺼낼 수 있음
+                const last = outbounds.length ? outbounds[outbounds.length - 1] : null;
+
+                // 백 응답 → 화면용 state로 매핑
                 setComplaint({
-                    id: request.reqId ?? request.id ?? complaintId,
-                    title: request.title ?? '민원 제목',
-                    category: request.reqType ?? request.category ?? '기타',
-                    receivedDate: request.reqDt ?? request.receivedDate ?? '-',
-                    content: request.content ?? '민원 내용이 여기에 표시됩니다.',
+                    id: request.reqId,
+                    title: request.title,
+                    category: request.reqType,
+                    receivedDate: request.reqDt,
+                    content: request.content,
 
-                    // outbounds(답변 이력) 중 "최신" 1개를 보여주는 형태로 가정
-                    hasReply: Array.isArray(outbounds) && outbounds.length > 0,
-                    replyDate:
-                        Array.isArray(outbounds) && outbounds.length > 0
-                            ? (outbounds[outbounds.length - 1].answerDt ?? outbounds[outbounds.length - 1].procDt ?? null)
-                            : null,
-                    reply:
-                        Array.isArray(outbounds) && outbounds.length > 0
-                            ? (outbounds[outbounds.length - 1].answer ?? outbounds[outbounds.length - 1].reply ?? null)
-                            : null,
-
-                    // 필요하면 전체 답변 목록도 넣어둘 수 있음
-                    outbounds: Array.isArray(outbounds) ? outbounds : [],
+                    hasReply: outbounds.length > 0, // 답변이 있으면 true
+                    replyDate: last ? last.answerDt : null,
+                    reply: last ? last.answer : null,
+                    outbounds, // 그대로 저장
                 });
             } catch (e) {
-                // ✅ 실패 시 처리
+                // 실패 시 처리
                 console.error(e);
                 setComplaint(null);
             } finally {
@@ -118,7 +116,7 @@ export default function ComplaintDetail() {
                                 <div className={styles.metaGrid}>
                                     <div className={styles.metaCell}>
                                         <div className={styles.metaLabel}>민원 유형</div>
-                                        <div className={styles.metaValue}>{complaint.category}</div>
+                                        <div className={styles.metaValue}>{COMPLAINT_TYPE_LABEL[complaint.category]}</div>
                                     </div>
                                     <div className={styles.metaCell}>
                                         <div className={styles.metaLabel}>접수 일시</div>

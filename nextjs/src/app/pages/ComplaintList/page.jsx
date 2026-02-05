@@ -15,6 +15,13 @@ const INITIAL_FILTERS = {
     showProcessed: true,   // ✅
 };
 
+const COMPLAINT_TYPE_LABEL = {
+    CHARGER_BREAKDOWN: "충전기 고장",
+    PAYMENT: "결제 오류",
+    SUBSIDY: "보조금",
+    OTHER: "기타",
+};
+
 export default function ComplaintList() {
     const router = useRouter();
     /// ✅ 입력 중인 값(화면의 폼)
@@ -23,38 +30,41 @@ export default function ComplaintList() {
     // ✅ 실제 목록에 적용된 값(검색 버튼 눌렀을 때만 바뀜)
     const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(10);
-    const [selectedItems, setSelectedItems] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1); // 현재 보여주고 있는 페이 번호(페이지네이션)
+    const [itemsPerPage] = useState(10); // 한 페이지에 보여줄 행 개수(현재 10개로 고정)
+    const [selectedItems, setSelectedItems] = useState([]); //체크박스로 선택된 민원들의 id 목록
 
-    const [modalMessage, setModalMessage] = useState(''); //중앙 메세지 모달 상태
-    const openModal = (msg) => setModalMessage(msg);
-    const closeModal = () => setModalMessage('');
+    const [modalMessage, setModalMessage] = useState(''); //중앙 모달(알림창)에 표시할 메시지 문자열
+    const openModal = (msg) => setModalMessage(msg); // 모달 열기(메시지를 세팅해서 모달 표시)
+    const closeModal = () => setModalMessage(''); // 모달 닫기(메시지를 비워서 모달을 숨김)
 
-    const [allComplaints, setAllComplaints] = useState([]);   // ✅ 서버 데이터 저장
-    const [loading, setLoading] = useState(true);
-    
-    // ✅ 최초 진입 시 리스트 API 호출해서 setAllComplaints
+    const [allComplaints, setAllComplaints] = useState([]); // 서버에서 받아온 원본 민원 리스트를 저장하는 상태
+    const [loading, setLoading] = useState(true); // 서버 통신 중인지 여부
+
+    // 기존에 존재하던 중복 mapped를 제거하기 위해 매핑 함수와 로딩 함수 추가
+    // 1) 백 list item -> 화면용 item으로 매핑
+    const mapComplaint = (item) => ({
+        id: item.reqId,
+        title: item.title,
+        category: item.reqType,
+        date: item.reqDt,
+        field: item.field
+    });
+
+    // 2) 목록 다시 불러오기(초기 로딩/처리 후 리프레시 공용)
+    const fetchComplaints = async () => {
+        const res = await axios.get('/api/complaintsApi');
+        const list = res.data; // res.data -> HTTP 응답 바디 전체이므로 실제 데이터 필드를 꺼내기 위함
+        return list.map(mapComplaint); // 원본 배열의 각 item을 화면용 객체로 바궈서 반환
+    };
+
+    // 최초 진입 시 리스트 API 호출해서 setAllComplaints
     useEffect(() => {
         const run = async () => {
             try {
                 setLoading(true);
                 // 사용자가 페이지에 처음 접속했을 때 서버로부터 전체 민원 리스트를 가져옴
-                const result = await axios.get('/api/complaintsApi');
-                const list = Array.isArray(result.data) ? result.data : [];
-
-                // ✅ 백 응답 필드명(reqId, reqDt, reqType...)을 화면용 필드로 매핑
-                const mapped = (Array.isArray(list) ? list : []).map((item) => ({
-                    id: item.reqId,                 // ✅ row click / 선택에 쓰는 id
-                    title: item.title ?? '',
-                    content: item.content ?? '',    // 리스트에 content 없으면 '' 유지
-                    category: item.reqType ?? item.reqTypeNm ?? '', // 백 스펙에 맞게
-                    status: item.status === 'PROCESSED' ? '처리완료' : '미처리', // 백에 status가 없다면 기본
-                    date: item.reqDt ?? item.reqDtStr ?? '',        // datetime 문자열(ISO면 더 좋음)
-                    field: item.field ?? item.Field ?? '',
-                }));
-
-                setAllComplaints(mapped);
+                setAllComplaints(await fetchComplaints());
             } catch (e) {
                 openModal(e.message || '민원 리스트를 불러오지 못했습니다.');
                 setAllComplaints([]);
@@ -82,23 +92,21 @@ export default function ComplaintList() {
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
 
-        // ✅ 2) 상태 필터
+        // ✅ 2) 상태 필터 : 백 답장이 field이므로 status 제거 후 field로 미처리/처리완료 분류하도록 변경
         if (showUnprocessed && showProcessed) {
             // 전체
         } else if (showUnprocessed) {
-            list = list.filter(c => c.status === '미처리');
+            list = list.filter(c => c.field === 'PENDING');
         } else if (showProcessed) {
-            list = list.filter(c => c.status === '처리완료');
+            list = list.filter(c => c.field === 'COMPLETED');
         } else {
             list = [];
         }
 
-        // ✅ 3) 검색어(제목+내용)
+        // ✅ 3) 검색어 (제목만) : api 응답에 title만 있고 content는 없기 때문
         if (searchKeyword.trim()) {
             const kw = searchKeyword.toLowerCase();
-            list = list.filter(c =>
-                c.title.toLowerCase().includes(kw) || c.content.toLowerCase().includes(kw)
-            );
+            list = list.filter(c => c.title.toLowerCase().includes(kw));
         }
 
         // ✅ 4) 기간
@@ -135,13 +143,13 @@ export default function ComplaintList() {
     const totalCount = filteredComplaints.length;
     const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-    const handleSearch = () => {
+    const handleSearch = () => { // 현재 입력 적용해서 검색 실행 등
         setAppliedFilters(filters); // ✅ 이때만 목록 변경
         setCurrentPage(1);
         setSelectedItems([]);
     };
 
-    const handleReset = () => {
+    const handleReset = () => { // 필터 입력/적용값 초기화 등
         setFilters(INITIAL_FILTERS);        // ✅ 폼 초기화
         setAppliedFilters(INITIAL_FILTERS); // ✅ 목록도 전체로
         setCurrentPage(1);
@@ -166,57 +174,43 @@ export default function ComplaintList() {
         setFilters(prev => ({ ...prev, endDate: date }));
     };
 
-    const handlePageChange = (page) => {
+    const handlePageChange = (page) => { // 페이지 이동(현재 페이지 변경)
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
         }
     };
 
-    const handleSelectItem = (id) => {
+    const handleSelectItem = (id) => { // 민원 체크박스 개별 선택/해제 토글
         setSelectedItems(prev =>
             prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
         );
     };
 
-    const handleSelectAll = (checked) => {
+    const handleSelectAll = (checked) => { // 현재 페이지 목록을 전체 선택/해제
         if (checked) {
-            setSelectedItems(paginatedComplaints.map(item => item.id));
+            setSelectedItems(paginatedComplaints.map(item => item.id)); // 현재 페이지 항목만 전체 선택
         } else {
             setSelectedItems([]);
         }
     };
 
-    const handleAgentProcess = async () => {
+    const handleAgentProcess = async () => { // reqIds를 일괄 처리 POST로 보내고 결과 안내, 목록 리프레시
         if (selectedItems.length === 0) {
             openModal('처리할 민원을 선택해주세요.');
             return;
         }
 
         // 선택된 민원 일괄 처리(Agent 처리)
+        // action으로 분기하던 코드 삭제(complaintsApi 코드도 함께 수정)
         try {
-            const result = await axios.post('/api/complaintsApi', {
-                action: 'process',
-                reqIds: selectedItems,
-            });
+            const result = await axios.post('/api/complaintsApi', { reqIds: selectedItems });
 
-            const data = result.data;
+            const data = result.data; // res.data -> HTTP 응답 바디 전체이므로 실제 데이터 필드를 꺼내기 위함
             openModal(`요청 ${data.requestedCount}건 중 ${data.successCount}건 처리되었습니다.`);
 
-            // ✅ 처리 후 목록 최신화
+            // 처리 후 목록 최신화
             // 민원 Agent 처리가 완료된 후, 변경된 상태를 화면에 반영하기 위해 전체 민원 리스트를 다시 불러옴
-            const listResult = await axios.get('/api/complaintsApi');
-            const list = Array.isArray(listResult.data) ? listResult.data : [];
-
-            const mapped = (Array.isArray(list) ? list : []).map((item) => ({
-                id: item.reqId,
-                title: item.title ?? '',
-                content: item.content ?? '',
-                category: item.reqType ?? item.reqTypeNm ?? '',
-                status: item.status === 'PROCESSED' ? '처리완료' : '미처리',
-                date: item.reqDt ?? item.reqDtStr ?? '',
-                field: item.field ?? item.Field ?? '',
-            }));
-            setAllComplaints(mapped);
+            setAllComplaints(await fetchComplaints());
 
             setSelectedItems([]); // 선택 해제
         } catch (e) {
@@ -224,11 +218,11 @@ export default function ComplaintList() {
         }
     };
 
-    const handleRowClick = (id) => {
+    const handleRowClick = (id) => { // 테이블 행 클릭 시 해당 민원 상세 페이지로 라우팅
         router.push(`/pages/ComplaintDetail/${id}`);
     };
 
-    const renderPagination = () => {
+    const renderPagination = () => { // 페이지 버튼 계산
         const pages = [];
         if (totalPages <= 7) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -338,10 +332,10 @@ export default function ComplaintList() {
                                     onChange={(e) => setFilters(prev => ({ ...prev, complaintType: e.target.value }))}
                                 >
                                     <option value="">전체</option>
-                                    <option value="충전기 고장">충전기 고장</option>
-                                    <option value="결제 오류">결제 오류</option>
-                                    <option value="AS 콜센터 연결 지연">AS 콜센터 연결 지연</option>
-                                    <option value="기타">기타</option>
+                                    <option value="CHARGER_BREAKDOWN">충전기 고장</option>
+                                    <option value="PAYMENT">결제 오류</option>
+                                    <option value="SUBSIDY">보조금</option>
+                                    <option value="OTHER">기타</option>
                                 </select>
                             </div>
 
@@ -449,12 +443,12 @@ export default function ComplaintList() {
                                             </td>
                                             <td className={styles.numberColumn}>{complaint.number}</td>
                                             <td className={styles.statusColumn}>
-                        <span className={complaint.status === '미처리' ? styles.statusUnprocessed : styles.statusProcessed}>
-                          {complaint.status}
+                        <span className={complaint.field === 'PENDING' ? styles.statusUnprocessed : styles.statusProcessed}>
+                          {complaint.field === 'PENDING' ? '미처리' : '처리완료'}
                         </span>
                                             </td>
                                             <td className={styles.titleColumn}>{complaint.title}</td>
-                                            <td className={styles.categoryColumn}>{complaint.category}</td>
+                                            <td className={styles.categoryColumn}>{COMPLAINT_TYPE_LABEL[complaint.category]}</td>
                                             <td className={styles.dateColumn}>{complaint.date}</td>
                                         </tr>
                                     ))

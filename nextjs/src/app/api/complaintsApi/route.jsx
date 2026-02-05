@@ -1,9 +1,10 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
+import { BACKEND_BASE } from "@/app/api/url";
 
 //백엔드와의 통신을 위한 axios 인스턴스 생성
 const api = axios.create({
-  baseURL: process.env.BACKEND_URL,
+  baseURL: BACKEND_BASE,
   headers: { "Content-Type": "application/json" },
   timeout: 15000,
 });
@@ -22,7 +23,7 @@ function assertSuccess(response) {
     throw err;
   }
 
-  return payload;
+    return payload.data;
 }
 
 /**
@@ -32,10 +33,8 @@ function assertSuccess(response) {
 export async function GET(request) {
   try {
     const res = await api.get("/api/request");
-    const payload = assertSuccess(res);
-    
-    // 데이터가 배열인지 확인 후 추출
-    const list = Array.isArray(payload) ? payload : (payload.data || []);
+
+    const list = assertSuccess(res);
     
     return NextResponse.json(list, { status: 200 }); //브라우저에 최종 전달
 
@@ -67,67 +66,81 @@ export async function GET(request) {
  * - { action: "process", reqIds: number[] }
  */
 export async function POST(request) {
-  try {
-    const body = await request.json();
-    const { action, reqId, reqIds } = body;
+    try {
+        // 1) 클라이언트(프론트)에서 보낸 JSON 바디 파싱
+        // - 상세 조회 요청: { "reqId": 19 }
+        // - 답변 처리 요청: { "reqIds": [12, 15] }
+        const body = await request.json();
 
-    if (action === "detail") {
-      // 민원 상세 보기
-      if (!reqId) {
+        // 2) action 제거: reqId / reqIds 존재 여부로 분기
+        const { reqId, reqIds } = body;
+
+        // A) 상세 조회 분기: reqId가 "정수 1개"로 들어오는 경우
+        // - 명세: reqId는 무조건 int
+        // - 프론트: { reqId: 19 } 형태
+        if (Number.isInteger(reqId)) {
+            // 백엔드 상세 조회 API 호출
+            // - 백엔드 스펙: POST /api/request  body: { reqId: 19 }
+            const res = await api.post("/api/request", { reqId });
+
+            // 공통 응답 핸들링 (code 체크 등)
+            const payload = assertSuccess(res);
+
+            // 프론트에서 쓰기 편한 형태로 반환
+            return NextResponse.json(
+                {
+                    request: payload.request || {},
+                    outbounds: payload.outbounds || [],
+                },
+                { status: 200 }
+            );
+        }
+
+        // B) 에이전트 처리 분기: reqIds가 "정수 배열"로 들어오는 경우
+        // - 명세: { "reqIds": [12, 15] }
+        if (Array.isArray(reqIds)) {
+            // 비어있는 배열이면 처리할 게 없으니 400
+            if (reqIds.length === 0) {
+                return NextResponse.json(
+                    { error: "reqIds must be a non-empty array" },
+                    { status: 400 }
+                );
+            }
+
+            // 민원 답변 생성 후 일괄 처리 API 호출
+            // - 백엔드 스펙: POST /api/request_outbound body: { reqIds: [12, 15] }
+            const res = await api.post("/api/request_outbound", { reqIds });
+
+            // 공통 응답 핸들링
+            const payload = assertSuccess(res);
+
+            // 처리 결과 요약 반환
+            return NextResponse.json(payload, { status: 200 });
+        }
+
+        // C) 둘 다 아닌 경우: 클라이언트 요청 바디가 잘못됨
+        // - reqId도 없고 reqIds도 없거나,
+        // - reqId가 정수가 아니거나, reqIds가 배열이 아닌 경우
         return NextResponse.json(
-          { error: "reqId is required" },
-          { status: 400 }
+            { error: "Body must include either integer reqId or array reqIds" },
+            { status: 400 }
         );
-      }
+    } catch (error) {
+        // 네트워크 오류(ECONNREFUSED/ETIMEDOUT), 백엔드 에러 코드 등을 콘솔에서 확인
+        console.error("Error in complaintsApi route:", error);
 
-      const res = await api.post("/api/request", [{ reqId: Number(reqId) }]);
-      const payload = assertSuccess(res);
+        // error.code가 숫자(HTTP status)인 경우만 status로 사용, 아니면 500
+        const safeStatus =
+            Number.isInteger(error.code) && error.code >= 200 && error.code <= 599
+                ? error.code
+                : 500;
 
-      return NextResponse.json(
-        {
-          request: payload.request || {},
-          outbounds: payload.outbounds || [],
-        },
-        { status: 200 }
-      );
-    } else if (action === "process") {
-      // 민원 처리 완료
-      if (!Array.isArray(reqIds) || reqIds.length === 0) {
         return NextResponse.json(
-          { error: "reqIds must be a non-empty array" },
-          { status: 400 }
+            {
+                error: error.message || "요청 처리 중 오류가 발생했습니다.",
+                debug: error.code, // 클라이언트에서도 원인 파악 가능하게
+            },
+            { status: safeStatus }
         );
-      }
-      
-      // 데이터 정제 (민원 id -> 문자열 형태 등일 경우 모두 숫자로 변환)
-      const normalized = reqIds
-        .map((x) => Number(x))
-        .filter((n) => !Number.isNaN(n));
-
-      // 민원 처리
-      const res = await api.post("/api/request_outbound", { reqIds: normalized });
-      const payload = assertSuccess(res);
-
-      // 몇 건 중 몇 건 성공했는지 등에 대한 정보를 반환
-      return NextResponse.json(
-        {
-          requestedCount: payload.requestedCount || 0,
-          successCount: payload.successCount || 0,
-          results: payload.results || [],
-        },
-        { status: 200 }
-      );
-    } else {
-      return NextResponse.json(
-        { error: "Invalid action" },
-        { status: 400 }
-      );
     }
-  } catch (error) {
-    console.error("Error in complaintsApi route:", error);
-    return NextResponse.json(
-      { error: error.message || "요청 처리 중 오류가 발생했습니다." },
-      { status: error.code || 500 }
-    );
-  }
 }
