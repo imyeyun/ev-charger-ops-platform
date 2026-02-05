@@ -18,10 +18,12 @@ router = APIRouter(prefix="/anomaly", tags=["anomaly"])
 # ====== status sets (training logic) ======
 NORMAL = {2, 3}
 BAD_FOR_FEATURE = {1, 4, 5, 9}  # 9 = 상태미확인 포함
+#
+from pathlib import Path
 
-# ====== bundle path ======
-DEFAULT_BUNDLE_PATH = r"D:\FastAPI\ev-charger-ops-platform\app\api\model\lgb_risk_model_7days_bundle.joblib"
-
+DEFAULT_BUNDLE_PATH = (
+    Path(__file__).resolve().parent / "model" / "lgb_risk_model_7days_bundle.joblib"
+)
 
 @lru_cache(maxsize=1)
 def _load_bundle() -> Dict[str, Any]:
@@ -145,21 +147,38 @@ def _predict(df_feat: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
     p = calibrator.predict_proba(p_raw.reshape(-1, 1))[:, 1] if calibrator is not None else p_raw
     return p_raw, p
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  
+DB_BASE_DIR = (PROJECT_ROOT / "app" / "data" / "chargerLogSQLite").resolve()   
+
+def resolve_db_path(p: str) -> Path:
+    path = Path(p)
+
+    # 상대경로면 DB_BASE_DIR 기준으로 붙임
+    if not path.is_absolute():
+        path = (DB_BASE_DIR / path).resolve()
+    else:
+        path = path.resolve()
+
+    # 보안: base dir 밖으로 탈출 방지
+    if DB_BASE_DIR != path and DB_BASE_DIR not in path.parents:
+        raise HTTPException(status_code=400, detail=f"db_path must be inside: {DB_BASE_DIR}")
+
+    if not path.exists():
+        raise HTTPException(status_code=400, detail=f"db_path not found: {path}")
+
+    return path
 
 class DBScanRequest(BaseModel):
-    db_path: str = Field(..., description="Path to sqlite DB (contains state_change)")
+    db_path: str = Field(..., description="Path to sqlite DB (contains state_change). Relative paths are resolved under DB_BASE_DIR.")
     as_of: Optional[str] = Field(default=None, description="ISO datetime; default=MAX(event_at)")
     threshold: float = Field(default=0.63, description="Return only p >= threshold")
     top_n: Optional[int] = Field(default=None, description="Optional cap after filtering; default=null (no cap)")
     score_col: Literal["p", "p_raw"] = Field(default="p", description="Use calibrated p or raw p for filtering/sorting")
 
-
 @router.post("/anomaly_detection")
 def db_scan(req: DBScanRequest):
-    if not os.path.exists(req.db_path):
-        raise HTTPException(status_code=400, detail=f"db_path not found: {req.db_path}")
-
-    conn = sqlite3.connect(req.db_path)
+    db_path = resolve_db_path(req.db_path)
+    conn = sqlite3.connect(str(db_path))
     try:
         as_of = _get_as_of(conn, req.as_of)
         df = _fetch_24h(conn, as_of)
