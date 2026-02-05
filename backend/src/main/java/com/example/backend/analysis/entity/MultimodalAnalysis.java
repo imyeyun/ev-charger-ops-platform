@@ -70,27 +70,48 @@ public class MultimodalAnalysis {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-    @JoinColumn(name = "transaction_id", referencedColumnName = "transaction_id", insertable = false, updatable = false),
-    @JoinColumn(name = "chger_id", referencedColumnName = "chger_id", insertable = false, updatable = false),
-    @JoinColumn(name = "stat_id", referencedColumnName = "stat_id", insertable = false, updatable = false)
+            @JoinColumn(name = "transaction_id", referencedColumnName = "transaction_id", insertable = false, updatable = false),
+            @JoinColumn(name = "chger_id", referencedColumnName = "chger_id", insertable = false, updatable = false),
+            @JoinColumn(name = "stat_id", referencedColumnName = "stat_id", insertable = false, updatable = false)
 
     })
-private SensorLog sensorlog;
+    private SensorLog sensorlog;
 
-@Builder
-public MultimodalAnalysis(Boolean fireYn, Boolean brokeYn, String notes, // detail 지우고 notes 추가␊
-                          Boolean dirtyYn, LocalDateTime imgsensoranalTime,
-                          Long imgId, LocalDateTime imgTime, String transactionId,
-                          String chgerId2, String statId2) {
-    this.fireYn = fireYn;
-    this.brokeYn = brokeYn;
-    this.dirtyYn = dirtyYn;
-    this.notes = notes;
-    this.imgsensoranalTime = imgsensoranalTime;
-    this.imgId = imgId;
-    this.imgTime = imgTime;
-    this.transactionId = transactionId;
-    this.chgerId = chgerId2;
-    this.statId = statId2;
-}
+    @Builder
+    public MultimodalAnalysis(Boolean fireYn, Boolean brokeYn, String notes, // detail 지우고 notes 추가␊
+                              Boolean dirtyYn, LocalDateTime imgsensoranalTime,
+                              Long imgId, LocalDateTime imgTime, String transactionId,
+                              String chgerId, String statId) {
+        this.fireYn = fireYn;
+        this.brokeYn = brokeYn;
+        this.dirtyYn = dirtyYn;
+        this.notes = notes;
+        this.imgsensoranalTime = imgsensoranalTime;
+        this.imgId = imgId;
+        this.imgTime = imgTime;
+        this.transactionId = transactionId;
+        this.chgerId = chgerId;
+        this.statId = statId;
+    }
+
+    // 멀티 모달 API 수정
+    public void updateResult(
+            Boolean fireYn,
+            Boolean brokeYn,
+            Boolean dirtyYn,
+            String notes,
+            LocalDateTime imgsensoranalTime,
+            Long imgId,
+            LocalDateTime imgTime,
+            String transactionId
+    ) {
+        this.fireYn = fireYn;
+        this.brokeYn = brokeYn;
+        this.dirtyYn = dirtyYn;
+        this.notes = notes;
+        this.imgsensoranalTime = imgsensoranalTime;
+        this.imgId = imgId;
+        this.imgTime = imgTime;
+        this.transactionId = transactionId;
+    }
 }

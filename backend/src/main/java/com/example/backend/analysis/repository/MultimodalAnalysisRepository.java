@@ -7,7 +7,13 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
+//public interface MultimodalAnalysisRepository extends JpaRepository<MultimodalAnalysis, Long> {
+
+//    Optional<MultimodalAnalysis> findTopByOrderByImgsensoranalTimeDesc();
+//}
 public interface MultimodalAnalysisRepository extends JpaRepository<MultimodalAnalysis, Long> {
+
+    Optional<MultimodalAnalysis> findByChgerIdAndStatId(String chgerId, String statId);
 
     Optional<MultimodalAnalysis> findTopByOrderByImgsensoranalTimeDesc();
 }

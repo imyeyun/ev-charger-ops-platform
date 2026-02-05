@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 @Transactional(readOnly = true)
 public class MultimodalAnalysisService {
 
-    private static final String DIRTY_IMAGE_KEY = "image/dirty/dirty_1.png";
 
     private final MultimodalAnalysisRepository multimodalAnalysisRepository;
     private final ImageLogRepository imageLogRepository;
@@ -52,7 +51,7 @@ public class MultimodalAnalysisService {
             notes = aiResponse.getVerdict().getNotes();
         }
 
-        MultimodalAnalysis analysis = MultimodalAnalysis.builder()
+        /*MultimodalAnalysis analysis = MultimodalAnalysis.builder()
                 .fireYn(aiResponse.getFireYN())
                 .brokeYn(aiResponse.getBrokenYN())
                 .dirtyYn(aiResponse.getDirtyYN()) // 변수명 수정
@@ -64,6 +63,28 @@ public class MultimodalAnalysisService {
                 .chgerId2(chgerId)
                 .statId2(statId)
                 .build();
+
+        multimodalAnalysisRepository.save(analysis);*/
+
+        MultimodalAnalysis analysis = multimodalAnalysisRepository
+                .findByChgerIdAndStatId(chgerId, statId)
+                .orElseGet(() -> MultimodalAnalysis.builder()
+                        .chgerId(chgerId)
+                        .statId(statId)
+                        .build()
+                );
+
+
+        analysis.updateResult(
+                aiResponse.getFireYN(),
+                aiResponse.getBrokenYN(),
+                aiResponse.getDirtyYN(),
+                notes,
+                LocalDateTime.now(),
+                imageLog.getImgId(),
+                imageLog.getImgTime(),
+                sensorLog.getTransactionId()
+        );
 
         multimodalAnalysisRepository.save(analysis);
 
@@ -77,9 +98,9 @@ public class MultimodalAnalysisService {
 
     private AiMultimodalReq buildAiRequest(ImageLog imageLog, SensorLog sensorLog) {
         // TODO: 이미지 경로를 DB에서 받아 실제 이미지 로그 경로를 사용할 때는 imageLog.getImgPath()로 교체 필요
-        String dirtyImageUrl = presignedUrlService.generateGetUrl(DIRTY_IMAGE_KEY);
+        String ImageUrl = presignedUrlService.generateGetUrl(imageLog.getImgPath());
         AiMultimodalReq.ImageInfo imageInfo = AiMultimodalReq.ImageInfo.builder()
-                .imgPath(dirtyImageUrl)
+                .imgPath(ImageUrl)
                 .build();
 
         AiMultimodalReq.SensorLogInfo sensorInfo = AiMultimodalReq.SensorLogInfo.builder()
