@@ -60,7 +60,7 @@ public class MultimodalAnalysis {
     })
     private Charger charger;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
             @JoinColumn(name = "img_id", referencedColumnName = "img_id", insertable = false, updatable = false),
             @JoinColumn(name = "img_time", referencedColumnName = "img_time", insertable = false, updatable = false),
