@@ -72,9 +72,9 @@ export default function Report() {
     const handleReportTypeSelect = (type) => {
         setSelectedReportType(type);
 
-        if (type === "audit") setPrompt("감사용 보고서 예시 프롬포트...");
-        else if (type === "monthly") setPrompt("월별 보고서 예시 프롬포트...");
-        else if (type === "custom") setPrompt("맞춤 보고서 기본 프롬포트 형식...");
+        if (type === "audit") setPrompt("감사용 보고서 예시 프롬프트...");
+        else if (type === "monthly") setPrompt("월별 보고서 예시 프롬프트...");
+        else if (type === "custom") setPrompt("맞춤 보고서 기본 프롬프트 형식...");
     };
 
     const resetDates = () => {
@@ -100,7 +100,7 @@ export default function Report() {
             return;
         }
         if (!prompt.trim()) {
-            setErrorMsg("프롬포트를 입력해주세요.");
+            setErrorMsg("프롬프트를 입력해주세요.");
             setOpenError(true);
             return;
         }
@@ -266,10 +266,10 @@ export default function Report() {
                     {/* 메인 */}
                     <div className={styles.mainContent}>
                         <div className={styles.promptSection}>
-                            <h2 className={styles.sectionTitle}>프롬포트 입력</h2>
+                            <h2 className={styles.sectionTitle}>프롬프트 입력</h2>
                             <textarea
                                 className={styles.promptInput}
-                                placeholder="프롬포트를 입력하세요..."
+                                placeholder="프롬프트를 입력하세요..."
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
                                 rows={10}

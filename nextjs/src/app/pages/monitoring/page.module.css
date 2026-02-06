@@ -88,7 +88,7 @@
 
 .cardTitle {
     font-family: Inter, Arial, sans-serif;
-    font-size: 11px;
+    font-size: 15px;
     font-weight: 700;
     color: #333;
     text-align: center;
@@ -744,4 +744,14 @@
 .modalSendBtn:disabled {
     opacity: 0.55;
     cursor: default;
+}
+
+.editToolsOff {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.editToolsOn {
+    opacity: 1;
+    pointer-events: auto;
 }

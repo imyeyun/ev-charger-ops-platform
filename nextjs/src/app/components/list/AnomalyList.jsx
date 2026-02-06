@@ -93,7 +93,7 @@ export default function AnomalyList({
 
     return (
         <section className={styles.card}>
-            <h3 className={styles.listTitle}>{title}</h3>
+            {/*<h3 className={styles.listTitle}>{title}</h3>*/}
 
             {loading && <div className={styles.listBody}>불러오는 중...</div>}
             {error && <div className={styles.listBody} style={{ color: "crimson" }}>{error}</div>}

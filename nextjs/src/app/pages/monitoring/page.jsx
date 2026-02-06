@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 
 import Header from "@/app/components/Header";
 import {
     loadMonitoringDashboard,
     saveMonitoringDashboard,
+    clearMonitoringDashboard,
 } from "@/app/lib/monitoringDashboardStorage";
 
 import ChatWidget from "@/app/components/ChatWidget";
@@ -38,12 +39,6 @@ export default function MonitoringPage() {
 
     const[aralmOpen, setAralmOpen] = useState(false);
 
-    // const [appliedFilters, setAppliedFilters] = useState({
-    //     region: "",
-    //     city: "",
-    //     chargeType: "",
-    //     stationName: "",
-    // });
 
     const [chatOpen, setChatOpen] = useState(false);
 
@@ -59,12 +54,12 @@ export default function MonitoringPage() {
         { id:"chart3", component:"SummaryChart",          title:"충전기 상태 현황",            gridArea:"2 / 4 / 3 / 5" },
 
         { id:"chart4", component:"DailyUnconfirmBarChart",title:"일별 상태 미확인 충전기 개수", gridArea:"3 / 2 / 4 / 3" },
-        { id:"list2",  component:"AnomalyList", title:"상태 미확인 충전소 리스트", dataKey:"unconfirmed", gridArea:"3 / 3 / 4 / 4" },
-        { id:"list1",  component:"UncheckList", title:"이상탐지 위험 충전소 리스트", dataKey:"risk",       gridArea:"3 / 4 / 4 / 5" },
+        { id:"list2",  component:"UncheckList", title:"상태 미확인 충전소 리스트", dataKey:"unconfirmed", gridArea:"3 / 3 / 4 / 4" },
+        { id:"list1",  component:"AnomalyList", title:"이상탐지 위험 충전소 리스트", dataKey:"risk",       gridArea:"3 / 4 / 4 / 5" },
     ];
 
     // ✅ [추가] 헤더 전역 저장값 로드
-    const [layout, setLayout] = useState(() => {
+   const [layout, setLayout] = useState(() => {
         if (typeof window === "undefined") return defaultLayout;
         const saved = loadMonitoringDashboard();
         if (saved?.layout && Array.isArray(saved.layout)) return saved.layout;
@@ -218,7 +213,7 @@ export default function MonitoringPage() {
 
         if (item.component === "UnconfirmStatusChart") {
             return (
-                <section
+<section
                     key={item.id}
                     className={cardClass}
                     style={cardStyle}
@@ -306,7 +301,7 @@ export default function MonitoringPage() {
 
         if (item.component === "DailyUnconfirmBarChart") {
             return (
-                <section
+ <section
                     key={item.id}
                     className={cardClass}
                     style={cardStyle}
@@ -333,7 +328,7 @@ export default function MonitoringPage() {
             );
         }
 
-
+        
 
         if (item.component === "UncheckList") {
             return (
@@ -358,6 +353,7 @@ export default function MonitoringPage() {
                             <div className={styles.dragHint}>드래그하여 이동</div>
                         </>
                     )}
+                    <h3 className={styles.cardTitle}>{item.title}</h3>
 
                     <UncheckList
                         styles={styles}
@@ -392,6 +388,7 @@ export default function MonitoringPage() {
                             <div className={styles.dragHint}>드래그하여 이동</div>
                         </>
                     )}
+                    <h3 className={styles.cardTitle}>{item.title}</h3>
                     <AnomalyList
                         styles={styles}
                         title={item.title}
@@ -483,7 +480,7 @@ export default function MonitoringPage() {
                                 stationName={stationName}
                                 setStationName={setStationName}
                                 maxHeightPx={leftListMaxHeightPx}
-                                onSelect={goDetail}
+                                onSelect={goDetail}                                
                                 // ✅ [추가] Search 버튼 클릭 시 MonitoringPage도 동기화
                                 onApplied={handleApplyFilters}
                                 onResetApplied={handleResetFilters}
@@ -493,7 +490,7 @@ export default function MonitoringPage() {
                         {/* 🎨 편집 컨트롤 버튼들 */}
                         <div className={styles.editControls}>
                             {isEditMode && (
-                                <button
+                               <button
                                     className={styles.resetBtn}
                                     onClick={handleResetLayout}
                                 >
