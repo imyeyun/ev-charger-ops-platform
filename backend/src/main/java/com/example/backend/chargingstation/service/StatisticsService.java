@@ -8,8 +8,10 @@ import com.example.backend.chargingstation.repository.ChargerLogRepository;
 import com.example.backend.chargingstation.repository.ChargerRepository;
 import com.example.backend.chargingstation.repository.ChargingStationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -23,6 +25,9 @@ public class StatisticsService {
     private final ChargingStationRepository chargingStationRepository;
     private final ChargerRepository chargerRepository;
     private final ChargerLogRepository chargerLogRepository;
+
+    // ✅ 추가: FastAPI 호출용 WebClient (다른 것 영향 X)
+    private final @Qualifier("aiWebClient") WebClient aiWebClient;
 
     /**
      * 충전소 검색 API
@@ -96,30 +101,47 @@ public class StatisticsService {
     /**
      * 이상탐지 충전소 리스트 (조기 다운 이상탐지)
      * GET /api/anomaly
-     * 현재는 비정상 상태 충전소와 동일하게 반환 (추후 AI 모델 연동 시 수정 필요)
+     *
+     * ✅ 변경: FastAPI(/anomaly/anomaly_detection) 호출 결과를 statId/statNm만 뽑아 반환
+     * ✅ 다른 메서드/레포/엔티티 로직은 건드리지 않음 (영향 최소)
      */
     public AnomalyRes getAnomalyList() {
-        List<ChargerLog> latestLogs = chargerLogRepository.findLatestLogs();
-        List<ChargingStation> stations = chargingStationRepository.findAllWithCodes();
 
-        // 비정상 상태(9, 1, 4, 5)인 충전소 ID 추출 - DB에서 0 대신 9 사용
-        Set<String> anomalyStatIds = latestLogs.stream()
-                .filter(log -> log.getStat() == 9 || log.getStat() == 1 ||
-                               log.getStat() == 4 || log.getStat() == 5)
-                .map(ChargerLog::getStatId)
-                .collect(Collectors.toSet());
+        AnomalyReq req = AnomalyReq.builder()
+                .db_path("evcharger.sqlite")
+                .as_of("2026-01-27T09:00:00")
+                .threshold(0.63)
+                .top_n(null)
+                .score_col("p")
+                .build();
 
-        Map<String, ChargingStation> stationMap = stations.stream()
-                .collect(Collectors.toMap(ChargingStation::getStatId, s -> s));
+        // ✅ 여기 1: 타입 변경
+        FastApiAnomalyRes fastRes = aiWebClient.post()
+                .uri("/anomaly/anomaly_detection")
+                .bodyValue(req)
+                .retrieve()
+                // ✅ 여기 2: class 변경
+                .bodyToMono(FastApiAnomalyRes.class)
+                .block();
 
-        List<AnomalyRes.AnomalyStation> anomalyList = anomalyStatIds.stream()
-                .map(statId -> {
-                    ChargingStation station = stationMap.get(statId);
-                    return AnomalyRes.AnomalyStation.builder()
-                            .statId(statId)
-                            .statNm(station != null ? station.getStatNm() : null)
-                            .build();
-                })
+        if (fastRes == null || fastRes.getRows() == null || fastRes.getRows().isEmpty()) {
+            return AnomalyRes.builder()
+                    .anomalyChargerList(List.of())
+                    .build();
+        }
+
+        Map<String, String> idToName = new LinkedHashMap<>();
+        // ✅ 여기 3: Row 타입 변경
+        for (FastApiAnomalyRes.Row r : fastRes.getRows()) {
+            if (r == null || r.getStatId() == null) continue;
+            idToName.putIfAbsent(r.getStatId(), r.getStat_nm());
+        }
+
+        List<AnomalyRes.AnomalyStation> anomalyList = idToName.entrySet().stream()
+                .map(e -> AnomalyRes.AnomalyStation.builder()
+                        .statId(e.getKey())
+                        .statNm(e.getValue() == null ? e.getKey() : e.getValue())
+                        .build())
                 .collect(Collectors.toList());
 
         return AnomalyRes.builder()
@@ -162,9 +184,9 @@ public class StatisticsService {
 
         // 서울시 구 코드 초기화 (기본값 0)
         String[] seoulZscodes = {
-            "11110", "11140", "11170", "11200", "11215", "11230", "11260", "11290",
-            "11305", "11320", "11350", "11380", "11410", "11440", "11470", "11500",
-            "11530", "11545", "11560", "11590", "11620", "11650", "11680", "11710", "11740"
+                "11110", "11140", "11170", "11200", "11215", "11230", "11260", "11290",
+                "11305", "11320", "11350", "11380", "11410", "11440", "11470", "11500",
+                "11530", "11545", "11560", "11590", "11620", "11650", "11680", "11710", "11740"
         };
         for (String zscode : seoulZscodes) {
             regionMap.put(zscode, UncheckRegionRes.RegionCount.builder().count(0).build());
