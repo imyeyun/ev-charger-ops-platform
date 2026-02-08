@@ -97,7 +97,7 @@ public class MultimodalAnalysisService {
     }
 
     private AiMultimodalReq buildAiRequest(ImageLog imageLog, SensorLog sensorLog) {
-        // TODO: 이미지 경로를 DB에서 받아 실제 이미지 로그 경로를 사용할 때는 imageLog.getImgPath()로 교체 필요
+        // 이미지 URL 반환
         String ImageUrl = presignedUrlService.generateGetUrl(imageLog.getImgPath());
         AiMultimodalReq.ImageInfo imageInfo = AiMultimodalReq.ImageInfo.builder()
                 .imgPath(ImageUrl)
