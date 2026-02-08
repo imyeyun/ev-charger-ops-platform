@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-const API = "http://localhost:8000";
+const API = process.env.NEXT_PUBLIC_AI_BASE_URL;
 
 export default function ProcurementSimPanel({ onRecommendResult }) {
     const [useLLM, setUseLLM] = useState(true);

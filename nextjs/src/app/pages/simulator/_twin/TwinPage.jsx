@@ -7,7 +7,7 @@ import ProcurementSimPanel from "./ui/ProcurementSimPanel";
 const MapView = dynamic(() => import("./ui/MapView"), { ssr: false });
 
 // ✅ 로컬 테스트용(배포 단계에서 env로 바꿀 거)
-const API = "http://localhost:8000";
+const API = process.env.NEXT_PUBLIC_AI_BASE_URL;
 
 /* =========================
    util
