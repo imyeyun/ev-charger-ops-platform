@@ -80,25 +80,25 @@ public interface ChargerLogRepository extends JpaRepository<ChargerLog, ChargerL
                nativeQuery = true)
        List<ChargerLog> findLatestLogsByStatId(@Param("statId") String statId);
 
-       // 일별 비정상 상태 충전기 개수 조회 (상태 9, 1, 4, 5) - DB에서 0 대신 9 사용
+       // 일별 비정상 상태 충전기 개수 조회 (상태 0, 1, 4, 5)
        @Query("SELECT CAST(cl.chgerTime AS LocalDate) as date, COUNT(cl) as cnt " +
               "FROM ChargerLog cl " +
-              "WHERE cl.stat IN (9, 1, 4, 5) " +
+              "WHERE cl.stat IN (0, 1, 4, 5) " +
               "GROUP BY CAST(cl.chgerTime AS LocalDate) " +
               "ORDER BY CAST(cl.chgerTime AS LocalDate) DESC")
        List<Object[]> countBadCaseByDate();
 
-       // 지역(zscode)별 비정상 상태 충전기 개수 조회 - DB에서 0 대신 9 사용
+       // 지역(zscode)별 비정상 상태 충전기 개수 조회 (상태 0, 1, 4, 5)
        @Query("SELECT cs.zscode, COUNT(DISTINCT cl.statId) " +
               "FROM ChargerLog cl " +
               "JOIN ChargingStation cs ON cl.statId = cs.statId " +
-              "WHERE cl.stat IN (9, 1, 4, 5) " +
+              "WHERE cl.stat IN (0, 1, 4, 5) " +
               "AND cl.chgerTime = (SELECT MAX(cl2.chgerTime) FROM ChargerLog cl2 " +
               "WHERE cl2.chgerId = cl.chgerId AND cl2.statId = cl.statId) " +
               "GROUP BY cs.zscode")
        List<Object[]> countBadCaseByRegion();
 
-       // 비정상 상태(9, 1, 4, 5)인 충전소 ID 목록만 조회 (최신 로그 기준)
+       // 비정상 상태(0, 1, 4, 5)인 충전소 ID 목록만 조회 (최신 로그 기준)
        @Query(value =
               "SELECT DISTINCT cl.stat_id " +
               "FROM charger_log cl " +
@@ -109,7 +109,7 @@ public interface ChargerLogRepository extends JpaRepository<ChargerLog, ChargerL
               ") t ON t.chger_id = cl.chger_id " +
               "   AND t.stat_id = cl.stat_id " +
               "   AND t.max_time = cl.chger_time " +
-              "WHERE cl.stat IN (9, 1, 4, 5)",
+              "WHERE cl.stat IN (0, 1, 4, 5)",
               nativeQuery = true)
        List<String> findBadCaseStatIds();
 
