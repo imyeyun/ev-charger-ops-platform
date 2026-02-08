@@ -11,6 +11,7 @@ import com.example.backend.chargingstation.repository.ChargerRepository;
 import com.example.backend.chargingstation.repository.ChargingStationRepository;
 import com.example.backend.chargingstation.repository.ImageLogRepository;
 import com.example.backend.global.exception.NotFoundException;
+import com.example.backend.global.storage.S3PresignedUrlService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,9 @@ public class ChargingStationService {
     private final ChargerRepository chargerRepository;
     private final ChargerLogRepository chargerLogRepository;
     private final ImageLogRepository imageLogRepository;
+
+    //이미지 URL 반환
+    private final S3PresignedUrlService presignedUrlService;
 
     public StationDetailRes getStationDetail(StationDetailReq request) {
         String statId = request.getStatId();
@@ -80,8 +84,18 @@ public class ChargingStationService {
                 .year(station.getYear())
                 .build();
 
-        StationDetailRes.ImageDetail imageDetail = StationDetailRes.ImageDetail.builder()
+        /*StationDetailRes.ImageDetail imageDetail = StationDetailRes.ImageDetail.builder()
                 .imgPath(latestImage != null ? latestImage.getImgPath() : "")
+                .build();*/
+
+        // ✅ 여기서 presigned URL 만들어서 내려주기
+        String imageUrl = "";
+        if (latestImage != null && latestImage.getImgPath() != null && !latestImage.getImgPath().isBlank()) {
+            imageUrl = presignedUrlService.generateGetUrl(latestImage.getImgPath());
+        }
+
+        StationDetailRes.ImageDetail imageDetail = StationDetailRes.ImageDetail.builder()
+                .imgPath(imageUrl) // ✅ presigned url
                 .build();
 
         return StationDetailRes.builder()
