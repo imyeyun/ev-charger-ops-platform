@@ -20,3 +20,6 @@ app/api/model/
 app/data/
 
 generate_anomaly_detection_model.ipynb
+
+.claude
+nul

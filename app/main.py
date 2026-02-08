@@ -43,6 +43,7 @@ from app.api.report import router as report_router
 from app.api.request_outbound import router as request_outbound_router
 from app.api.Anomaly_detection import router as anomaly_router
 from app.api.dt_twin import router as dt_twin_router   # ✅ 추가
+from app.api.email_notification import router as email_router
 
 app = FastAPI(title="AI Response Server")
 
@@ -72,6 +73,7 @@ app.include_router(request_outbound_router)
 app.include_router(qna_router)
 app.include_router(anomaly_router)
 app.include_router(dt_twin_router)  # ✅ 추가
+app.include_router(email_router)
 
 
 # 실행 방법 python -m app.main  (app 폴더 경로에서)
