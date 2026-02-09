@@ -22,18 +22,21 @@ const COMPLAINT_TYPE_LABEL = {
     OTHER: "기타",
 };
 
-function formatKstYmdHm(isoLike) { // 백 응답으로 오는 시간 예쁘게 변환
+function formatUtcYmdHm(isoLike) {
     if (!isoLike) return "-";
 
-    // 이미 Z 또는 +09:00 같은 타임존이 있으면 그대로 사용
+    // Z 또는 ±HH:MM 이 있으면 그 타임존 그대로 파싱
+    // 없으면 UTC로 간주해서 Z를 붙임
     const hasTz = /[zZ]|[+-]\d{2}:\d{2}$/.test(isoLike);
-    const safe = hasTz ? isoLike : `${isoLike}+09:00`; // ✅ KST로 강제
+    const safe = hasTz ? isoLike : `${isoLike}Z`; // ✅ UTC로 강제
 
     const d = new Date(safe);
     if (Number.isNaN(d.getTime())) return isoLike;
 
     const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+    // ✅ UTC 기준으로 출력
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
 
 export default function ComplaintList() {
@@ -489,7 +492,7 @@ export default function ComplaintList() {
                                             </td>
                                             <td className={styles.titleColumn}>{complaint.title}</td>
                                             <td className={styles.categoryColumn}>{COMPLAINT_TYPE_LABEL[complaint.category]}</td>
-                                            <td className={styles.dateColumn}>{formatKstYmdHm(complaint.date)}</td>
+                                            <td className={styles.dateColumn}>{formatUtcYmdHm(complaint.date)}</td>
                                         </tr>
                                     ))
                                 )}

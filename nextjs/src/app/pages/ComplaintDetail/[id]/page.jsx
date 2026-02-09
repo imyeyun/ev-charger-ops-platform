@@ -13,18 +13,30 @@ const COMPLAINT_TYPE_LABEL = {
     OTHER: "기타",
 };
 
-function formatKstYmdHm(isoLike) {
+function formatUtcYmdHm(isoLike) {
     if (!isoLike) return "-";
 
-    // 이미 Z 또는 +09:00 같은 타임존이 있으면 그대로 사용
-    const hasTz = /[zZ]|[+-]\d{2}:\d{2}$/.test(isoLike);
-    const safe = hasTz ? isoLike : `${isoLike}+09:00`; // ✅ KST로 강제
+    const normalized = isoLike.replace(/\.(\d{3})\d+/, ".$1"); // ✅ 마이크로초 → ms
+
+    const hasTz = /[zZ]|[+-]\d{2}:\d{2}$/.test(normalized);
+    const safe = hasTz ? normalized : `${normalized}Z`; // ✅ 타임존 없으면 UTC로 간주
 
     const d = new Date(safe);
     if (Number.isNaN(d.getTime())) return isoLike;
 
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    // ✅ KST로 출력
+    const parts = new Intl.DateTimeFormat("sv-SE", {
+        timeZone: "Asia/Seoul",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+    }).format(d).replace(" ", " ");
+
+    // sv-SE는 "YYYY-MM-DD HH:mm" 형태로 잘 나옴
+    return parts;
 }
 
 export default function ComplaintDetail() {
@@ -134,7 +146,7 @@ export default function ComplaintDetail() {
                                     </div>
                                     <div className={styles.metaCell}>
                                         <div className={styles.metaLabel}>접수 일시</div>
-                                        <div className={styles.metaValue}>{formatKstYmdHm(complaint.receivedDate)}</div>
+                                        <div className={styles.metaValue}>{formatUtcYmdHm(complaint.receivedDate)}</div>
                                     </div>
                                 </div>
 
@@ -159,7 +171,7 @@ export default function ComplaintDetail() {
 
                                     <div className={styles.replyMeta}>
                                         <span className={styles.replyMetaLabel}>답변 일시</span>
-                                        <span className={styles.replyMetaValue}>{formatKstYmdHm(replyDateText)}</span>
+                                        <span className={styles.replyMetaValue}>{formatUtcYmdHm(replyDateText)}</span>
                                     </div>
                                 </div>
 
