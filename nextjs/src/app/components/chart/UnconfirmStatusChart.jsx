@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 function buildPiePaths(cx, cy, r, segments) {
     const full = Math.PI * 2;
@@ -51,8 +51,8 @@ function colorOfKey(key) {
     // 상태별 고정 색(원하면 바꿔도 됨)
     if (key === "9") return "#F5C542"; // 노랑
     if (key === "1") return "#2F6BFF";    // 파랑
-    if (key === "2") return "#E67E22";    // 주황
-    if (key === "4") return "#E53935";    // 빨강
+    if (key === "4") return "#E67E22";    // 주황
+    if (key === "5") return "#E53935";    // 빨강
     return "#999";
 }
 
@@ -60,8 +60,8 @@ function colorOfKey(key) {
 function labelOfKey(key) {
     if (key === "9") return "알 수 없음";
     if (key === "1") return "통신 이상";
-    if (key === "2") return "운영 중지";
-    if (key === "4") return "점검 중";
+    if (key === "4") return "운영 중지";
+    if (key === "5") return "점검 중";
     return String(key);
 }
 
