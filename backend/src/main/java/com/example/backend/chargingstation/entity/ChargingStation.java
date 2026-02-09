@@ -47,7 +47,7 @@ public class ChargingStation {
     @Column(name = "lng", nullable = false)
     private Double lng;
 
-    @Column(name = "busi_call", length = 40, nullable = false)
+    @Column(name = "busi_call", length = 255, nullable = false)
     private String busiCall;
 
     @Column(name = "note", length = 200, nullable = false)
