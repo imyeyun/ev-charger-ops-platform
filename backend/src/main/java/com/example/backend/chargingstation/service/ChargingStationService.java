@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static reactor.netty.http.HttpConnectionLiveness.log;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -36,6 +38,8 @@ public class ChargingStationService {
 
     public StationDetailRes getStationDetail(StationDetailReq request) {
         String statId = request.getStatId();
+        //로그 추가
+        //log.info("[StationDetail] called statId={}", statId);
 
         ChargingStation station = chargingStationRepository.findByStatIdWithCodes(statId)
                 .orElseThrow(() -> new NotFoundException("충전소를 찾을 수 없습니다."));
@@ -93,6 +97,8 @@ public class ChargingStationService {
         if (latestImage != null && latestImage.getImgPath() != null && !latestImage.getImgPath().isBlank()) {
             imageUrl = presignedUrlService.generateGetUrl(latestImage.getImgPath());
         }
+        // 디버깅 로그 추가
+        //log.info("[StationDetail] rawKey={}, presignedUrl={}", imageUrl);
 
         StationDetailRes.ImageDetail imageDetail = StationDetailRes.ImageDetail.builder()
                 .imgPath(imageUrl) // ✅ presigned url
