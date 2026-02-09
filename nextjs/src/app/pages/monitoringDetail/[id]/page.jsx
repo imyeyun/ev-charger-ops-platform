@@ -27,9 +27,9 @@ async function postJson(url, payload) {
 }
 
 function toText(v) {
-    if (v === undefined) return "";
-    if (v === null) return "";
-    return String(v);
+    if (v === true) return "위험 있음";
+    if (v === false) return "안전함";
+    return "판단 불가";
 }
 
 /** ✅ (1) 충전기 상태 묶기 */
@@ -69,7 +69,7 @@ function mapChgerTypeToText(chgerType) {
     };
 
     if (MAP[code]) return MAP[code];
-    return toText(chgerType);
+    return chgerType;
 }
 
 export default function MonitoringDetail() {
@@ -97,6 +97,13 @@ export default function MonitoringDetail() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+
+    const [analysis, setAnalysis] = useState({
+        fireYN:"",
+        brokenYN:"",
+        dirtyYN:"",
+        notes:"",
+    });
 
     useEffect(() => {
         if (!statIdStr) return;
@@ -144,6 +151,7 @@ export default function MonitoringDetail() {
 
 
                 setImageUrl(data.image.imgPath);
+                setAnalysis({fireYN: "", brokenYN: "", dirtyYN: "", notes: ""});
             } catch (e) {
                 setError(String(e.message || "Internal Server Error"));
             } finally {
@@ -166,29 +174,19 @@ export default function MonitoringDetail() {
 
             const res = await postJson("/api/monitoringApi/multimodal_analysis", payload);
 
-            const fireYN = res && res.fireYN !== undefined && res.fireYN !== null ? String(res.fireYN) : "-";
-            const brokenYN = res && res.brokenYN !== undefined && res.brokenYN !== null ? String(res.brokenYN) : "-";
-            const cleanYN = res && res.cleanYN !== undefined && res.cleanYN !== null ? String(res.cleanYN) : "-";
+            const v = res || {};
 
-            const fireDetails = res && res.fireDetails ? String(res.fireDetails) : "";
-            const brokeDetails = res && res.brokeDetails ? String(res.brokeDetails) : "";
-            const cleanDetails = res && res.cleanDetails ? String(res.cleanDetails) : "";
-
-            const msg =
-                "분석 결과\n" +
-                "- 화재: " + fireYN + "\n" +
-                "- 고장: " + brokenYN + "\n" +
-                "- 청결: " + cleanYN + "\n\n" +
-                "상세\n" +
-                "- 화재: " + fireDetails + "\n" +
-                "- 고장: " + brokeDetails + "\n" +
-                "- 청결: " + cleanDetails;
-
-            alert(msg);
+            setAnalysis({
+                fireYN: toText(v.fireYN),
+                brokenYN: toText(v.brokenYN),
+                dirtyYN: toText(v.dirtyYN),
+                notes: v.notes ? String(v.notes) : "",
+            });
         } catch (e) {
             alert(String(e.message || "Internal Server Error"));
         }
     }
+
 
     return (
         <>
@@ -231,10 +229,13 @@ export default function MonitoringDetail() {
                                         >
                                             <div>{c.id}</div>
                                             <div>{c.status}</div>
-                                            <div>{c.speedLabel}
+                                            <div>
+                                                {c.speedLabel}
                                                 <br />
-                                                {c.output}{c.output && " kW"}
-                                                {c.method && ` / ${c.method}`}</div>
+                                                {c.output}
+                                                {c.output && " kW"}
+                                                {c.method && ` / ${c.method}`}
+                                            </div>
                                             <div>{c.chargerType}</div>
                                         </div>
                                     ))}
@@ -251,7 +252,8 @@ export default function MonitoringDetail() {
                                 <div className={styles.field}>
                                     <label className={styles.label}>도로명주소</label>
                                     <div className={styles.row}>
-                                        <div className={styles.box}>{detailInfo.address}</div></div>
+                                        <div className={styles.box}>{detailInfo.address}</div>
+                                    </div>
                                 </div>
 
                                 <div className={styles.field2}>
@@ -297,8 +299,30 @@ export default function MonitoringDetail() {
                             </div>
 
                             <button className={styles.cctvBtn} onClick={onSendCctvImage}>
-                                CCTV 이미지 보내기 <span>▶</span>
+                                CCTV 이미지 분석 <span>▶</span>
                             </button>
+
+                            {/* ✅ 분석 결과 표시 영역 (추가) */}
+                            <div className={styles.analysisWrap}>
+                                <div className={styles.analysisLeft}>
+                                    <div className={styles.analysisRow}>
+                                        <div className={styles.analysisLabel}>화재</div>
+                                        <div className={styles.analysisBox}>{analysis.fireYN || "-"}</div>
+                                    </div>
+                                    <div className={styles.analysisRow}>
+                                        <div className={styles.analysisLabel}>고장</div>
+                                        <div className={styles.analysisBox}>{analysis.brokenYN || "-"}</div>
+                                    </div>
+                                    <div className={styles.analysisRow}>
+                                        <div className={styles.analysisLabel}>청결</div>
+                                        <div className={styles.analysisBox}>{analysis.dirtyYN || "-"}</div>
+                                    </div>
+                                </div>
+
+                                <div className={styles.analysisRight}>
+                                    <div className={styles.analysisNotes}>{analysis.notes || ""}</div>
+                                </div>
+                            </div>
                         </aside>
                     </div>
                 </div>
@@ -306,6 +330,3 @@ export default function MonitoringDetail() {
         </>
     );
 }
-
-
-

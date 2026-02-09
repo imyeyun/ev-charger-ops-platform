@@ -1,3 +1,557 @@
+// "use client";
+//
+// import { useEffect, useMemo, useState } from "react";
+// import dynamic from "next/dynamic";
+// import ProcurementSimPanel from "./ui/ProcurementSimPanel";
+// import { AI_BACKEND_BASE } from "@/app/api/url";
+//
+// const MapView = dynamic(() => import("./ui/MapView"), { ssr: false });
+//
+// // ✅ 로컬 테스트용(배포 단계에서 env로 바꿀 거)
+// const API = AI_BACKEND_BASE;
+//
+// /* =========================
+//    util
+// ========================= */
+// const fmt = (v, d = "-") => (v === null || v === undefined ? d : v);
+// const nowId = (p = "") => `${Date.now()}_${Math.random().toString(16).slice(2)}${p}`;
+//
+// function TabButton({ active, children, onClick }) {
+//     return (
+//         <button
+//             onClick={onClick}
+//             style={{
+//                 height: 34,
+//                 borderRadius: 999,
+//                 border: `1px solid ${active ? "#1f2430" : "#e6e8ee"}`,
+//                 background: active ? "#1f2430" : "white",
+//                 color: active ? "white" : "#334155",
+//                 fontWeight: 900,
+//                 cursor: "pointer",
+//                 padding: "0 12px",
+//                 fontSize: 12,
+//             }}
+//         >
+//             {children}
+//         </button>
+//     );
+// }
+//
+// function Pill({ bg, children }) {
+//     return (
+//         <span
+//             style={{
+//                 fontSize: 11,
+//                 fontWeight: 900,
+//                 padding: "3px 8px",
+//                 borderRadius: 999,
+//                 color: "white",
+//                 background: bg,
+//             }}
+//         >
+//       {children}
+//     </span>
+//     );
+// }
+//
+// /* =========================
+//    cards
+// ========================= */
+// function Card({ title, right, children }) {
+//     return (
+//         <div
+//             style={{
+//                 background: "white",
+//                 border: "1px solid #e6e8ee",
+//                 borderRadius: 14,
+//                 padding: 14,
+//             }}
+//         >
+//             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+//                 <div style={{ fontWeight: 900, flex: 1 }}>{title}</div>
+//                 {right}
+//             </div>
+//             <div style={{ marginTop: 10 }}>{children}</div>
+//         </div>
+//     );
+// }
+//
+// function MiniInfo({ label, value }) {
+//     return (
+//         <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 10, fontSize: 12 }}>
+//             <div style={{ color: "#64748b" }}>{label}</div>
+//             <div style={{ color: "#334155", fontWeight: 800 }}>{value}</div>
+//         </div>
+//     );
+// }
+//
+// /* =========================
+//    main
+// ========================= */
+// export default function TwinPage() {
+//     const [twins, setTwins] = useState([]);
+//     const [selected, setSelected] = useState(null);
+//
+//     // UI 탭
+//     const [tab, setTab] = useState("overview"); // overview | autopilot | details
+//
+//     // 실행 결과들
+//     const [autoRuns, setAutoRuns] = useState([]); // [{id, ts, payload, explain?}]
+//     const [procRuns, setProcRuns] = useState([]); // [{id, ts, payload}] payload={params,result}
+//     const [events, setEvents] = useState([]); // details용 간단 이벤트 로그(문자열)
+//
+//     // 지도 필터
+//     const [mapMode, setMapMode] = useState("all"); // all | autopilot
+//     const [activeAutoId, setActiveAutoId] = useState(null); // 지도 필터에 사용할 autopilot run id
+//
+//     const pushEvent = (msg) => {
+//         const line = `${new Date().toLocaleString()}  ·  ${msg}`;
+//         setEvents((prev) => [line, ...prev].slice(0, 50));
+//     };
+//
+//     /* =========================
+//        SSE
+//     ========================= */
+//     useEffect(() => {
+//         const es = new EventSource(`${API}/stream/twins`);
+//
+//         es.onmessage = (ev) => {
+//             try {
+//                 const data = JSON.parse(ev.data);
+//                 setTwins(data.items || []);
+//             } catch (e) {
+//                 console.error("SSE 파싱 오류", e, ev.data);
+//             }
+//         };
+//
+//         es.onerror = (err) => {
+//             console.error("SSE 오류", err);
+//         };
+//
+//         return () => es.close();
+//     }, []);
+//
+//     /* =========================
+//        Autopilot 실행
+//     ========================= */
+//     const onRunAutopilot = async () => {
+//         try {
+//             pushEvent("Autopilot 실행 요청");
+//
+//             const res = await fetch(`${API}/agent/fleet/autopilot`, {
+//                 method: "POST",
+//                 headers: { "Content-Type": "application/json" },
+//                 body: JSON.stringify({
+//                     topN: 50,
+//                     autoTopK: 10,
+//                     minDownMinutes: 30,
+//                     autoLevel: "safe",
+//                     useTraffic: true,
+//                     statusCodes: [4, 5],
+//                     baseLat: 37.5665,
+//                     baseLon: 126.978,
+//                     slaMinutes: 90,
+//                     remoteRecoveryRate: 0.35,
+//                 }),
+//             });
+//
+//             const j = await res.json();
+//             if (!res.ok) throw new Error(j?.detail ?? JSON.stringify(j));
+//
+//             const entry = {
+//                 id: nowId("_auto"),
+//                 ts: new Date().toLocaleString(),
+//                 payload: j,
+//                 explain: null,
+//             };
+//
+//             setAutoRuns((prev) => [entry, ...prev].slice(0, 10));
+//             setActiveAutoId(entry.id);
+//             setMapMode("autopilot");
+//             setTab("autopilot");
+//
+//             pushEvent(`Autopilot 완료 (candidates ${j.totalCandidates}, picked ${j.pickedK})`);
+//         } catch (e) {
+//             console.error(e);
+//             pushEvent(`Autopilot 실패: ${String(e)}`);
+//             alert("Autopilot 호출 실패");
+//         }
+//     };
+//
+//     /* =========================
+//        Autopilot LLM 요약
+//     ========================= */
+//     const onExplainAutopilot = async (runId) => {
+//         try {
+//             const run = autoRuns.find((r) => r.id === runId);
+//             if (!run?.payload?.cases?.length) return alert("Autopilot cases가 없습니다.");
+//
+//             pushEvent("Autopilot LLM 요약 요청");
+//
+//             const res = await fetch(`${API}/agent/fleet/autopilot/explain`, {
+//                 method: "POST",
+//                 headers: { "Content-Type": "application/json" },
+//                 body: JSON.stringify({ cases: run.payload.cases, topK: 15 }),
+//             });
+//
+//             const explain = await res.json();
+//             if (!res.ok) throw new Error(explain?.detail ?? JSON.stringify(explain));
+//
+//             setAutoRuns((prev) => prev.map((x) => (x.id === runId ? { ...x, explain } : x)));
+//
+//             pushEvent("Autopilot LLM 요약 완료");
+//         } catch (e) {
+//             console.error(e);
+//             pushEvent(`Autopilot LLM 요약 실패: ${String(e)}`);
+//             alert("LLM 요약 호출 실패");
+//         }
+//     };
+//
+//     /* =========================
+//        Procurement 콜백
+//     ========================= */
+//     const onProcurementRun = (payload) => {
+//         const entry = {
+//             id: nowId("_proc"),
+//             ts: new Date().toLocaleString(),
+//             payload,
+//         };
+//         setProcRuns((prev) => [entry, ...prev].slice(0, 10));
+//         setTab("overview");
+//
+//         const winner = payload?.result?.winner ?? "-";
+//         pushEvent(`사업수행기관 선정 완료 (winner: ${winner})`);
+//     };
+//
+//     /* =========================
+//        지도 표시 twins (필터링)
+//     ========================= */
+//     // ✅ 1) 하이라이트용 key set
+//     const highlightKeys = useMemo(() => {
+//         const active = autoRuns.find((r) => r.id === activeAutoId);
+//         const cases = active?.payload?.cases;
+//         if (!Array.isArray(cases) || !cases.length) return new Set();
+//         return new Set(cases.map((c) => `${c.stationId}::${c.chargerId}`));
+//     }, [autoRuns, activeAutoId]);
+//
+// // ✅ 2) 지도에 보여줄 twins 필터
+//     const filteredTwins = useMemo(() => {
+//         if (mapMode !== "autopilot") return twins;
+//
+//         const active = autoRuns.find((r) => r.id === activeAutoId);
+//         const cases = active?.payload?.cases;
+//         if (!Array.isArray(cases) || !cases.length) return twins;
+//
+//         const keySet = new Set(cases.map((c) => `${c.stationId}::${c.chargerId}`));
+//         return twins.filter((t) => keySet.has(`${t.stationId}::${t.chargerId}`));
+//     }, [twins, mapMode, autoRuns, activeAutoId]);
+//
+//
+//     const header = useMemo(() => {
+//         return `트윈 수: ${filteredTwins.length}   선택됨: ${selected ? selected.name : "-"}`;
+//     }, [filteredTwins, selected]);
+//
+//     const latestAuto = autoRuns[0] ?? null;
+//     const latestExplain = latestAuto?.explain ?? null;
+//     const latestProc = procRuns[0] ?? null;
+//
+//     const riskyTop = useMemo(() => {
+//         const cases = latestAuto?.payload?.cases ?? [];
+//         return cases.slice(0, 5);
+//     }, [latestAuto]);
+//
+//     return (
+//         // ✅ 헤더가 위에 있을 수 있어서 100vh 대신 minHeight로 (필요시 숫자 조정)
+//         <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", height: "100%" }}>
+//             {/* ================= LEFT ================= */}
+//             <div style={{ padding: 16, display: "grid", gridTemplateRows: "56px 1fr 320px", gap: 12 }}>
+//                 {/* header */}
+//                 <div
+//                     style={{
+//                         background: "#1f2430",
+//                         color: "white",
+//                         borderRadius: 14,
+//                         padding: "14px 16px",
+//                         display: "flex",
+//                         alignItems: "center",
+//                         justifyContent: "space-between",
+//                     }}
+//                 >
+//                     <div style={{ fontWeight: 800 }}>{header}</div>
+//                 </div>
+//
+//                 {/* map */}
+//                 <div
+//                     style={{
+//                         height: "100%",
+//                         minHeight: 400,
+//                         background: "white",
+//                         borderRadius: 14,
+//                         overflow: "hidden",
+//                         border: "1px solid #e6e8ee",
+//                     }}
+//                 >
+//                     <MapView
+//                         twins={filteredTwins}
+//                         onSelect={(t) => setSelected(t)}
+//                         highlightKeys={highlightKeys}
+//                     />
+//                 </div>
+//
+//                 {/* bottom controls */}
+//                 <div
+//                     style={{
+//                         background: "white",
+//                         borderRadius: 14,
+//                         border: "1px solid #e6e8ee",
+//                         padding: 14,
+//                         display: "grid",
+//                         gridTemplateColumns: "1fr 380px",
+//                         gap: 12,
+//                     }}
+//                 >
+//                     {/* selected */}
+//                     <div>
+//                         <div style={{ fontWeight: 900, marginBottom: 8 }}>현재 선택</div>
+//                         {!selected ? (
+//                             <div style={{ color: "#666" }}>지도에서 마커를 클릭하세요.</div>
+//                         ) : (
+//                             <div style={{ fontSize: 12, color: "#334155", lineHeight: 1.55 }}>
+//                                 <div style={{ fontWeight: 900 }}>{selected.name}</div>
+//                                 <div>stationId: {selected.stationId} / chargerId: {selected.chargerId}</div>
+//                                 <div>health: {selected?.derived?.health ?? selected?.health ?? "-"}</div>
+//                                 <div>risk: {selected?.derived?.risk ?? selected?.risk ?? "-"}</div>
+//                                 <div>downProb6h: {selected?.derived?.downProb6h ?? "-"}</div>
+//                             </div>
+//                         )}
+//                     </div>
+//
+//                     {/* actions */}
+//                     <div style={{ display: "grid", gap: 10 }}>
+//                         <button
+//                             onClick={onRunAutopilot}
+//                             style={{
+//                                 height: 44,
+//                                 borderRadius: 12,
+//                                 border: 0,
+//                                 background: "#2d3a8c",
+//                                 color: "white",
+//                                 fontWeight: 900,
+//                                 cursor: "pointer",
+//                             }}
+//                         >
+//                             Autopilot 실행
+//                         </button>
+//
+//                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+//                             <button
+//                                 onClick={() => {
+//                                     if (!latestAuto) return alert("먼저 Autopilot 실행하세요.");
+//                                     onExplainAutopilot(latestAuto.id);
+//                                 }}
+//                                 style={{
+//                                     height: 40,
+//                                     borderRadius: 12,
+//                                     border: 0,
+//                                     background: "#0f766e",
+//                                     color: "white",
+//                                     fontWeight: 900,
+//                                     cursor: "pointer",
+//                                 }}
+//                             >
+//                                 Autopilot LLM 요약
+//                             </button>
+//
+//                             <button
+//                                 onClick={() => setMapMode((m) => (m === "autopilot" ? "all" : "autopilot"))}
+//                                 style={{
+//                                     height: 40,
+//                                     borderRadius: 12,
+//                                     border: "1px solid #e6e8ee",
+//                                     background: "white",
+//                                     color: "#334155",
+//                                     fontWeight: 900,
+//                                     cursor: "pointer",
+//                                 }}
+//                                 title="Autopilot 결과 케이스만 지도에 표시 / 전체 표시"
+//                             >
+//                                 {mapMode === "autopilot" ? "지도: 결과만" : "지도: 전체"}
+//                             </button>
+//                         </div>
+//
+//                         <div style={{ padding: 12, borderRadius: 12, background: "#f7f8fb", border: "1px solid #eceef4" }}>
+//                             <ProcurementSimPanel onRecommendResult={onProcurementRun} />
+//                         </div>
+//
+//                         <button
+//                             onClick={() => {
+//                                 if (confirm("전체 초기화 하시겠습니까? (지도 전체 + 실행결과 유지)")) {
+//                                     setMapMode("all");
+//                                     setActiveAutoId(null);
+//                                 }
+//                             }}
+//                             style={{
+//                                 height: 36,
+//                                 borderRadius: 12,
+//                                 border: "1px solid #e6e8ee",
+//                                 background: "white",
+//                                 fontWeight: 900,
+//                                 cursor: "pointer",
+//                                 color: "#334155",
+//                             }}
+//                         >
+//                             지도 초기화
+//                         </button>
+//                     </div>
+//                 </div>
+//             </div>
+//
+//             {/* ================= RIGHT ================= */}
+//             <div style={{ padding: 16, background: "#f4f6fb", borderLeft: "1px solid #e6e8ee", overflow: "auto" }}>
+//                 {/* Tabs */}
+//                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+//                     <div style={{ fontWeight: 900, marginRight: 6 }}>결과 패널</div>
+//                     <TabButton active={tab === "overview"} onClick={() => setTab("overview")}>
+//                         요약
+//                     </TabButton>
+//                     <TabButton active={tab === "autopilot"} onClick={() => setTab("autopilot")}>
+//                         오토파일럿
+//                     </TabButton>
+//                     <TabButton active={tab === "details"} onClick={() => setTab("details")}>
+//                         상세(기록)
+//                     </TabButton>
+//
+//                     <button
+//                         onClick={() => {
+//                             if (confirm("실행 결과(오토파일럿/선정/기록)를 전부 지우시겠습니까?")) {
+//                                 setAutoRuns([]);
+//                                 setProcRuns([]);
+//                                 setEvents([]);
+//                                 setMapMode("all");
+//                                 setActiveAutoId(null);
+//                             }
+//                         }}
+//                         style={{
+//                             marginLeft: "auto",
+//                             height: 32,
+//                             borderRadius: 10,
+//                             border: "1px solid #e6e8ee",
+//                             background: "white",
+//                             fontWeight: 900,
+//                             cursor: "pointer",
+//                             padding: "0 10px",
+//                             fontSize: 12,
+//                         }}
+//                     >
+//                         전체 지우기
+//                     </button>
+//                 </div>
+//
+//                 {/* TAB: OVERVIEW */}
+//                 {tab === "overview" && (
+//                     <div style={{ display: "grid", gap: 12 }}>
+//                         <Card title="서비스 사용 방법" right={<Pill bg="#334155">guide</Pill>}>
+//                             <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.55 }}>
+//                                 1) <b>Autopilot 실행</b> → 규칙 기반의 위험 케이스 TopK(10) 자동 선정<br />
+//                                 2) <b>지도: 결과만</b>으로 전환 → 점검 대상만 한눈에 확인<br />
+//                                 3) <b>Autopilot LLM 요약</b> → “왜 위험/무엇을 할지” 요약 확인<br />
+//                                 4) <b>사업수행기관 선정</b> → 업체별 성능 비교 후 winner 추천
+//                             </div>
+//                         </Card>
+//
+//                         <Card title="오늘의 요약" right={<Pill bg="#1f2430">overview</Pill>}>
+//                             {!latestAuto ? (
+//                                 <div style={{ color: "#64748b", fontSize: 13 }}>아직 Autopilot 결과가 없습니다.</div>
+//                             ) : (
+//                                 <div style={{ display: "grid", gap: 8 }}>
+//                                     <MiniInfo
+//                                         label="후보/선정"
+//                                         value={`${fmt(latestAuto.payload?.totalCandidates)} 후보 중 ${fmt(latestAuto.payload?.pickedK)}건 선정`}
+//                                     />
+//
+//                                     {latestExplain?.summary ? (
+//                                         <div style={{ marginTop: 6 }}>
+//                                             <div style={{ fontWeight: 900, marginBottom: 6 }}>요약(LLM)</div>
+//                                             <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.55 }}>{latestExplain.summary}</div>
+//                                         </div>
+//                                     ) : (
+//                                         <div style={{ marginTop: 6, color: "#64748b", fontSize: 13 }}>
+//                                             LLM 요약이 없습니다. 아래 버튼으로 생성하세요: <b>Autopilot LLM 요약</b>
+//                                         </div>
+//                                     )}
+//
+//                                     {riskyTop?.length ? (
+//                                         <div style={{ marginTop: 10 }}>
+//                                             <div style={{ fontWeight: 900, marginBottom: 8 }}>점검 우선 Top 5</div>
+//                                             {riskyTop.map((c, i) => (
+//                                                 <div
+//                                                     key={`${c.stationId}::${c.chargerId}::ov::${i}`}
+//                                                     style={{
+//                                                         padding: 10,
+//                                                         borderRadius: 12,
+//                                                         border: "1px solid #eef2f7",
+//                                                         background: "#fbfcfe",
+//                                                         marginBottom: 8,
+//                                                     }}
+//                                                 >
+//                                                     <div style={{ fontWeight: 900, color: "#0f172a" }}>
+//                                                         {i + 1}. {c.stationId}/{c.chargerId} · score {fmt(c.score)}
+//                                                     </div>
+//                                                     <div style={{ fontSize: 13, color: "#334155", marginTop: 4 }}>{fmt(c.name, "")}</div>
+//                                                     <div style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>
+//                                                         down {fmt(c.downMinutes)}m · prob {fmt(c.downProb6h)} · congestion {fmt(c.trafficCongestion)} ·{" "}
+//                                                         {fmt(c.outputKw)}kW
+//                                                     </div>
+//                                                 </div>
+//                                             ))}
+//                                         </div>
+//                                     ) : null}
+//                                 </div>
+//                             )}
+//                         </Card>
+//
+//                         <Card title="사업수행기관 선정 결과" right={<Pill bg="#7c3aed">procurement</Pill>}>
+//                             {!latestProc ? (
+//                                 <div style={{ color: "#64748b", fontSize: 13 }}>아직 선정 결과가 없습니다.</div>
+//                             ) : (
+//                                 <div style={{ display: "grid", gap: 10, fontSize: 13, color: "#334155", lineHeight: 1.55 }}>
+//                                     <div>
+//                                         • 장애 케이스 수: <b>{fmt(latestProc.payload?.params?.nIncidents)}</b> · 업체 수:{" "}
+//                                         <b>{fmt(latestProc.payload?.params?.providersCount)}</b> · LLM:{" "}
+//                                         <b>{String(fmt(latestProc.payload?.params?.useLLM))}</b>
+//                                     </div>
+//                                     <div>
+//                                         • winner: <b style={{ fontSize: 15 }}>{fmt(latestProc.payload?.result?.winner)}</b>
+//                                     </div>
+//                                 </div>
+//                             )}
+//                         </Card>
+//                     </div>
+//                 )}
+//
+//                 {/* TAB: DETAILS */}
+//                 {tab === "details" && (
+//                     <div style={{ display: "grid", gap: 12 }}>
+//                         <Card title="실행 기록" right={<Pill bg="#334155">details</Pill>}>
+//                             {events.length === 0 ? (
+//                                 <div style={{ color: "#64748b", fontSize: 13 }}>아직 기록이 없습니다.</div>
+//                             ) : (
+//                                 <div style={{ display: "grid", gap: 6, fontSize: 12, color: "#334155" }}>
+//                                     {events.map((x, i) => (
+//                                         <div key={i} style={{ borderBottom: "1px solid #f1f5f9", paddingBottom: 6 }}>
+//                                             {x}
+//                                         </div>
+//                                     ))}
+//                                 </div>
+//                             )}
+//                         </Card>
+//                     </div>
+//                 )}
+//             </div>
+//         </div>
+//     );
+// }
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -6,8 +560,6 @@ import ProcurementSimPanel from "./ui/ProcurementSimPanel";
 import { AI_BACKEND_BASE } from "@/app/api/url";
 
 const MapView = dynamic(() => import("./ui/MapView"), { ssr: false });
-
-// ✅ 로컬 테스트용(배포 단계에서 env로 바꿀 거)
 const API = AI_BACKEND_BASE;
 
 /* =========================
@@ -30,6 +582,7 @@ function TabButton({ active, children, onClick }) {
                 cursor: "pointer",
                 padding: "0 12px",
                 fontSize: 12,
+                whiteSpace: "nowrap",
             }}
         >
             {children}
@@ -47,6 +600,7 @@ function Pill({ bg, children }) {
                 borderRadius: 999,
                 color: "white",
                 background: bg,
+                whiteSpace: "nowrap",
             }}
         >
       {children}
@@ -80,10 +634,46 @@ function MiniInfo({ label, value }) {
     return (
         <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 10, fontSize: 12 }}>
             <div style={{ color: "#64748b" }}>{label}</div>
-            <div style={{ color: "#334155", fontWeight: 800 }}>{value}</div>
+            <div style={{ color: "#334155", fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis" }}>{value}</div>
         </div>
     );
 }
+
+function JsonViewer({ data, maxHeight = 340 }) {
+    if (!data) return <div style={{ color: "#64748b", fontSize: 13 }}>데이터 없음</div>;
+
+    return (
+        <pre
+            style={{
+                margin: 0,
+                padding: 12,
+                borderRadius: 12,
+                background: "#0b1220",
+                color: "#e5e7eb",
+                fontSize: 11,
+                lineHeight: 1.45,
+
+                // ✅ 가로 스크롤 방지 핵심 3종 세트
+                whiteSpace: "pre-wrap",
+                overflowWrap: "anywhere",
+                wordBreak: "break-word",
+
+                // ✅ 세로만 스크롤
+                overflowY: "auto",
+                overflowX: "hidden",
+
+                maxHeight,
+                maxWidth: "100%",
+                boxSizing: "border-box",
+
+                border: "1px solid rgba(255,255,255,0.08)",
+            }}
+        >
+      {JSON.stringify(data, null, 2)}
+    </pre>
+    );
+}
+
 
 /* =========================
    main
@@ -93,20 +683,36 @@ export default function TwinPage() {
     const [selected, setSelected] = useState(null);
 
     // UI 탭
-    const [tab, setTab] = useState("overview"); // overview | autopilot | details
+    const [tab, setTab] = useState("overview"); // overview | autopilot | procurement | details
 
     // 실행 결과들
     const [autoRuns, setAutoRuns] = useState([]); // [{id, ts, payload, explain?}]
     const [procRuns, setProcRuns] = useState([]); // [{id, ts, payload}] payload={params,result}
-    const [events, setEvents] = useState([]); // details용 간단 이벤트 로그(문자열)
+    const [events, setEvents] = useState([]); // [{id, ts, type, title, data?}]
+
+    // details에서 “한 줄 클릭 → JSON 보기”
+    const [activeEventId, setActiveEventId] = useState(null);
 
     // 지도 필터
     const [mapMode, setMapMode] = useState("all"); // all | autopilot
-    const [activeAutoId, setActiveAutoId] = useState(null); // 지도 필터에 사용할 autopilot run id
+    const [activeAutoId, setActiveAutoId] = useState(null);
 
-    const pushEvent = (msg) => {
-        const line = `${new Date().toLocaleString()}  ·  ${msg}`;
-        setEvents((prev) => [line, ...prev].slice(0, 50));
+    // “자세히 보기” 토글(autopilot/procurement 내부)
+    const [expanded, setExpanded] = useState({}); // { [key]: boolean }
+
+    const toggleExpanded = (key) => setExpanded((p) => ({ ...p, [key]: !p[key] }));
+
+    const pushEvent = (type, title, data = null) => {
+        const ev = {
+            id: nowId("_ev"),
+            ts: new Date().toLocaleString(),
+            type, // "auto" | "auto_explain" | "proc" | "info" | "error"
+            title,
+            data, // JSON (선택)
+        };
+        setEvents((prev) => [ev, ...prev].slice(0, 80));
+        // 최신 이벤트가 JSON을 갖고 있으면 details에서 바로 보이게(체감 개선)
+        if (data) setActiveEventId(ev.id);
     };
 
     /* =========================
@@ -136,7 +742,7 @@ export default function TwinPage() {
     ========================= */
     const onRunAutopilot = async () => {
         try {
-            pushEvent("Autopilot 실행 요청");
+            pushEvent("info", "Autopilot 실행 요청");
 
             const res = await fetch(`${API}/agent/fleet/autopilot`, {
                 method: "POST",
@@ -170,10 +776,10 @@ export default function TwinPage() {
             setMapMode("autopilot");
             setTab("autopilot");
 
-            pushEvent(`Autopilot 완료 (candidates ${j.totalCandidates}, picked ${j.pickedK})`);
+            pushEvent("auto", `Autopilot 완료 (candidates ${j.totalCandidates}, picked ${j.pickedK})`, j);
         } catch (e) {
             console.error(e);
-            pushEvent(`Autopilot 실패: ${String(e)}`);
+            pushEvent("error", `Autopilot 실패: ${String(e)}`);
             alert("Autopilot 호출 실패");
         }
     };
@@ -186,7 +792,7 @@ export default function TwinPage() {
             const run = autoRuns.find((r) => r.id === runId);
             if (!run?.payload?.cases?.length) return alert("Autopilot cases가 없습니다.");
 
-            pushEvent("Autopilot LLM 요약 요청");
+            pushEvent("info", "Autopilot LLM 요약 요청");
 
             const res = await fetch(`${API}/agent/fleet/autopilot/explain`, {
                 method: "POST",
@@ -198,11 +804,12 @@ export default function TwinPage() {
             if (!res.ok) throw new Error(explain?.detail ?? JSON.stringify(explain));
 
             setAutoRuns((prev) => prev.map((x) => (x.id === runId ? { ...x, explain } : x)));
+            setTab("autopilot");
 
-            pushEvent("Autopilot LLM 요약 완료");
+            pushEvent("auto_explain", "Autopilot LLM 요약 완료", explain);
         } catch (e) {
             console.error(e);
-            pushEvent(`Autopilot LLM 요약 실패: ${String(e)}`);
+            pushEvent("error", `Autopilot LLM 요약 실패: ${String(e)}`);
             alert("LLM 요약 호출 실패");
         }
     };
@@ -211,22 +818,17 @@ export default function TwinPage() {
        Procurement 콜백
     ========================= */
     const onProcurementRun = (payload) => {
-        const entry = {
-            id: nowId("_proc"),
-            ts: new Date().toLocaleString(),
-            payload,
-        };
+        const entry = { id: nowId("_proc"), ts: new Date().toLocaleString(), payload };
         setProcRuns((prev) => [entry, ...prev].slice(0, 10));
-        setTab("overview");
+        setTab("procurement");
 
         const winner = payload?.result?.winner ?? "-";
-        pushEvent(`사업수행기관 선정 완료 (winner: ${winner})`);
+        pushEvent("proc", `유지보수 수행사 선정 완료 (winner: ${winner})`, payload);
     };
 
     /* =========================
        지도 표시 twins (필터링)
     ========================= */
-    // ✅ 1) 하이라이트용 key set
     const highlightKeys = useMemo(() => {
         const active = autoRuns.find((r) => r.id === activeAutoId);
         const cases = active?.payload?.cases;
@@ -234,7 +836,6 @@ export default function TwinPage() {
         return new Set(cases.map((c) => `${c.stationId}::${c.chargerId}`));
     }, [autoRuns, activeAutoId]);
 
-// ✅ 2) 지도에 보여줄 twins 필터
     const filteredTwins = useMemo(() => {
         if (mapMode !== "autopilot") return twins;
 
@@ -246,10 +847,7 @@ export default function TwinPage() {
         return twins.filter((t) => keySet.has(`${t.stationId}::${t.chargerId}`));
     }, [twins, mapMode, autoRuns, activeAutoId]);
 
-
-    const header = useMemo(() => {
-        return `트윈 수: ${filteredTwins.length}   선택됨: ${selected ? selected.name : "-"}`;
-    }, [filteredTwins, selected]);
+    const header = useMemo(() => `트윈 수: ${filteredTwins.length}   선택됨: ${selected ? selected.name : "-"}`, [filteredTwins, selected]);
 
     const latestAuto = autoRuns[0] ?? null;
     const latestExplain = latestAuto?.explain ?? null;
@@ -260,11 +858,20 @@ export default function TwinPage() {
         return cases.slice(0, 5);
     }, [latestAuto]);
 
+    const activeAutoRun = useMemo(() => autoRuns.find((r) => r.id === activeAutoId) || latestAuto || null, [autoRuns, activeAutoId, latestAuto]);
+    const activeExplain = activeAutoRun?.explain ?? null;
+    const activeCases = activeAutoRun?.payload?.cases ?? [];
+
+    const activeEvent = useMemo(() => events.find((e) => e.id === activeEventId) || null, [events, activeEventId]);
+
+    // const rightHeaderHeight = 46; // tabs bar
+    const rightPadding = 16;
+
     return (
-        // ✅ 헤더가 위에 있을 수 있어서 100vh 대신 minHeight로 (필요시 숫자 조정)
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", height: "100%" }}>
+        // ✅ 전체 화면은 고정, 각 패널 내부만 스크롤되도록
+        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", height: "100vh", overflow: "hidden" }}>
             {/* ================= LEFT ================= */}
-            <div style={{ padding: 16, display: "grid", gridTemplateRows: "56px 1fr 320px", gap: 12 }}>
+            <div style={{ padding: 16, display: "grid", gridTemplateRows: "56px 1fr 450px", gap: 12, overflow: "hidden" }}>
                 {/* header */}
                 <div
                     style={{
@@ -275,27 +882,24 @@ export default function TwinPage() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
+                        flex: "0 0 auto",
                     }}
                 >
                     <div style={{ fontWeight: 800 }}>{header}</div>
                 </div>
 
-                {/* map */}
+                {/* map (내부만 스크롤 X, 크기 고정) */}
                 <div
                     style={{
                         height: "100%",
-                        minHeight: 400,
+                        minHeight: 0,
                         background: "white",
                         borderRadius: 14,
                         overflow: "hidden",
                         border: "1px solid #e6e8ee",
                     }}
                 >
-                    <MapView
-                        twins={filteredTwins}
-                        onSelect={(t) => setSelected(t)}
-                        highlightKeys={highlightKeys}
-                    />
+                    <MapView twins={filteredTwins} onSelect={(t) => setSelected(t)} highlightKeys={highlightKeys} />
                 </div>
 
                 {/* bottom controls */}
@@ -308,6 +912,7 @@ export default function TwinPage() {
                         display: "grid",
                         gridTemplateColumns: "1fr 380px",
                         gap: 12,
+                        overflow: "hidden",
                     }}
                 >
                     {/* selected */}
@@ -318,7 +923,9 @@ export default function TwinPage() {
                         ) : (
                             <div style={{ fontSize: 12, color: "#334155", lineHeight: 1.55 }}>
                                 <div style={{ fontWeight: 900 }}>{selected.name}</div>
-                                <div>stationId: {selected.stationId} / chargerId: {selected.chargerId}</div>
+                                <div>
+                                    stationId: {selected.stationId} / chargerId: {selected.chargerId}
+                                </div>
                                 <div>health: {selected?.derived?.health ?? selected?.health ?? "-"}</div>
                                 <div>risk: {selected?.derived?.risk ?? selected?.risk ?? "-"}</div>
                                 <div>downProb6h: {selected?.derived?.downProb6h ?? "-"}</div>
@@ -327,7 +934,7 @@ export default function TwinPage() {
                     </div>
 
                     {/* actions */}
-                    <div style={{ display: "grid", gap: 10 }}>
+                    <div style={{ display: "grid", gap: 10, minHeight: 0, overflow: "auto", paddingRight: 4 }}>
                         <button
                             onClick={onRunAutopilot}
                             style={{
@@ -379,7 +986,16 @@ export default function TwinPage() {
                             </button>
                         </div>
 
-                        <div style={{ padding: 12, borderRadius: 12, background: "#f7f8fb", border: "1px solid #eceef4" }}>
+                        {/* ✅ ProcurementSimPanel 자체가 길어지면 여기만 스크롤 */}
+                        <div
+                            style={{
+                                padding: 12,
+                                borderRadius: 12,
+                                background: "#f7f8fb",
+                                border: "1px solid #eceef4",
+                                overflow: "visible",
+                            }}
+                        >
                             <ProcurementSimPanel onRecommendResult={onProcurementRun} />
                         </div>
 
@@ -407,15 +1023,38 @@ export default function TwinPage() {
             </div>
 
             {/* ================= RIGHT ================= */}
-            <div style={{ padding: 16, background: "#f4f6fb", borderLeft: "1px solid #e6e8ee", overflow: "auto" }}>
-                {/* Tabs */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div
+                style={{
+                    padding: rightPadding,
+                    background: "#f4f6fb",
+                    borderLeft: "1px solid #e6e8ee",
+                    overflow: "hidden", // ✅ 패널 전체가 늘어나지 않게
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                }}
+            >
+                {/* Tabs (고정 높이) */}
+                <div
+                    style={{
+                        // height: rightHeaderHeight,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        flex: "0 0 auto",
+                        flexWrap: "wrap",
+                        minWidth: 0,
+                    }}
+                >
                     <div style={{ fontWeight: 900, marginRight: 6 }}>결과 패널</div>
                     <TabButton active={tab === "overview"} onClick={() => setTab("overview")}>
                         요약
                     </TabButton>
                     <TabButton active={tab === "autopilot"} onClick={() => setTab("autopilot")}>
                         오토파일럿
+                    </TabButton>
+                    <TabButton active={tab === "procurement"} onClick={() => setTab("procurement")}>
+                        유지보수 수행사
                     </TabButton>
                     <TabButton active={tab === "details"} onClick={() => setTab("details")}>
                         상세(기록)
@@ -427,6 +1066,7 @@ export default function TwinPage() {
                                 setAutoRuns([]);
                                 setProcRuns([]);
                                 setEvents([]);
+                                setActiveEventId(null);
                                 setMapMode("all");
                                 setActiveAutoId(null);
                             }
@@ -447,107 +1087,446 @@ export default function TwinPage() {
                     </button>
                 </div>
 
-                {/* TAB: OVERVIEW */}
-                {tab === "overview" && (
-                    <div style={{ display: "grid", gap: 12 }}>
-                        <Card title="서비스 사용 방법" right={<Pill bg="#334155">guide</Pill>}>
-                            <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.55 }}>
-                                1) <b>Autopilot 실행</b> → 위험 케이스 TopK 자동 선정<br />
-                                2) <b>지도: 결과만</b>으로 전환 → 점검 대상만 한눈에 확인<br />
-                                3) <b>Autopilot LLM 요약</b> → “왜 위험/무엇을 할지” 요약 확인<br />
-                                4) <b>사업수행기관 선정</b> → 업체별 성능 비교 후 winner 추천
-                            </div>
-                        </Card>
+                {/* ✅ 탭 컨텐츠 영역만 스크롤 */}
+                <div style={{ flex: "1 1 auto", minHeight: 0, overflow: "auto" }}>
+                    {/* TAB: OVERVIEW */}
+                    {tab === "overview" && (
+                        <div style={{ display: "grid", gap: 12 }}>
+                            <Card title="서비스 사용 방법" right={<Pill bg="#334155">guide</Pill>}>
+                                <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.55 }}>
+                                    1) <b>Autopilot 실행</b> → 규칙 기반의 위험 케이스 TopK(10) 자동 선정
+                                    <br />
+                                    2) <b>지도: 결과만</b>으로 전환 → 점검 대상만 한눈에 확인
+                                    <br />
+                                    3) <b>Autopilot LLM 요약</b> → “왜 위험/무엇을 할지” 요약 확인
+                                    <br />
+                                    4) <b>유지보수 수행사 선정</b> → 업체별 성능 비교 후 winner 추천
+                                </div>
+                            </Card>
 
-                        <Card title="오늘의 요약" right={<Pill bg="#1f2430">overview</Pill>}>
-                            {!latestAuto ? (
-                                <div style={{ color: "#64748b", fontSize: 13 }}>아직 Autopilot 결과가 없습니다.</div>
-                            ) : (
-                                <div style={{ display: "grid", gap: 8 }}>
-                                    <MiniInfo
-                                        label="후보/선정"
-                                        value={`${fmt(latestAuto.payload?.totalCandidates)} 후보 중 ${fmt(latestAuto.payload?.pickedK)}건 선정`}
-                                    />
+                            <Card title="오늘의 요약" right={<Pill bg="#1f2430">overview</Pill>}>
+                                {!latestAuto ? (
+                                    <div style={{ color: "#64748b", fontSize: 13 }}>아직 Autopilot 결과가 없습니다.</div>
+                                ) : (
+                                    <div style={{ display: "grid", gap: 8 }}>
+                                        <MiniInfo label="후보/선정" value={`${fmt(latestAuto.payload?.totalCandidates)} 후보 중 ${fmt(latestAuto.payload?.pickedK)}건 선정`} />
 
-                                    {latestExplain?.summary ? (
-                                        <div style={{ marginTop: 6 }}>
-                                            <div style={{ fontWeight: 900, marginBottom: 6 }}>요약(LLM)</div>
-                                            <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.55 }}>{latestExplain.summary}</div>
-                                        </div>
-                                    ) : (
-                                        <div style={{ marginTop: 6, color: "#64748b", fontSize: 13 }}>
-                                            LLM 요약이 없습니다. 아래 버튼으로 생성하세요: <b>Autopilot LLM 요약</b>
-                                        </div>
-                                    )}
-
-                                    {riskyTop?.length ? (
-                                        <div style={{ marginTop: 10 }}>
-                                            <div style={{ fontWeight: 900, marginBottom: 8 }}>점검 우선 Top 5</div>
-                                            {riskyTop.map((c, i) => (
-                                                <div
-                                                    key={`${c.stationId}::${c.chargerId}::ov::${i}`}
-                                                    style={{
-                                                        padding: 10,
-                                                        borderRadius: 12,
-                                                        border: "1px solid #eef2f7",
-                                                        background: "#fbfcfe",
-                                                        marginBottom: 8,
-                                                    }}
-                                                >
-                                                    <div style={{ fontWeight: 900, color: "#0f172a" }}>
-                                                        {i + 1}. {c.stationId}/{c.chargerId} · score {fmt(c.score)}
-                                                    </div>
-                                                    <div style={{ fontSize: 13, color: "#334155", marginTop: 4 }}>{fmt(c.name, "")}</div>
-                                                    <div style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>
-                                                        down {fmt(c.downMinutes)}m · prob {fmt(c.downProb6h)} · congestion {fmt(c.trafficCongestion)} ·{" "}
-                                                        {fmt(c.outputKw)}kW
-                                                    </div>
+                                        {latestExplain?.summary ? (
+                                            <div style={{ marginTop: 6 }}>
+                                                <div style={{ fontWeight: 900, marginBottom: 6 }}>요약(LLM)</div>
+                                                <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.55 }}>{latestExplain.summary}</div>
+                                                <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                                                    <button
+                                                        onClick={() => setTab("autopilot")}
+                                                        style={{
+                                                            height: 32,
+                                                            borderRadius: 10,
+                                                            border: "1px solid #e6e8ee",
+                                                            background: "white",
+                                                            fontWeight: 900,
+                                                            cursor: "pointer",
+                                                            padding: "0 10px",
+                                                            fontSize: 12,
+                                                        }}
+                                                    >
+                                                        오토파일럿 탭에서 자세히
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setTab("details")}
+                                                        style={{
+                                                            height: 32,
+                                                            borderRadius: 10,
+                                                            border: "1px solid #e6e8ee",
+                                                            background: "white",
+                                                            fontWeight: 900,
+                                                            cursor: "pointer",
+                                                            padding: "0 10px",
+                                                            fontSize: 12,
+                                                        }}
+                                                    >
+                                                        상세(기록)에서 JSON 보기
+                                                    </button>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    ) : null}
-                                </div>
-                            )}
-                        </Card>
+                                            </div>
+                                        ) : (
+                                            <div style={{ marginTop: 6, color: "#64748b", fontSize: 13 }}>
+                                                LLM 요약이 없습니다. 아래 버튼으로 생성하세요: <b>Autopilot LLM 요약</b>
+                                            </div>
+                                        )}
 
-                        <Card title="사업수행기관 선정 결과" right={<Pill bg="#7c3aed">procurement</Pill>}>
-                            {!latestProc ? (
-                                <div style={{ color: "#64748b", fontSize: 13 }}>아직 선정 결과가 없습니다.</div>
-                            ) : (
-                                <div style={{ display: "grid", gap: 10, fontSize: 13, color: "#334155", lineHeight: 1.55 }}>
-                                    <div>
-                                        • 장애 케이스 수: <b>{fmt(latestProc.payload?.params?.nIncidents)}</b> · 업체 수:{" "}
-                                        <b>{fmt(latestProc.payload?.params?.providersCount)}</b> · LLM:{" "}
-                                        <b>{String(fmt(latestProc.payload?.params?.useLLM))}</b>
+                                        {riskyTop?.length ? (
+                                            <div style={{ marginTop: 10 }}>
+                                                <div style={{ fontWeight: 900, marginBottom: 8 }}>점검 우선 Top 5</div>
+                                                {riskyTop.map((c, i) => (
+                                                    <div
+                                                        key={`${c.stationId}::${c.chargerId}::ov::${i}`}
+                                                        style={{
+                                                            padding: 10,
+                                                            borderRadius: 12,
+                                                            border: "1px solid #eef2f7",
+                                                            background: "#fbfcfe",
+                                                            marginBottom: 8,
+                                                        }}
+                                                    >
+                                                        <div style={{ fontWeight: 900, color: "#0f172a" }}>
+                                                            {i + 1}. {c.stationId}/{c.chargerId} · score {fmt(c.score)}
+                                                        </div>
+                                                        <div style={{ fontSize: 13, color: "#334155", marginTop: 4 }}>{fmt(c.name, "")}</div>
+                                                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>
+                                                            down {fmt(c.downMinutes)}m · prob {fmt(c.downProb6h)} · congestion {fmt(c.trafficCongestion)} · {fmt(c.outputKw)}kW
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : null}
                                     </div>
-                                    <div>
-                                        • winner: <b style={{ fontSize: 15 }}>{fmt(latestProc.payload?.result?.winner)}</b>
-                                    </div>
-                                </div>
-                            )}
-                        </Card>
-                    </div>
-                )}
+                                )}
+                            </Card>
 
-                {/* TAB: DETAILS */}
-                {tab === "details" && (
-                    <div style={{ display: "grid", gap: 12 }}>
-                        <Card title="실행 기록" right={<Pill bg="#334155">details</Pill>}>
-                            {events.length === 0 ? (
-                                <div style={{ color: "#64748b", fontSize: 13 }}>아직 기록이 없습니다.</div>
-                            ) : (
-                                <div style={{ display: "grid", gap: 6, fontSize: 12, color: "#334155" }}>
-                                    {events.map((x, i) => (
-                                        <div key={i} style={{ borderBottom: "1px solid #f1f5f9", paddingBottom: 6 }}>
-                                            {x}
+                            <Card title="유지보수 수행사 선정 결과" right={<Pill bg="#7c3aed">procurement</Pill>}>
+                                {!latestProc ? (
+                                    <div style={{ color: "#64748b", fontSize: 13 }}>아직 선정 결과가 없습니다.</div>
+                                ) : (
+                                    <div style={{ display: "grid", gap: 10, fontSize: 13, color: "#334155", lineHeight: 1.55 }}>
+                                        <div>
+                                            • 장애 케이스 수: <b>{fmt(latestProc.payload?.params?.nIncidents)}</b> · 업체 수:{" "}
+                                            <b>{fmt(latestProc.payload?.params?.providersCount)}</b> · LLM: <b>{String(fmt(latestProc.payload?.params?.useLLM))}</b>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </Card>
-                    </div>
-                )}
+                                        <div>
+                                            • winner: <b style={{ fontSize: 15 }}>{fmt(latestProc.payload?.result?.winner)}</b>
+                                        </div>
+                                        <button
+                                            onClick={() => setTab("procurement")}
+                                            style={{
+                                                height: 32,
+                                                borderRadius: 10,
+                                                border: "1px solid #e6e8ee",
+                                                background: "white",
+                                                fontWeight: 900,
+                                                cursor: "pointer",
+                                                padding: "0 10px",
+                                                fontSize: 12,
+                                                width: "fit-content",
+                                            }}
+                                        >
+                                            유지보수 수행사 탭에서 자세히
+                                        </button>
+                                    </div>
+                                )}
+                            </Card>
+                        </div>
+                    )}
+
+                    {/* TAB: AUTOPILOT */}
+                    {tab === "autopilot" && (
+                        <div style={{ display: "grid", gap: 12 }}>
+                            <Card
+                                title="Autopilot 실행 결과"
+                                right={
+                                    <div style={{ display: "flex", gap: 8 }}>
+                                        <button
+                                            onClick={() => {
+                                                if (!activeAutoRun) return alert("Autopilot 실행 이력이 없습니다.");
+                                                onExplainAutopilot(activeAutoRun.id);
+                                            }}
+                                            style={{
+                                                height: 32,
+                                                borderRadius: 10,
+                                                border: 0,
+                                                background: "#0f766e",
+                                                color: "white",
+                                                fontWeight: 900,
+                                                cursor: "pointer",
+                                                padding: "0 10px",
+                                                fontSize: 12,
+                                            }}
+                                            title="현재 선택된 Autopilot run에 대해 LLM 요약 생성"
+                                        >
+                                            LLM 요약 생성
+                                        </button>
+
+                                        <button
+                                            onClick={() => toggleExpanded("autoRaw")}
+                                            style={{
+                                                height: 32,
+                                                borderRadius: 10,
+                                                border: "1px solid #e6e8ee",
+                                                background: "white",
+                                                fontWeight: 900,
+                                                cursor: "pointer",
+                                                padding: "0 10px",
+                                                fontSize: 12,
+                                            }}
+                                        >
+                                            {expanded.autoRaw ? "실행 JSON 닫기" : "실행 JSON 보기"}
+                                        </button>
+                                    </div>
+                                }
+                            >
+                                {!activeAutoRun ? (
+                                    <div style={{ color: "#64748b", fontSize: 13 }}>Autopilot 실행 이력이 없습니다.</div>
+                                ) : (
+                                    <div style={{ display: "grid", gap: 10 }}>
+                                        <MiniInfo label="실행 시각" value={fmt(activeAutoRun.ts)} />
+                                        <MiniInfo label="후보/선정" value={`${fmt(activeAutoRun.payload?.totalCandidates)} 후보 중 ${fmt(activeAutoRun.payload?.pickedK)}건 선정`} />
+                                        <MiniInfo label="cases" value={`${fmt(activeCases?.length, 0)}건`} />
+
+                                        {expanded.autoRaw ? <JsonViewer data={activeAutoRun.payload} maxHeight={360} /> : null}
+
+                                        {Array.isArray(activeCases) && activeCases.length ? (
+                                            <div style={{ marginTop: 6 }}>
+                                                <div style={{ fontWeight: 900, marginBottom: 8 }}>선정 케이스 목록</div>
+                                                {activeCases.map((c, i) => (
+                                                    <div
+                                                        key={`${activeAutoRun.id}::case::${c.stationId}::${c.chargerId}::${i}`}
+                                                        style={{
+                                                            padding: 10,
+                                                            borderRadius: 12,
+                                                            border: "1px solid #eef2f7",
+                                                            background: "white",
+                                                            marginBottom: 8,
+                                                        }}
+                                                    >
+                                                        <div style={{ fontWeight: 900, color: "#0f172a" }}>
+                                                            {i + 1}. {c.stationId}/{c.chargerId} · score {fmt(c.score)}
+                                                        </div>
+                                                        <div style={{ fontSize: 12, color: "#334155", marginTop: 4 }}>{fmt(c.name, "")}</div>
+                                                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>
+                                                            down {fmt(c.downMinutes)}m · prob {fmt(c.downProb6h)} · congestion {fmt(c.trafficCongestion)} · {fmt(c.outputKw)}kW
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div style={{ color: "#64748b", fontSize: 13 }}>선정 케이스가 없습니다.</div>
+                                        )}
+                                    </div>
+                                )}
+                            </Card>
+
+                            <Card
+                                title="LLM 분석/요약"
+                                right={
+                                    <button
+                                        onClick={() => toggleExpanded("explainRaw")}
+                                        style={{
+                                            height: 32,
+                                            borderRadius: 10,
+                                            border: "1px solid #e6e8ee",
+                                            background: "white",
+                                            fontWeight: 900,
+                                            cursor: "pointer",
+                                            padding: "0 10px",
+                                            fontSize: 12,
+                                        }}
+                                    >
+                                        {expanded.explainRaw ? "LLM JSON 닫기" : "LLM JSON 보기"}
+                                    </button>
+                                }
+                            >
+                                {!activeAutoRun ? (
+                                    <div style={{ color: "#64748b", fontSize: 13 }}>Autopilot 실행 후 확인 가능합니다.</div>
+                                ) : !activeExplain ? (
+                                    <div style={{ color: "#64748b", fontSize: 13 }}>LLM 요약이 없습니다. 상단에서 <b>LLM 요약 생성</b>을 눌러주세요.</div>
+                                ) : (
+                                    <div style={{ display: "grid", gap: 10 }}>
+                                        {"summary" in activeExplain ? (
+                                            <div>
+                                                <div style={{ fontWeight: 900, marginBottom: 6 }}>summary</div>
+                                                <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.55 }}>{fmt(activeExplain.summary, "")}</div>
+                                            </div>
+                                        ) : null}
+
+                                        {Array.isArray(activeExplain.actions) && activeExplain.actions.length ? (
+                                            <div>
+                                                <div style={{ fontWeight: 900, marginBottom: 6 }}>actions</div>
+                                                <ul style={{ margin: 0, paddingLeft: 18, color: "#334155", fontSize: 13, lineHeight: 1.55 }}>
+                                                    {activeExplain.actions.map((x, i) => (
+                                                        <li key={i}>{String(x)}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ) : null}
+
+                                        {Array.isArray(activeExplain.reasons) && activeExplain.reasons.length ? (
+                                            <div>
+                                                <div style={{ fontWeight: 900, marginBottom: 6 }}>reasons</div>
+                                                <ul style={{ margin: 0, paddingLeft: 18, color: "#334155", fontSize: 13, lineHeight: 1.55 }}>
+                                                    {activeExplain.reasons.map((x, i) => (
+                                                        <li key={i}>{String(x)}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ) : null}
+
+                                        {Array.isArray(activeExplain.risks) && activeExplain.risks.length ? (
+                                            <div>
+                                                <div style={{ fontWeight: 900, marginBottom: 6 }}>risks</div>
+                                                <ul style={{ margin: 0, paddingLeft: 18, color: "#334155", fontSize: 13, lineHeight: 1.55 }}>
+                                                    {activeExplain.risks.map((x, i) => (
+                                                        <li key={i}>{String(x)}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ) : null}
+
+                                        {Array.isArray(activeExplain.what_to_verify) && activeExplain.what_to_verify.length ? (
+                                            <div>
+                                                <div style={{ fontWeight: 900, marginBottom: 6 }}>what_to_verify</div>
+                                                <ul style={{ margin: 0, paddingLeft: 18, color: "#334155", fontSize: 13, lineHeight: 1.55 }}>
+                                                    {activeExplain.what_to_verify.map((x, i) => (
+                                                        <li key={i}>{String(x)}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ) : null}
+
+                                        {expanded.explainRaw ? <JsonViewer data={activeExplain} maxHeight={420} /> : null}
+                                    </div>
+                                )}
+                            </Card>
+                        </div>
+                    )}
+
+                    {/* TAB: PROCUREMENT */}
+                    {tab === "procurement" && (
+                        <div style={{ display: "grid", gap: 12 }}>
+                            <Card
+                                title="유지보수 수행사 선정 (최근 결과)"
+                                right={
+                                    <button
+                                        onClick={() => toggleExpanded("procRaw")}
+                                        style={{
+                                            height: 32,
+                                            borderRadius: 10,
+                                            border: "1px solid #e6e8ee",
+                                            background: "white",
+                                            fontWeight: 900,
+                                            cursor: "pointer",
+                                            padding: "0 10px",
+                                            fontSize: 12,
+                                        }}
+                                    >
+                                        {expanded.procRaw ? "RAW 닫기" : "RAW 보기"}
+                                    </button>
+                                }
+                            >
+                                {!latestProc ? (
+                                    <div style={{ color: "#64748b", fontSize: 13 }}>아직 선정 결과가 없습니다. 왼쪽에서 유지보수 수행사 선정을 실행하세요.</div>
+                                ) : (
+                                    <div style={{ display: "grid", gap: 10 }}>
+                                        <MiniInfo label="실행 시각" value={fmt(latestProc.ts)} />
+                                        <MiniInfo label="nIncidents" value={fmt(latestProc.payload?.params?.nIncidents)} />
+                                        <MiniInfo label="providers" value={fmt(latestProc.payload?.params?.providersCount)} />
+                                        <MiniInfo label="winner" value={fmt(latestProc.payload?.result?.winner)} />
+
+                                        {/* 랭킹 테이블 */}
+                                        {Array.isArray(latestProc.payload?.result?.ranking) ? (
+                                            <div style={{ marginTop: 8 }}>
+                                                <div style={{ fontWeight: 900, marginBottom: 8 }}>ranking</div>
+                                                {latestProc.payload.result.ranking.slice(0, 6).map((r, i) => (
+                                                    <div
+                                                        key={`rank_${i}_${r.provider}`}
+                                                        style={{
+                                                            padding: 10,
+                                                            borderRadius: 12,
+                                                            border: "1px solid #eef2f7",
+                                                            background: "white",
+                                                            marginBottom: 8,
+                                                        }}
+                                                    >
+                                                        <div style={{ fontWeight: 900, color: "#0f172a" }}>
+                                                            {i + 1}. {r.provider} · total {fmt(r.total_score)}
+                                                        </div>
+                                                        {Array.isArray(r.by_scenario) ? (
+                                                            <div style={{ marginTop: 6, fontSize: 12, color: "#334155", lineHeight: 1.55 }}>
+                                                                {r.by_scenario.map((s, k) => (
+                                                                    <div key={k} style={{ color: "#334155" }}>
+                                                                        - {s.scenario}: score {fmt(s.score)} · SLA {fmt(s.sla_hit_rate)} · p90 {fmt(s.eta_p90_min)}m · remote {fmt(s.remote_recovery_count)}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : null}
+
+                                        {expanded.procRaw ? <JsonViewer data={latestProc.payload} maxHeight={420} /> : null}
+                                    </div>
+                                )}
+                            </Card>
+                        </div>
+                    )}
+
+                    {/* TAB: DETAILS (줄 클릭 → JSON) */}
+                    {tab === "details" && (
+                        <div style={{ display: "grid", gap: 12 }}>
+                            <Card title="실행 기록 (줄 클릭 → JSON 보기)" right={<Pill bg="#334155">details</Pill>}>
+                                {events.length === 0 ? (
+                                    <div style={{ color: "#64748b", fontSize: 13 }}>아직 기록이 없습니다.</div>
+                                ) : (
+                                    <div style={{ display: "grid", gap: 6 }}>
+                                        {events.map((ev) => {
+                                            const selectedRow = ev.id === activeEventId;
+                                            const hasJson = !!ev.data;
+                                            return (
+                                                <button
+                                                    key={ev.id}
+                                                    onClick={() => {
+                                                        if (hasJson) setActiveEventId(ev.id);
+                                                    }}
+                                                    style={{
+                                                        textAlign: "left",
+                                                        border: `1px solid ${selectedRow ? "#1f2430" : "#eef2f7"}`,
+                                                        background: selectedRow ? "#f8fafc" : "white",
+                                                        borderRadius: 12,
+                                                        padding: "10px 10px",
+                                                        cursor: hasJson ? "pointer" : "default",
+                                                    }}
+                                                    title={hasJson ? "클릭해서 JSON 보기" : "JSON 없음"}
+                                                >
+                                                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                                        <span style={{ fontSize: 11, fontWeight: 900, color: "#64748b" }}>{ev.ts}</span>
+                                                        <span
+                                                            style={{
+                                                                marginLeft: "auto",
+                                                                fontSize: 11,
+                                                                fontWeight: 900,
+                                                                color: hasJson ? "#0f766e" : "#94a3b8",
+                                                            }}
+                                                        >
+                              {hasJson ? "JSON" : "-"}
+                            </span>
+                                                    </div>
+                                                    <div style={{ marginTop: 4, fontSize: 12, fontWeight: 900, color: "#0f172a" }}>{ev.title}</div>
+                                                    <div style={{ marginTop: 4, fontSize: 11, color: "#64748b" }}>type: {ev.type}</div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </Card>
+
+                            <Card
+                                title={`선택된 기록의 JSON ${activeEvent?.data ? "" : "(없음)"}`}
+                                right={
+                                    activeEvent?.data ? (
+                                        <Pill bg={activeEvent.type === "error" ? "#ef4444" : activeEvent.type === "proc" ? "#7c3aed" : activeEvent.type === "auto_explain" ? "#0f766e" : "#2d3a8c"}>
+                                            {activeEvent.type}
+                                        </Pill>
+                                    ) : (
+                                        <Pill bg="#94a3b8">empty</Pill>
+                                    )
+                                }
+                            >
+                                {activeEvent?.data ? <JsonViewer data={activeEvent.data} maxHeight={520} /> : <div style={{ color: "#64748b", fontSize: 13 }}>위에서 JSON이 있는 줄을 클릭하세요.</div>}
+                            </Card>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 }
+

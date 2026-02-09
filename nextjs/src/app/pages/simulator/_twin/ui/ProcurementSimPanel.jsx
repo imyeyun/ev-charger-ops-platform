@@ -62,7 +62,7 @@ export default function ProcurementSimPanel({ onRecommendResult }) {
                 padding: 12,
             }}
         >
-            <div style={{ fontWeight: 900, marginBottom: 10 }}>사업수행기관 선정</div>
+            <div style={{ fontWeight: 900, marginBottom: 10 }}>유지보수 수행사 선정</div>
 
             <div style={{ display: "grid", gap: 8 }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
@@ -71,7 +71,7 @@ export default function ProcurementSimPanel({ onRecommendResult }) {
                 </label>
 
                 <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 8, alignItems: "center" }}>
-                    <div style={{ fontSize: 13, color: "#555" }}>사업수행기관 수</div>
+                    <div style={{ fontSize: 13, color: "#555" }}>장애 발생 건수</div>
                     <input
                         value={nIncidents}
                         onChange={(e) => setNIncidents(e.target.value)}
@@ -87,7 +87,7 @@ export default function ProcurementSimPanel({ onRecommendResult }) {
 
                 <div style={{ fontSize: 12, color: "#64748b" }}>
                     • 업체 수: <b>{providers.length}</b>개 <br />
-                    • 결과는 오른쪽 <b>“요약”</b> 탭의 “사업수행기관 선정 결과”에 표시
+                    • 결과는 오른쪽 <b>“요약”</b> 탭의 “유지보수 수행사 선정 결과”에 표시
                 </div>
 
                 <button

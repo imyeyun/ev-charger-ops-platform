@@ -15,20 +15,6 @@ function getAxiosErrorMessage(err) {
     return "서버 내부 오류가 발생했습니다.";
 }
 
-// async function readJson(req) {
-//     try {
-//         return await req.json();
-//     } catch (e) {
-//         return null;
-//     }
-// }
-//
-// function readString(body, key) {
-//     if (!body) return "";
-//     if (body[key] === undefined || body[key] === null) return "";
-//     return String(body[key]).trim();
-// }
-
 const api = axios.create({
     baseURL: BACKEND_BASE,
     headers: { "Content-Type": "application/json" },
@@ -57,9 +43,24 @@ export async function POST(request) {
     }
 
     try {
-        const res = await api.post("/api/multimodal_analysis", { statId: statId, chgerId: chgerId });
-        return NextResponse.json(res.data, { status: 200 });
+        const cookie = request.headers.get("cookie") || "";
+
+        const res = await api.post(
+            "/api/multimodal_analysis",
+            { statId, chgerId },
+            { headers: cookie ? { cookie } : {} }
+        );
+        // ✅ 핵심: 백엔드가 세션 갱신(Set-Cookie)하면 브라우저로 그대로 전달
+        const nextRes = NextResponse.json(res.data, { status: 200 });
+        const setCookie = res.headers && res.headers["set-cookie"];
+        if (setCookie) {
+            // 여러 개 쿠키도 그대로 전달
+            nextRes.headers.set("set-cookie", Array.isArray(setCookie) ? setCookie.join(", ") : String(setCookie));
+        }
+
+        return nextRes;
     } catch (e) {
-        return NextResponse.json({ error: getAxiosErrorMessage(e) }, { status: 500 });
+        const status = e && e.response && e.response.status ? e.response.status : 500;
+        return NextResponse.json({ error: getAxiosErrorMessage(e) }, { status });
     }
 }
