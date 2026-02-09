@@ -20,7 +20,7 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 # ✅ 배포용 프로젝트의 app/data 사용
-DATA_DIR = (Path(__file__).resolve().parents[1] / "data").resolve()
+DATA_DIR = (Path(__file__).resolve().parents[1] / "data/dt_data").resolve()
 
 STATUS_PATH = DATA_DIR / "260114-1624.jsonl"
 CHARGER_PATH = DATA_DIR / "charger.tsv"
