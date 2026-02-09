@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import ProcurementSimPanel from "./ui/ProcurementSimPanel";
+import { AI_BACKEND_BASE } from "@/app/api/url";
 
 const MapView = dynamic(() => import("./ui/MapView"), { ssr: false });
 
 // ✅ 로컬 테스트용(배포 단계에서 env로 바꿀 거)
-const API = process.env.NEXT_PUBLIC_AI_BASE_URL;
+const API = AI_BACKEND_BASE;
 
 /* =========================
    util
@@ -277,7 +278,6 @@ export default function TwinPage() {
                     }}
                 >
                     <div style={{ fontWeight: 800 }}>{header}</div>
-                    <div style={{ fontSize: 12, opacity: 0.9 }}>백엔드: {API}</div>
                 </div>
 
                 {/* map */}

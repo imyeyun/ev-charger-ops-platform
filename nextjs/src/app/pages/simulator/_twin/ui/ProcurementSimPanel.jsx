@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AI_BACKEND_BASE } from "@/app/api/url";
 
-const API = process.env.NEXT_PUBLIC_AI_BASE_URL;
+const API = AI_BACKEND_BASE;
 
 export default function ProcurementSimPanel({ onRecommendResult }) {
     const [useLLM, setUseLLM] = useState(true);
