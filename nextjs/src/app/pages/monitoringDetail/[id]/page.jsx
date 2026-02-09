@@ -72,14 +72,6 @@ function mapChgerTypeToText(chgerType) {
     return toText(chgerType);
 }
 
-function formatChgerTime(v) {
-    const s = toText(v);
-    if (!s) return "";
-    // "2026-01-14T14:50:00" -> "2026.01.14 14:50"
-    const base = s.replace("T", " ").slice(0, 16); // "2026-01-14 14:50"
-    return base.replaceAll("-", ".");
-}
-
 export default function MonitoringDetail() {
     const router = useRouter();
     const params = useParams();
@@ -142,7 +134,6 @@ export default function MonitoringDetail() {
                         output: c.output ? String(c.output) : "",
                         method: c.method ? String(c.method) : "",
                         status: mapStatToStatus(c.stat),
-                        chgerTime: c.chgerTime ? String(c.chgerTime) : "",
                     };
                 });
 
@@ -239,9 +230,7 @@ export default function MonitoringDetail() {
                                             }}
                                         >
                                             <div>{c.id}</div>
-                                            <div>{c.status}
-                                                <br />
-                                                {formatChgerTime(c.chgerTime)}</div>
+                                            <div>{c.status}</div>
                                             <div>{c.speedLabel}
                                                 <br />
                                                 {c.output}{c.output && " kW"}
