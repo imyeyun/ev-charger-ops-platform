@@ -71,7 +71,7 @@ export default function DailyUnconfirmBarChart() {
                     <XAxis dataKey="label" />
                     <YAxis allowDecimals={false} />
                     <Tooltip />
-                    <Bar dataKey="sum" />
+                    <Bar dataKey="sum" fill="#1b6fff" />
                 </BarChart>
             </ResponsiveContainer>
         </div>

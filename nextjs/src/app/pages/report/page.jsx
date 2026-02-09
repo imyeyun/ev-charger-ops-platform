@@ -74,7 +74,7 @@ export default function Report() {
 
         if (type === "audit") setPrompt("감사용 보고서 예시 프롬프트...");
         else if (type === "monthly") setPrompt("월별 보고서 예시 프롬프트...");
-        else if (type === "custom") setPrompt("맞춤 보고서 기본 프롬프트 형식...");
+        else if (type === "custom") setPrompt("맞춤 보고서 예시 프롬프트...");
     };
 
     const resetDates = () => {

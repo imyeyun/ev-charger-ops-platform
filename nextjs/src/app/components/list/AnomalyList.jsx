@@ -37,8 +37,8 @@ export default function AnomalyList({
                 // ✅ route가 payload 그대로 반환한다는 전제:
                 // 스펙: { anomalyChargerList: [{ statId, statNm }, ...] }
                 // anomalyChargerList가 배열이면 그걸 쓰고 아니면 빈 배열 처리
-                const list = Array.isArray(data?.anomalyChargerList)
-                    ? data.anomalyChargerList
+                const list = Array.isArray(data?.data?.anomalyChargerList)
+                    ? data.data.anomalyChargerList
                     : [];
 
                 // ✅ UI에서 쓰는 형태로 매핑: { id, name }
