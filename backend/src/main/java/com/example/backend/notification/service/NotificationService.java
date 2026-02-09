@@ -50,11 +50,20 @@ public class NotificationService {
         Map<String, ChargingStation> stationMap = stations.stream()
                 .collect(Collectors.toMap(ChargingStation::getStatId, Function.identity()));
 
-        int totalCount = targetLogs.size();
+        // statId당 대표 로그 1개만 추출 (충전소 단위로 이메일 발송)
+        List<ChargerLog> uniqueLogs = targetLogs.stream()
+                .collect(Collectors.toMap(
+                        ChargerLog::getStatId,
+                        Function.identity(),
+                        (existing, replacement) -> existing
+                ))
+                .values().stream().toList();
+
+        int totalCount = uniqueLogs.size();
         int sentCount = 0;
 
-        // 3. 각 충전기별로 FastAPI 호출 + DB 저장
-        for (ChargerLog chargerLog : targetLogs) {
+        // 3. 각 충전소별로 FastAPI 호출 + DB 저장
+        for (ChargerLog chargerLog : uniqueLogs) {
             ChargingStation station = stationMap.get(chargerLog.getStatId());
             if (station == null) {
                 log.warn("충전소 정보를 찾을 수 없습니다: {}", chargerLog.getStatId());
