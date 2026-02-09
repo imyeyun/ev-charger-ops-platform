@@ -1,14 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
-import UncheckList from "@/app/components/list/UncheckList";
-
-function toNumberIfPossible(v) {
-    const s = String(v ?? "").trim();
-    if (!s) return s;
-    const n = Number(s);
-    return Number.isFinite(n) && String(n) === s ? n : s;
-}
+import { useEffect, useMemo, useState } from "react";
 
 export default function Notification({
                                          open,
@@ -18,31 +10,121 @@ export default function Notification({
                                          pageSize = 9,
                                          onView,
                                      }) {
+    const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    const [page, setPage] = useState(1);
+
     const [selectedIds, setSelectedIds] = useState(() => new Set());
     const [sending, setSending] = useState(false);
     const [sendError, setSendError] = useState("");
 
-    // ✅ 현재 페이지 id들 (UncheckList에서 콜백으로 받음)
-    const [pageIds, setPageIds] = useState([]);
+    // ✅ open일 때만 리스트 로드 (UncheckList 기반)
 
-    // ✅ open 시 초기화
     useEffect(() => {
         if (!open) return;
-        setSelectedIds(new Set());
-        setSendError("");
-        setPageIds([]);
+
+        let alive = true;
+
+        async function run() {
+            setLoading(true);
+            setError("");
+            setSendError("");
+            setItems([]);
+            setPage(1);
+            setSelectedIds(new Set());
+
+            // uncheckList API 호출하기 위한 코드
+            // 알림 띄우기 위한 리스트 보기 위해선 필요함
+            try {
+                const res = await fetch("/api/componentApi/UncheckList", {
+                    method: "GET",
+                    cache: "no-store",
+                });
+
+                const data = await res.json().catch(() => null);
+
+                if (!res.ok) {
+                    let msg = "리스트를 불러오지 못했습니다.";
+                    if (data && data.error) msg = String(data.error);
+                    else if (data && data.message) msg = String(data.message);
+                    throw new Error(msg);
+                }
+
+                let list = [];
+                if (data && Array.isArray(data.chargerBadCaseList)) {
+                    list = data.chargerBadCaseList;
+                }
+
+                const mapped = list.map((x) => {
+                    let id = "";
+                    let name = "";
+                    if (x && x.statId !== undefined && x.statId !== null) id = String(x.statId);
+                    if (x && x.statNm !== undefined && x.statNm !== null) name = String(x.statNm);
+                    return { id, name };
+                });
+
+                if (alive) setItems(mapped);
+            } catch (e) {
+                if (alive) setError(String((e && e.message) || "리스트를 불러오지 못했습니다."));
+            } finally {
+                if (alive) setLoading(false);
+            }
+        }
+
+        run();
+        return () => {
+            alive = false;
+        };
     }, [open]);
 
-    // ESC 닫기
+    // ESC로 닫기
     useEffect(() => {
         if (!open) return;
 
         const onKeyDown = (e) => {
-            if (e.key === "Escape") onClose?.();
+            if (e.key === "Escape") {
+                if (onClose) onClose();
+            }
         };
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [open, onClose]);
+
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+
+    useEffect(() => {
+        if (!open) return;
+        if (page > totalPages) setPage(totalPages);
+    }, [open, page, totalPages]);
+
+    const pageItems = useMemo(() => {
+        const start = (page - 1) * pageSize;
+        return items.slice(start, start + pageSize);
+    }, [items, page, pageSize]);
+
+    // 페이지로 만드는 코드
+    const getPagination = (current, total) => {
+        if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
+
+        const pages = new Set([1, total, current, current - 1, current + 1]);
+        const nums = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+
+        const result = [];
+        for (let i = 0; i < nums.length; i++) {
+            if (i > 0 && nums[i] - nums[i - 1] > 1) result.push("...");
+            result.push(nums[i]);
+        }
+        return result;
+    };
+
+    const pagerItems = useMemo(() => getPagination(page, totalPages), [page, totalPages]);
+
+    const allChecked = useMemo(() => {
+        if (items.length === 0) return false;
+        return selectedIds.size === items.length;
+    }, [items.length, selectedIds]);
 
     const toggleOne = (id) => {
         setSelectedIds((prev) => {
@@ -53,23 +135,11 @@ export default function Notification({
         });
     };
 
-    const allChecked = useMemo(() => {
-        if (pageIds.length === 0) return false;
-        for (const id of pageIds) {
-            if (!selectedIds.has(id)) return false;
-        }
-        return true;
-    }, [pageIds, selectedIds]);
-
-    const toggleAllOnPage = () => {
+    const toggleAll = () => {
         setSelectedIds((prev) => {
-            const next = new Set(prev);
-            const shouldCheck = !allChecked;
-            for (const id of pageIds) {
-                if (shouldCheck) next.add(id);
-                else next.delete(id);
-            }
-            return next;
+            if (items.length === 0) return new Set();
+            if (prev.size === items.length) return new Set(); // 전체 해제
+            return new Set(items.map((x) => x.id)); // 전체 선택
         });
     };
 
@@ -88,14 +158,18 @@ export default function Notification({
             if (data && data.message) throw new Error(String(data.message));
             throw new Error("Internal Server Error");
         }
+
         if (data && data.error) throw new Error(String(data.error));
+
         return data;
     };
 
     const handleSend = async () => {
         setSendError("");
 
-        const ids = [...selectedIds].filter(Boolean);
+        const ids = [...selectedIds]
+            .map((v) => String(v).trim())
+            .filter((v) => v !== "");
         if (ids.length === 0) {
             setSendError("선택된 충전소가 없습니다.");
             return;
@@ -104,13 +178,13 @@ export default function Notification({
         try {
             setSending(true);
 
-            // ✅ 요청하신 엔드포인트로 전송
-            // payload 형태는 기존과 동일하게 유지
-            const payload = { statId: ids.map(toNumberIfPossible) };
+            // 스펙: { statId:  }
+            const payload = { statId: ids };
 
+            // ✅ route 프록시 사용
             await postJson("/api/external_notification", payload);
 
-            onClose?.();
+            if (onClose) onClose();
         } catch (e) {
             setSendError(String(e?.message || "알림 전송에 실패했습니다."));
         } finally {
@@ -118,18 +192,15 @@ export default function Notification({
         }
     };
 
-    // ✅ UncheckList가 현재 페이지 id를 알려줌
-    const handlePageIdsChange = useCallback((ids) => {
-        setPageIds(Array.isArray(ids) ? ids : []);
-    }, []);
-
     if (!open) return null;
 
     return (
         <div
             className={styles.modalOverlay}
             onMouseDown={(e) => {
-                if (e.target === e.currentTarget) onClose?.();
+                if (e.target === e.currentTarget) {
+                    if (onClose) onClose();
+                }
             }}
         >
             <div className={styles.modalCard} role="dialog" aria-modal="true">
@@ -140,51 +211,107 @@ export default function Notification({
                     </button>
                 </div>
 
+                {/* ✅ 핵심: body를 “스크롤 영역(list)” + “고정 영역(페이지네이션/버튼)”으로 분리 */}
                 <div className={styles.modalBody}>
                     <label className={styles.modalAllRow}>
-                        <input type="checkbox" checked={allChecked} onChange={toggleAllOnPage} />
-                        <span className={styles.modalAllText}>전체 선택(현재 페이지)</span>
+                        <input
+                            type="checkbox"
+                            checked={allChecked}
+                            onChange={toggleAll}
+                            disabled={loading || !!error || items.length === 0}
+                        />
+                        <span className={styles.modalAllText}>전체 선택</span>
                     </label>
 
-                    <UncheckList
-                        styles={styles}
-                        title={null}
-                        pageSize={pageSize}
-                        onView={onView}
-                        onPageIdsChange={handlePageIdsChange}
-                        renderRow={(s) => {
-                            return (
-                                <div key={s.id} className={styles.modalListItemRow}>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedIds.has(s.id)}
-                                        onChange={() => toggleOne(s.id)}
-                                    />
-                                    <div className={styles.modalItemBox}>
-                                        <span className={styles.listItemText}>{s.name}</span>
-                                        <button className={styles.viewBtn} onClick={() => onView?.(s.id)}>
-                                            보기
-                                        </button>
+                    {/* ✅ 리스트 영역(여기만 스크롤) */}
+                    <div className={styles.modalListScroll}>
+                        {loading && <div className={styles.listBody}>불러오는 중...</div>}
+                        {error && (
+                            <div className={styles.listBody} style={{ color: "crimson" }}>
+                                {error}
+                            </div>
+                        )}
+
+                        {!loading && !error && (
+                            <div className={styles.modalListBody}>
+                                {pageItems.map((s) => (
+                                    <div key={s.id} className={styles.modalListItemRow}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.has(s.id)}
+                                            onChange={() => toggleOne(s.id)}
+                                        />
+
+                                        <div className={styles.modalItemBox}>
+                                            <span className={styles.listItemText}>{s.name}</span>
+                                            <button className={styles.viewBtn} onClick={() => onView?.(s.id)}>
+                                                보기
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        }}
-                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-                    {sendError && (
-                        <div className={styles.modalSendError} style={{ color: "crimson" }}>
-                            {sendError}
+                    {/* ✅ 고정 하단 영역: 페이지네이션 + 전송버튼 */}
+                    <div className={styles.modalBottom}>
+                        {totalPages > 1 && (
+                            <div className={styles.pagination} style={{ marginTop: 0 }}>
+                                <button
+                                    className={styles.pageArrow}
+                                    onClick={() => page > 1 && setPage(page - 1)}
+                                    disabled={page <= 1}
+                                >
+                                    &lt;
+                                </button>
+
+                                {pagerItems.map((p, idx) => {
+                                    if (p === "...") {
+                                        return (
+                                            <span key={`dots-${idx}`} className={styles.pageDots}>
+                        ...
+                      </span>
+                                        );
+                                    }
+
+                                    const active = p === page;
+                                    return (
+                                        <button
+                                            key={p}
+                                            className={`${styles.pageBtn} ${active ? styles.pageBtnActive : ""}`}
+                                            onClick={() => setPage(p)}
+                                        >
+                                            {p}
+                                        </button>
+                                    );
+                                })}
+
+                                <button
+                                    className={styles.pageArrow}
+                                    onClick={() => page < totalPages && setPage(page + 1)}
+                                    disabled={page >= totalPages}
+                                >
+                                    &gt;
+                                </button>
+                            </div>
+                        )}
+
+                        {sendError && (
+                            <div className={styles.modalSendError} style={{ color: "crimson" }}>
+                                {sendError}
+                            </div>
+                        )}
+
+                        <div className={styles.modalFooter}>
+                            <button
+                                className={styles.modalSendBtn}
+                                onClick={handleSend}
+                                disabled={sending || loading || !!error}
+                            >
+                                {sending ? "전송 중..." : "알림 전송"}
+                            </button>
                         </div>
-                    )}
-
-                    <div className={styles.modalFooter}>
-                        <button
-                            className={styles.modalSendBtn}
-                            onClick={handleSend}
-                            disabled={sending}
-                        >
-                            {sending ? "전송 중..." : "알림 전송"}
-                        </button>
                     </div>
                 </div>
             </div>

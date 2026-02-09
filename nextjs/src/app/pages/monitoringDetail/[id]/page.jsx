@@ -72,6 +72,14 @@ function mapChgerTypeToText(chgerType) {
     return toText(chgerType);
 }
 
+function formatChgerTime(v) {
+    const s = toText(v);
+    if (!s) return "";
+    // "2026-01-14T14:50:00" -> "2026.01.14 14:50"
+    const base = s.replace("T", " ").slice(0, 16); // "2026-01-14 14:50"
+    return base.replaceAll("-", ".");
+}
+
 export default function MonitoringDetail() {
     const router = useRouter();
     const params = useParams();
@@ -134,36 +142,17 @@ export default function MonitoringDetail() {
                         output: c.output ? String(c.output) : "",
                         method: c.method ? String(c.method) : "",
                         status: mapStatToStatus(c.stat),
+                        chgerTime: c.chgerTime ? String(c.chgerTime) : "",
                     };
                 });
-
 
                 setChargers(mapped);
 
                 if (mapped.length > 0 && mapped[0].id) setSelectedChargerId(mapped[0].id);
                 else setSelectedChargerId("");
 
-                try {
-                    const imgRes = await fetch(
-                        `/api/monitoringApi/charging_station_image?statId=${encodeURIComponent(statIdStr)}`,
-                        { cache: "no-store" }
-                    );
 
-                    const imgData = await imgRes.json().catch(() => null);
-
-                    if (imgRes.ok && imgData) {
-                        const url =
-                            imgData.presignedUrl && String(imgData.presignedUrl).trim()
-                                ? String(imgData.presignedUrl).trim()
-                                : "";
-
-                        setImageUrl(url);
-                    } else {
-                        setImageUrl("");
-                    }
-                } catch {
-                    setImageUrl("");
-                }
+                setImageUrl(data.image.imgPath);
             } catch (e) {
                 setError(String(e.message || "Internal Server Error"));
             } finally {
@@ -250,7 +239,9 @@ export default function MonitoringDetail() {
                                             }}
                                         >
                                             <div>{c.id}</div>
-                                            <div>{c.status}</div>
+                                            <div>{c.status}
+                                                <br />
+                                                {formatChgerTime(c.chgerTime)}</div>
                                             <div>{c.speedLabel}
                                                 <br />
                                                 {c.output}{c.output && " kW"}
