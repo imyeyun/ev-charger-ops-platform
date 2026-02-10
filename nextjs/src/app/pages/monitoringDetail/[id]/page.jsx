@@ -172,32 +172,32 @@ export default function MonitoringDetail() {
                 chgerId: String(selectedChargerId),
             };
 
-            // const res = await postJson("/api/monitoringApi/multimodal_analysis", payload);
-            //
-            // const v = res || {};
-            //
-            // setAnalysis({
-            //     fireYN: toText(v.fireYN),
-            //     brokenYN: toText(v.brokenYN),
-            //     dirtyYN: toText(v.dirtyYN),
-            //     notes: v.notes ? String(v.notes) : "",
-            // });
-
             const res = await postJson("/api/monitoringApi/multimodal_analysis", payload);
+
             const v = res || {};
-            const verdict = v.verdict || {};
 
             setAnalysis({
-                fireYN: toText(verdict.fireYN ?? v.fireYN),       // verdict 우선
-                brokenYN: toText(verdict.faultYN ?? v.brokenYN),  // ✅ faultYN이 고장 의미
-                dirtyYN: toText(verdict.dirtyYN),                 // ✅ null이면 판단불가
-                notes: verdict.notes ? String(verdict.notes) : "",// ✅
+                fireYN: toText(v.fireYN),
+                brokenYN: toText(v.brokenYN),
+                dirtyYN: toText(v.dirtyYN),
+                notes: v.notes ? String(v.notes) : "",
             });
 
-        } catch (e) {
-            alert(String(e.message || "Internal Server Error"));
-        }
-    }
+    //         const res = await postJson("/api/monitoringApi/multimodal_analysis", payload);
+    //         const v = res || {};
+    //         const verdict = v.verdict || {};
+    //
+    //         setAnalysis({
+    //             fireYN: toText(verdict.fireYN ?? v.fireYN),       // verdict 우선
+    //             brokenYN: toText(verdict.faultYN ?? v.brokenYN),  // ✅ faultYN이 고장 의미
+    //             dirtyYN: toText(verdict.dirtyYN),                 // ✅ null이면 판단불가
+    //             notes: verdict.notes ? String(verdict.notes) : "",// ✅
+    //         });
+    //
+    //     } catch (e) {
+    //         alert(String(e.message || "Internal Server Error"));
+    //     }
+    // }
 
 
     return (
