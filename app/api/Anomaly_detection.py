@@ -1,3 +1,262 @@
+# # app/api/Anomaly_detection.py
+# from __future__ import annotations
+
+# import os
+# import sqlite3
+# from datetime import datetime, timedelta
+# from functools import lru_cache
+# from typing import Any, Dict, List, Literal, Optional, Tuple
+
+# import joblib
+# import numpy as np
+# import pandas as pd
+# from fastapi import APIRouter, HTTPException
+# from pydantic import BaseModel, Field
+
+# router = APIRouter(prefix="/anomaly", tags=["anomaly"])
+
+# # ====== status sets (training logic) ======
+# NORMAL = {2, 3}
+# BAD_FOR_FEATURE = {1, 4, 5, 9}  # 9 = 상태미확인 포함
+# #
+# from pathlib import Path
+
+# DEFAULT_BUNDLE_PATH = (
+#     Path(__file__).resolve().parent / "model" / "rf_risk_model_bundle.joblib"
+# )
+
+# @lru_cache(maxsize=1)
+# def _load_bundle() -> Dict[str, Any]:
+#     path = os.getenv("EV_MODEL_BUNDLE_PATH", DEFAULT_BUNDLE_PATH)
+#     if not os.path.exists(path):
+#         raise RuntimeError(
+#             f"Model bundle not found: {path}\n"
+#             f"Set env EV_MODEL_BUNDLE_PATH to your joblib bundle path."
+#         )
+#     b = joblib.load(path)
+#     for k in ("imputer", "feature_cols", "base_model"):
+#         if k not in b:
+#             raise RuntimeError(f"Invalid bundle: missing '{k}'")
+#     return b
+
+
+# def _bundle_parts() -> Tuple[Any, List[str], Any, Optional[Any]]:
+#     b = _load_bundle()
+#     return b["imputer"], list(b["feature_cols"]), b["base_model"], b.get("calibrator", None)
+
+
+# def _parse_time(s: str) -> datetime:
+#     return datetime.fromisoformat(s)
+
+
+# def _get_as_of(conn: sqlite3.Connection, as_of: Optional[str]) -> datetime:
+#     if as_of:
+#         return _parse_time(as_of)
+#     row = conn.execute("SELECT MAX(event_at) FROM state_change WHERE event_at IS NOT NULL").fetchone()
+#     if not row or not row[0]:
+#         raise HTTPException(status_code=400, detail="state_change is empty (no event_at).")
+#     return _parse_time(row[0])
+
+# def _ensure_indexes(conn: sqlite3.Connection) -> None:
+#     conn.execute("CREATE INDEX IF NOT EXISTS idx_sc_event_at ON state_change(event_at)")
+#     conn.execute("CREATE INDEX IF NOT EXISTS idx_sc_ck_event ON state_change(statId, chgerId, event_at)")
+#     conn.commit()
+
+# def _fetch_24h(conn: sqlite3.Connection, as_of: datetime) -> pd.DataFrame:
+#     _ensure_indexes(conn)  # ✅ 여기서 보장 (또는 startup에서 1회만)
+
+#     t0 = (as_of - timedelta(hours=24)).isoformat()
+#     t1 = as_of.isoformat()
+
+#     sql = """
+#     SELECT event_at, statId, chgerId, prev_stat, new_stat, stat_nm
+#     FROM state_change
+#     WHERE event_at IS NOT NULL AND event_at >= ? AND event_at <= ?
+#     ORDER BY statId, chgerId, event_at
+#     """
+#     df = pd.read_sql_query(sql, conn, params=[t0, t1])
+
+#     if df.empty:
+#         return df
+
+#     df["event_at"] = pd.to_datetime(df["event_at"], errors="coerce")
+#     df["prev_stat"] = pd.to_numeric(df["prev_stat"], errors="coerce")
+#     df["new_stat"] = pd.to_numeric(df["new_stat"], errors="coerce")
+#     df = df.dropna(subset=["event_at", "prev_stat", "new_stat"]).copy()
+#     df["prev_stat"] = df["prev_stat"].astype(int)
+#     df["new_stat"] = df["new_stat"].astype(int)
+#     df["charger_key"] = df["statId"].astype(str) + "_" + df["chgerId"].astype(str)
+#     return df
+
+
+# def _build_last_event_features(df: pd.DataFrame, as_of: datetime) -> pd.DataFrame:
+#     """1 row per charger: last event <= as_of. Exclude current event from window counts."""
+#     if df.empty:
+#         return pd.DataFrame()
+
+#     out: List[Dict[str, Any]] = []
+
+#     for ck, g in df.groupby("charger_key", sort=False):
+#         g = g.sort_values("event_at")
+#         g2 = g[g["event_at"] <= as_of]
+#         if g2.empty:
+#             continue
+
+#         last = g2.iloc[-1]
+#         t = last["event_at"]
+
+#         if len(g2) >= 2:
+#             t_prev = g2.iloc[-2]["event_at"]
+#             gap_minutes = int((t - t_prev).total_seconds() / 60)
+#         else:
+#             gap_minutes = np.nan
+
+#         def counts(hours: int) -> Dict[str, int]:
+#             t0 = t - timedelta(hours=hours)
+#             gg = g2[(g2["event_at"] >= t0) & (g2["event_at"] < t)]  # exclude current
+#             return {
+#                 f"n_events_{hours}h": int(len(gg)),
+#                 f"to_9_{hours}h": int((gg["new_stat"] == 9).sum()),
+#                 f"to_1_{hours}h": int((gg["new_stat"] == 1).sum()),
+#                 f"to_4_{hours}h": int((gg["new_stat"] == 4).sum()),
+#                 f"to_5_{hours}h": int((gg["new_stat"] == 5).sum()),
+#                 f"to_bad_{hours}h": int(gg["new_stat"].isin(BAD_FOR_FEATURE).sum()),
+#                 f"from9_to_normal_{hours}h": int(((gg["prev_stat"] == 9) & (gg["new_stat"].isin(NORMAL))).sum()),
+#                 f"from1_to_normal_{hours}h": int(((gg["prev_stat"] == 1) & (gg["new_stat"].isin(NORMAL))).sum()),
+#                 f"bad_to_normal_{hours}h": int(((gg["prev_stat"].isin(BAD_FOR_FEATURE)) & (gg["new_stat"].isin(NORMAL))).sum()),
+#             }
+
+#         row: Dict[str, Any] = {
+#             "charger_key": ck,
+#             "statId": str(last["statId"]),
+#             "chgerId": str(last["chgerId"]),
+#             "stat_nm": last.get("stat_nm"),
+#             "event_at": t.to_pydatetime().isoformat(),
+#             "prev_stat": int(last["prev_stat"]),
+#             "new_stat": int(last["new_stat"]),
+#             "gap_minutes": gap_minutes,
+#         }
+#         row.update(counts(6))
+#         row.update(counts(24))
+#         out.append(row)
+
+#     return pd.DataFrame(out)
+
+
+# def _predict(df_feat: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+#     imputer, feature_cols, base_model, calibrator = _bundle_parts()
+#     missing = [c for c in feature_cols if c not in df_feat.columns]
+#     if missing:
+#         raise HTTPException(status_code=400, detail=f"Missing feature columns: {missing[:20]} ... total={len(missing)}")
+
+#     X = df_feat[feature_cols].copy()
+#     X_imp = imputer.transform(X).astype(np.float32)
+
+#     p_raw = base_model.predict_proba(X_imp)[:, 1]
+#     p = calibrator.predict_proba(p_raw.reshape(-1, 1))[:, 1] if calibrator is not None else p_raw
+#     return p_raw, p
+
+# PROJECT_ROOT = Path(__file__).resolve().parents[2]  
+# DB_BASE_DIR = (PROJECT_ROOT / "app" / "data" / "chargerLogSQLite").resolve()   
+
+# def resolve_db_path(p: str) -> Path:
+#     path = Path(p)
+
+#     # 상대경로면 DB_BASE_DIR 기준으로 붙임
+#     if not path.is_absolute():
+#         path = (DB_BASE_DIR / path).resolve()
+#     else:
+#         path = path.resolve()
+
+#     # 보안: base dir 밖으로 탈출 방지
+#     if DB_BASE_DIR != path and DB_BASE_DIR not in path.parents:
+#         raise HTTPException(status_code=400, detail=f"db_path must be inside: {DB_BASE_DIR}")
+
+#     if not path.exists():
+#         raise HTTPException(status_code=400, detail=f"db_path not found: {path}")
+
+#     return path
+
+# class DBScanRequest(BaseModel):
+#     db_path: str = Field(..., description="Path to sqlite DB (contains state_change). Relative paths are resolved under DB_BASE_DIR.")
+#     as_of: Optional[str] = Field(default=None, description="ISO datetime; default=MAX(event_at)")
+#     threshold: float = Field(default=0.63, description="Return only p >= threshold")
+#     top_n: Optional[int] = Field(default=None, description="Optional cap after filtering; default=null (no cap)")
+#     score_col: Literal["p", "p_raw"] = Field(default="p", description="Use calibrated p or raw p for filtering/sorting")
+
+# @router.post("/anomaly_detection")
+# def db_scan(req: DBScanRequest):
+#     db_path = resolve_db_path(req.db_path)
+#     conn = sqlite3.connect(str(db_path))
+#     try:
+#         as_of = _get_as_of(conn, req.as_of)
+#         df = _fetch_24h(conn, as_of)
+#         df_feat = _build_last_event_features(df, as_of)
+
+#         if df_feat.empty:
+#             return {"as_of": as_of.isoformat(), "n_chargers": 0, "rows": []}
+
+#         p_raw, p = _predict(df_feat)
+#         out = df_feat[["statId", "stat_nm", "chgerId", "event_at"]].copy()
+#         out["p_raw"] = p_raw
+#         out["p"] = p
+
+#         # =========================
+#         # 🔹 statId 기준 집계
+#         # =========================
+#         agg = (
+#             out.groupby(["statId", "stat_nm"], as_index=False)
+#             .agg({
+#                 "chgerId": lambda x: ",".join(sorted(set(map(str, x)))),  # chargerId 합치기
+#                 "event_at": "max",        # 가장 최근 이벤트
+#                 "p_raw": "max",           # 가장 위험한 충전기 기준
+#                 "p": "max",
+#             })
+#         )
+
+#         sc = req.score_col
+
+#         # 1) charger 단위에서 threshold 먼저 적용
+#         out = out[out[sc] >= float(req.threshold)].copy()
+
+#         if out.empty:
+#             return {
+#                 "as_of": as_of.isoformat(),
+#                 "threshold": req.threshold,
+#                 "score_col": sc,
+#                 "top_n": req.top_n,
+#                 "n_stations": 0,
+#                 "rows": [],
+#             }
+
+#         # 2) 그 다음 statId 기준 집계
+#         agg = (
+#             out.groupby(["statId", "stat_nm"], as_index=False)
+#             .agg({
+#                 "chgerId": lambda x: ",".join(sorted(set(map(str, x)))),
+#                 "event_at": "max",
+#                 "p_raw": "max",
+#                 "p": "max",
+#             })
+#             .sort_values(sc, ascending=False)
+#         )
+
+#         # 3) top_n도 station 기준으로 적용
+#         if req.top_n is not None:
+#             agg = agg.head(int(req.top_n)).copy()
+
+#         return {
+#             "as_of": as_of.isoformat(),
+#             "threshold": req.threshold,
+#             "score_col": sc,
+#             "top_n": req.top_n,
+#             "n_stations": int(len(agg)),
+#             "rows": agg.to_dict(orient="records"),
+#         }
+
+#     finally:
+#         conn.close()
+
 # app/api/Anomaly_detection.py
 from __future__ import annotations
 
@@ -18,7 +277,7 @@ router = APIRouter(prefix="/anomaly", tags=["anomaly"])
 # ====== status sets (training logic) ======
 NORMAL = {2, 3}
 BAD_FOR_FEATURE = {1, 4, 5, 9}  # 9 = 상태미확인 포함
-#
+
 from pathlib import Path
 
 DEFAULT_BUNDLE_PATH = (
@@ -57,10 +316,12 @@ def _get_as_of(conn: sqlite3.Connection, as_of: Optional[str]) -> datetime:
         raise HTTPException(status_code=400, detail="state_change is empty (no event_at).")
     return _parse_time(row[0])
 
+
 def _ensure_indexes(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sc_event_at ON state_change(event_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sc_ck_event ON state_change(statId, chgerId, event_at)")
     conn.commit()
+
 
 def _fetch_24h(conn: sqlite3.Connection, as_of: datetime) -> pd.DataFrame:
     _ensure_indexes(conn)  # ✅ 여기서 보장 (또는 startup에서 1회만)
@@ -156,8 +417,9 @@ def _predict(df_feat: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
     p = calibrator.predict_proba(p_raw.reshape(-1, 1))[:, 1] if calibrator is not None else p_raw
     return p_raw, p
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]  
-DB_BASE_DIR = (PROJECT_ROOT / "app" / "data" / "chargerLogSQLite").resolve()   
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DB_BASE_DIR = (PROJECT_ROOT / "app" / "data" / "chargerLogSQLite").resolve()
 
 def resolve_db_path(p: str) -> Path:
     path = Path(p)
@@ -177,12 +439,19 @@ def resolve_db_path(p: str) -> Path:
 
     return path
 
+
 class DBScanRequest(BaseModel):
     db_path: str = Field(..., description="Path to sqlite DB (contains state_change). Relative paths are resolved under DB_BASE_DIR.")
     as_of: Optional[str] = Field(default=None, description="ISO datetime; default=MAX(event_at)")
-    threshold: float = Field(default=0.63, description="Return only p >= threshold")
-    top_n: Optional[int] = Field(default=None, description="Optional cap after filtering; default=null (no cap)")
-    score_col: Literal["p", "p_raw"] = Field(default="p", description="Use calibrated p or raw p for filtering/sorting")
+
+    # ✅ Top-K 기본 운영
+    top_n: int = Field(default=500, description="Top-K stations to return (default=500)")
+
+    # ✅ threshold는 옵션(필요 시만 사용)
+    threshold: Optional[float] = Field(default=None, description="Optional filter: keep only score >= threshold")
+
+    score_col: Literal["p", "p_raw"] = Field(default="p", description="Use calibrated p or raw p for sorting/filtering")
+
 
 @router.post("/anomaly_detection")
 def db_scan(req: DBScanRequest):
@@ -194,15 +463,17 @@ def db_scan(req: DBScanRequest):
         df_feat = _build_last_event_features(df, as_of)
 
         if df_feat.empty:
-            return {"as_of": as_of.isoformat(), "n_chargers": 0, "rows": []}
+            return {"as_of": as_of.isoformat(), "n_stations": 0, "rows": []}
 
         p_raw, p = _predict(df_feat)
         out = df_feat[["statId", "stat_nm", "chgerId", "event_at"]].copy()
         out["p_raw"] = p_raw
         out["p"] = p
 
+        sc = req.score_col
+
         # =========================
-        # 🔹 statId 기준 집계
+        # ✅ 1) 먼저 statId 기준 집계 (station risk = max charger risk)
         # =========================
         agg = (
             out.groupby(["statId", "stat_nm"], as_index=False)
@@ -212,38 +483,24 @@ def db_scan(req: DBScanRequest):
                 "p_raw": "max",           # 가장 위험한 충전기 기준
                 "p": "max",
             })
-        )
-
-        sc = req.score_col
-
-        # 1) charger 단위에서 threshold 먼저 적용
-        out = out[out[sc] >= float(req.threshold)].copy()
-
-        if out.empty:
-            return {
-                "as_of": as_of.isoformat(),
-                "threshold": req.threshold,
-                "score_col": sc,
-                "top_n": req.top_n,
-                "n_stations": 0,
-                "rows": [],
-            }
-
-        # 2) 그 다음 statId 기준 집계
-        agg = (
-            out.groupby(["statId", "stat_nm"], as_index=False)
-            .agg({
-                "chgerId": lambda x: ",".join(sorted(set(map(str, x)))),
-                "event_at": "max",
-                "p_raw": "max",
-                "p": "max",
-            })
             .sort_values(sc, ascending=False)
         )
 
-        # 3) top_n도 station 기준으로 적용
-        if req.top_n is not None:
-            agg = agg.head(int(req.top_n)).copy()
+        if agg.empty:
+            return {"as_of": as_of.isoformat(), "n_stations": 0, "rows": []}
+
+        # =========================
+        # ✅ 2) Top-K 먼저 적용 (기본 운영)
+        # =========================
+        top_n = int(req.top_n) if req.top_n is not None else None
+        if top_n is not None:
+            agg = agg.head(top_n).copy()
+
+        # =========================
+        # ✅ 3) threshold는 옵션으로만 추가 필터
+        # =========================
+        if req.threshold is not None:
+            agg = agg[agg[sc] >= float(req.threshold)].copy()
 
         return {
             "as_of": as_of.isoformat(),
