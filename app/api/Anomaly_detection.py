@@ -22,7 +22,7 @@ BAD_FOR_FEATURE = {1, 4, 5, 9}  # 9 = 상태미확인 포함
 from pathlib import Path
 
 DEFAULT_BUNDLE_PATH = (
-    Path(__file__).resolve().parent / "model" / "lgb_risk_model_7days_bundle.joblib"
+    Path(__file__).resolve().parent / "model" / "rf_risk_model_bundle.joblib"
 )
 
 @lru_cache(maxsize=1)
@@ -57,10 +57,17 @@ def _get_as_of(conn: sqlite3.Connection, as_of: Optional[str]) -> datetime:
         raise HTTPException(status_code=400, detail="state_change is empty (no event_at).")
     return _parse_time(row[0])
 
+def _ensure_indexes(conn: sqlite3.Connection) -> None:
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sc_event_at ON state_change(event_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sc_ck_event ON state_change(statId, chgerId, event_at)")
+    conn.commit()
 
 def _fetch_24h(conn: sqlite3.Connection, as_of: datetime) -> pd.DataFrame:
+    _ensure_indexes(conn)  # ✅ 여기서 보장 (또는 startup에서 1회만)
+
     t0 = (as_of - timedelta(hours=24)).isoformat()
     t1 = as_of.isoformat()
+
     sql = """
     SELECT event_at, statId, chgerId, prev_stat, new_stat, stat_nm
     FROM state_change
@@ -68,6 +75,7 @@ def _fetch_24h(conn: sqlite3.Connection, as_of: datetime) -> pd.DataFrame:
     ORDER BY statId, chgerId, event_at
     """
     df = pd.read_sql_query(sql, conn, params=[t0, t1])
+
     if df.empty:
         return df
 
