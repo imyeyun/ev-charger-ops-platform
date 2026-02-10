@@ -164,7 +164,7 @@ class MultimodalAnalysisResponse(BaseModel):
     # 하위호환 필드(기존)
     fireYN: bool = False
     brokenYN: bool = False
-    cleanYN: bool = True
+    dirtyYN: Optional[bool] = None
 
     # 디버깅/설명용
     details: Dict[str, Any] = Field(default_factory=dict)
@@ -599,7 +599,7 @@ async def multimodal_analysis(
         verdict=Verdict(**verdict),
         fireYN=fireYN,
         brokenYN=brokenYN,
-        cleanYN=cleanYN,
+        dirtyYN=verdict_seed["dirtyYN"],
         details=details,
     )
 
