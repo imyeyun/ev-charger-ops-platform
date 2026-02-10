@@ -110,8 +110,8 @@ public class StatisticsService {
         AnomalyReq req = AnomalyReq.builder()
                 .db_path("evcharger.sqlite")
                 .as_of("2026-01-27T09:00:00")
-                .threshold(0.63)
-                .top_n(null)
+                .threshold(null)
+                .top_n(500)
                 .score_col("p")
                 .build();
 
