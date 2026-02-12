@@ -153,7 +153,17 @@ export default function Header() {
 
                         {NAV.map((item) => {
                             const active = isActive(item.href);
-                            const openNewTab = NEW_TAB.has(item.href);
+
+                            // ✅ "지금 내가 모니터링에 있을 때만" 다른 메뉴를 새 탭으로
+                            const isOnMonitoring =
+                                pathname === "/pages/monitoring" || pathname?.startsWith("/pages/monitoring");
+
+                            const isMonitoringMenu = item.href === "/pages/monitoring";
+
+                            const openNewTab = isOnMonitoring && !isMonitoringMenu; // 모니터링에서 다른 메뉴만 새탭
+
+                            // ✅ active 클릭 막는 건 기존 유지 (원하면 아래처럼 예외도 가능)
+                            const disableClick = active; // 그대로
 
                             return (
                                 <Link
@@ -166,8 +176,8 @@ export default function Header() {
                                         ...baseTab,
                                         background: active ? "#1b6fff" : "transparent",
                                         color: active ? "#fff" : "#111",
-                                        cursor: active ? "default" : "pointer",
-                                        pointerEvents: active ? "none" : "auto",
+                                        cursor: disableClick ? "default" : "pointer",
+                                        pointerEvents: disableClick ? "none" : "auto",
                                     }}
                                     onMouseEnter={(e) => {
                                         if (!active) e.currentTarget.style.background = "#f0f0f0";
