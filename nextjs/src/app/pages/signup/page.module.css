@@ -211,3 +211,20 @@
     cursor: pointer;
     align-self: flex-end;
 }
+
+.inputRowHalf {
+    display: flex;
+    gap: 12px;            /* 간격은 취향대로 */
+}
+
+.inputRowHalf .input {
+    flex: 1;              /* 반반 */
+    width: 100%;
+}
+
+/* (선택) 모바일에선 다시 세로로 */
+@media (max-width: 480px) {
+    .inputRowHalf {
+        flex-direction: column;
+    }
+}

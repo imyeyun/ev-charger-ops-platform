@@ -9,6 +9,93 @@ import styles from './page.module.css';
 import { SERVICE_TEXT } from '@/app/legal/service';
 import { PRIVACY_TEXT } from '@/app/legal/privacy';
 
+function normalizeText(v) {
+    return String(v || "").trim().toLowerCase();
+}
+
+function hasSequentialChars(s, len = 4) {
+    // 예: 1234, abcd 같은 증가/감소 연속 패턴 체크
+    for (let i = 0; i <= s.length - len; i++) {
+        let inc = true;
+        let dec = true;
+        for (let j = 1; j < len; j++) {
+            const a = s.charCodeAt(i + j - 1);
+            const b = s.charCodeAt(i + j);
+            if (b !== a + 1) inc = false;
+            if (b !== a - 1) dec = false;
+        }
+        if (inc || dec) return true;
+    }
+    return false;
+}
+
+function validatePassword(pw, ctx) {
+    const password = String(pw || "");
+
+    // 1) 길이 (이미 handleSubmit에서 체크해도 되지만, 여기서도 안전하게)
+    if (password.length < 8 || password.length > 20) {
+        return "비밀번호는 8자 이상 20자 미만이어야 합니다.";
+    }
+
+    // 2) 문자 종류 2개 이상(대문자/소문자/숫자/특수문자)
+    const hasLower = /[a-z]/.test(password);
+    const hasUpper = /[A-Z]/.test(password);
+    const hasDigit = /[0-9]/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+    const typeCount = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
+
+    if (typeCount < 2) {
+        return "비밀번호는 대문자/소문자/숫자/특수문자 중 2종류 이상을 포함해야 합니다.";
+    }
+
+    // 3) 숫자만/문자만 등 단순 구성 방지
+    if (/^\d+$/.test(password)) return "비밀번호를 숫자만으로 설정할 수 없습니다.";
+    if (/^[A-Za-z]+$/.test(password)) return "비밀번호를 영문자만으로 설정할 수 없습니다.";
+
+    // 4) 동일 문자 반복(예: 123123, aaaa 등) - 간단히 4회 이상 연속 반복 금지
+    if (/(.)\1\1\1/.test(password)) {
+        return "동일 문자를 반복한 비밀번호는 사용할 수 없습니다.";
+    }
+
+    // 5) 연속 패턴(예: 1234, abcd)
+    if (hasSequentialChars(password, 4)) {
+        return "연속된 패턴(예: 1234, abcd)이 포함된 비밀번호는 사용할 수 없습니다.";
+    }
+
+    // 6) 키보드 연속 배치(예: qwerty, asdf)
+    const lower = password.toLowerCase();
+    const keyboardPatterns = ["qwerty", "asdf", "zxcv", "12345", "password"];
+    if (keyboardPatterns.some((p) => lower.includes(p))) {
+        return "키보드 연속 배치(예: qwerty) 또는 너무 흔한 단어가 포함된 비밀번호는 사용할 수 없습니다.";
+    }
+
+    // 7) 개인정보/ID 포함 금지 (이름/아이디/부서/직급)
+    const name = normalizeText(ctx?.name);
+    const userId = normalizeText(ctx?.userId);
+    const department = normalizeText(ctx?.department);
+    const rank = normalizeText(ctx?.rank);
+
+    const pwNorm = normalizeText(password);
+
+    // 길이가 너무 짧은 값(예: 한 글자)은 오탐이 많아서 2~3자 이상만 검사
+    const blocks = [name, userId, department, rank].filter((x) => x && x.length >= 3);
+    if (blocks.some((x) => pwNorm.includes(x))) {
+        return "이름/아이디/부서/직급 등 개인정보가 포함된 비밀번호는 사용할 수 없습니다.";
+    }
+
+    // 8) 아이디를 그대로 비밀번호로 쓰는 경우
+    if (userId && pwNorm === userId) {
+        return "아이디와 동일한 비밀번호는 사용할 수 없습니다.";
+    }
+
+    // 9) (선택) 영문 단어 + 끝에 숫자만 붙는 형태(예: security1, love12) 간단 차단
+    if (/^[A-Za-z]+[0-9]+$/.test(password)) {
+        return "단어 뒤에 숫자만 붙인 형태의 비밀번호는 사용할 수 없습니다.";
+    }
+
+    return "";
+}
+
 export default function Signup() {
     const router = useRouter();
     const [agreements, setAgreements] = useState({
@@ -19,6 +106,7 @@ export default function Signup() {
     const [formData, setFormData] = useState({
         name: '',
         department: '',
+        rank: '',
         userId: '',
         password: '',
         passwordConfirm: '',
@@ -84,6 +172,11 @@ export default function Signup() {
             return;
         }
 
+        if (!formData.rank.trim()) {
+            alert('직급을 입력해주세요.');
+            return;
+        }
+
         if (!formData.userId.trim()) {
             alert('아이디를 입력해주세요.');
             return;
@@ -94,8 +187,20 @@ export default function Signup() {
             return;
         }
 
-        if (formData.password.length < 4) {
-            alert('비밀번호는 4자 이상이어야 합니다.');
+        if (formData.password.length < 10) {
+            alert('비밀번호는 10자 이상이어야 합니다.');
+            return;
+        }
+
+        const pwMsg = validatePassword(formData.password, {
+            name: formData.name,
+            userId: formData.userId,
+            department: formData.department,
+            rank: formData.rank,
+        });
+
+        if (pwMsg) {
+            alert(pwMsg);
             return;
         }
 
@@ -109,7 +214,7 @@ export default function Signup() {
                 employeeNum: formData.userId,
                 password: formData.password,
                 username: formData.name,
-                department: formData.department,
+                department: String(formData.department)+String('-')+String(formData.rank),
             };
 
             await axios.post('/api/authApi/signup', payload, {
@@ -211,13 +316,20 @@ export default function Signup() {
                                 />
                             </div>
 
-                            <div className={styles.inputGroup}>
+                            <div className={styles.inputRowHalf}>
                                 <input
                                     type="text"
                                     className={styles.input}
                                     placeholder="부서"
                                     value={formData.department}
                                     onChange={(e) => handleInputChange('department', e.target.value)}
+                                />
+                                <input
+                                    type="text"
+                                    className={styles.input}
+                                    placeholder="직급"
+                                    value={formData.rank}
+                                    onChange={(e) => handleInputChange('rank', e.target.value)}
                                 />
                             </div>
 
