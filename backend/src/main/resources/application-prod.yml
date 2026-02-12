@@ -25,6 +25,12 @@ spring:
       write-dates-as-timestamps: false
 server:
   forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        same-site: lax
+        http-only: true
+        secure: false
 ai:
   server:
     url: http://aivle-test-ai.duckdns.org:8000/
