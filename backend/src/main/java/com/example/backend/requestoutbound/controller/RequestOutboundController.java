@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -64,5 +66,25 @@ public class RequestOutboundController {
     public ResponseEntity<ApiResponse<OutboundBatchRes>> processRequests(@Valid @RequestBody OutboundBatchReq request) {
         OutboundBatchRes response = requestOutboundService.processRequests(request);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+    @Operation(summary = "민원 답변 삭제", description = "민원 ID에 등록된 답변을 삭제")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "삭제 성공",
+            content = @Content(examples = @ExampleObject(value = """
+                    {
+                      "code": 200,
+                      "message": "success"
+                    }
+                    """)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "민원 또는 답변 없음",
+            content = @Content(examples = @ExampleObject(value = """
+                    {
+                      "code": 404,
+                      "message": "해당 민원 답변을 찾을 수 없습니다."
+                    }
+                    """)))
+    @DeleteMapping("/request_outbound/{reqId}")
+    public ResponseEntity<ApiResponse<Void>> deleteRequestAnswer(@PathVariable Long reqId) {
+        requestOutboundService.deleteRequestAnswer(reqId);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }
