@@ -6,7 +6,7 @@ import { BACKEND_BASE} from "@/app/api/url";
 const api = axios.create({
     baseURL: BACKEND_BASE,
     headers: { "Content-Type": "application/json" },
-    timeout: 60000,
+    timeout: 30000,
 });
 
 function assertSuccess(response) {

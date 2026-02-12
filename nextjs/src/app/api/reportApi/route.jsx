@@ -1,7 +1,7 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
+import { BACKEND_BASE} from "@/app/api/url";
 
-const BACKEND_BASE = process.env.API_BASE_URL || "http://localhost:8080";
 const FRONT_PDF_PREFIX = "/pdf";
 
 /* (A) 서버에서 프론트 origin 만들기 */

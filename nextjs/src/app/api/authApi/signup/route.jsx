@@ -12,6 +12,7 @@ export async function POST(req) {
             {
                 headers: { "Content-Type": "application/json" },
                 validateStatus: () => true,
+                timeout: 5000,
             }
         );
 

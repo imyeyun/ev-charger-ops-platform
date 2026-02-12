@@ -12,6 +12,7 @@ export async function GET(req) {
                 "Content-Type": "application/json",
                 ...(cookie ? { Cookie: cookie } : {}),
             },
+            timeout: 5000,   
             withCredentials: true,
             validateStatus: () => true, // 401도 throw 안 하게
         });

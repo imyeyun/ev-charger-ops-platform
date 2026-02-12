@@ -5,7 +5,7 @@ import { BACKEND_BASE } from "@/app/api/url";
 const api = axios.create({
     baseURL: BACKEND_BASE,
     headers: { "Content-Type": "application/json" },
-    timeout: 15000,
+    timeout: 10000,
 });
 
 export async function GET() {

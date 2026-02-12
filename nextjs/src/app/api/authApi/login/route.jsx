@@ -14,6 +14,7 @@ export async function POST(req) {
             { employeeNum, password },
             {
                 headers: { "Content-Type": "application/json" },
+                timeout: 5000,   
                 withCredentials: true,
                 validateStatus: () => true, // ❗ axios가 4xx/5xx에서 throw 안 하게
             }

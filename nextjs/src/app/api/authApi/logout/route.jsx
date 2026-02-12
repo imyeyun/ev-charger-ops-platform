@@ -15,6 +15,7 @@ export async function POST(req) {
                     "Content-Type": "application/json",
                     ...(cookie ? { Cookie: cookie } : {}),
                 },
+                timeout: 5000,   
                 withCredentials: true,
                 validateStatus: () => true,
             }
