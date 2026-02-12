@@ -46,6 +46,19 @@ public class RequestOutboundService {
     private final AiComplaintClient aiComplaintClient;
 
     @Transactional
+    public void deleteRequestAnswer(Long reqId) {
+        Request request = requestRepository.findById(reqId)
+                .orElseThrow(() -> new NotFoundException("해당 민원을 찾을 수 없습니다."));
+
+        if (!requestOutboundRepository.existsByReqId(reqId)) {
+            throw new NotFoundException("해당 민원 답변을 찾을 수 없습니다.");
+        }
+
+        requestOutboundRepository.deleteByReqId(reqId);
+        request.updateStatus(RequestStatus.PENDING);
+    }
+
+    @Transactional
     public OutboundBatchRes processRequests(OutboundBatchReq req) {
         List<Long> reqIds = req.getReqIds();
         List<Request> requests = requestRepository.findAllById(reqIds);

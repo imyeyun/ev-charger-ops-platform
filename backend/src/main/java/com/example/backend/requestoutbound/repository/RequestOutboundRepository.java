@@ -13,4 +13,6 @@ public interface RequestOutboundRepository extends JpaRepository<RequestOutbound
 
     boolean existsByReqId(Long reqId);
     boolean existsByReqIdIn(List<Long> reqIds);
+
+    void deleteByReqId(Long reqId);
 }
