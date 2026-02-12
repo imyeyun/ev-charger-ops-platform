@@ -30,7 +30,7 @@ server:
       cookie:
         same-site: lax
         http-only: true
-        secure: false
+        secure: true
 ai:
   server:
     url: http://aivle-test-ai.duckdns.org:8000/
