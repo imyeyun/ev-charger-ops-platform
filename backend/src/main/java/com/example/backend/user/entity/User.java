@@ -2,6 +2,8 @@ package com.example.backend.user.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -34,11 +36,16 @@ public class User {
     @Column(name = "department", nullable = false, length = 20)
     private String department;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 10)
+    private Role role;
+
     @Builder
-    public User(String employeeNum, String password, String username, String department) {
+    public User(String employeeNum, String password, String username, String department, Role role) {
         this.employeeNum = employeeNum;
         this.password = password;
         this.username = username;
         this.department = department;
+        this.role = role;
     }
 }

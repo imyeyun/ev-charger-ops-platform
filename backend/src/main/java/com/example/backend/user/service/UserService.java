@@ -5,6 +5,7 @@ import com.example.backend.global.exception.ConflictException;
 import com.example.backend.user.dto.LoginReq;
 import com.example.backend.user.dto.SignupReq;
 import com.example.backend.user.dto.UserRes;
+import com.example.backend.user.entity.Role;
 import com.example.backend.user.entity.User;
 import com.example.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +27,13 @@ public class UserService {
             throw new ConflictException("이미 사용 중인 아이디입니다. 사원 번호를 다시 확인해주세요");
         }
 
+        String[] parts = request.getDepartment().split("-", 2);
+        String departmentName = parts[0].trim();
+        String rank = parts[1].trim();
+        Role role = Role.fromRank(rank);
+
         String encodedPassword = passwordEncoder.encode(request.getPassword());
-        User user = request.toEntity(encodedPassword);
+        User user = request.toEntity(encodedPassword, departmentName, role);
         User savedUser = userRepository.save(user);
 
         return UserRes.from(savedUser);
