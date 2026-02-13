@@ -88,8 +88,8 @@ CLEAN_CLASSES = ["clean", "dirty"]
 
 # Thresholds
 T_YOLO = float(os.getenv("T_YOLO", "0.50"))
-T_FIRE = float(os.getenv("T_FIRE", "0.40"))
-T_SMOKE = float(os.getenv("T_SMOKE", "0.15"))
+T_FIRE = float(os.getenv("T_FIRE", "0.60"))
+T_SMOKE = float(os.getenv("T_SMOKE", "0.50"))
 T_DIRTY = float(os.getenv("T_DIRTY", "0.80"))
 T_SENSOR = float(os.getenv("T_SENSOR", "0.60"))
 
@@ -317,11 +317,23 @@ def run_yolo_cls(yolo_model, img_path: str) -> Dict[str, Any]:
 
     return {"probs": prob_map, "pred": pred_name, "score_yes": score_yes}
 
+def _add_sensor_features(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["temp_diff"] = df["charging_gun_temperature1"] - df["charging_gun_temperature2"]
+    df["temp_avg"] = (df["charging_gun_temperature1"] + df["charging_gun_temperature2"]) / 2
+    df["min_temp"] = df[["charging_gun_temperature1", "charging_gun_temperature2"]].min(axis=1)
+    df["power_calc"] = df["chargingv"] * df["charginga"]
+    df["temp_per_power"] = df["temp_avg"] / (df["out_power"] + 1)
+    df["temp_per_power_calc"] = df["temp_avg"] / (df["power_calc"] + 1)
+    df["temp_per_current"] = df["temp_avg"] / (df["charginga"] + 1)
+    df["current_per_temp"] = df["charginga"] / (df["temp_avg"].abs() + 1)
+    df["power_per_temp"] = df["out_power"] / (df["temp_avg"].abs() + 1)
+    return df
 
 def run_sensor_ml(sensor_model, sensor_row: dict) -> Dict[str, Any]:
     df = pd.DataFrame([sensor_row])
+    df = _add_sensor_features(df)
     feats = list(sensor_model.feature_names_in_)
-
     for c in feats:
         if c not in df.columns:
             df[c] = np.nan
