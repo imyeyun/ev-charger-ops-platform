@@ -47,6 +47,37 @@ export default function ComplaintDetail() {
     const [complaint, setComplaint] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const [deleting, setDeleting] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+    const handleDeleteReply = async () => {
+
+        try {
+            setDeleting(true);
+
+            await axios.delete("/api/complaintsApi", {
+                data: {reqId: Number(complaint.id)},
+            });
+
+            setComplaint((prev) => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    hasReply: false,
+                    replyDate: null,
+                    reply: null,
+                    outbounds: [], // 필요 시 유지하고 싶으면 [] 대신 prev.outbounds 그대로 두면 됨
+                };
+            });
+            setIsDeleteModalOpen(false);
+            router.push("/pages/ComplaintList");
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     useEffect(() => {
         if (!complaintId) return;
 
@@ -54,7 +85,7 @@ export default function ComplaintDetail() {
             try {
                 setLoading(true);
 
-                const response = await axios.post('/api/complaintsApi', { reqId: Number(complaintId) });
+                const response = await axios.post('/api/complaintsApi', {reqId: Number(complaintId)});
 
                 const { request, outbounds } = response.data;
 
@@ -95,7 +126,7 @@ export default function ComplaintDetail() {
     if (loading) {
         return (
             <>
-                <Header />
+                <Header/>
                 <div className={styles.container}>
                     <div className={styles.wrapper}>
                         <div className={styles.loading}>로딩 중...</div>
@@ -108,7 +139,7 @@ export default function ComplaintDetail() {
     if (!complaint) {
         return (
             <>
-                <Header />
+                <Header/>
                 <div className={styles.container}>
                     <div className={styles.wrapper}>
                         <div className={styles.error}>민원을 찾을 수 없습니다.</div>
@@ -123,33 +154,33 @@ export default function ComplaintDetail() {
 
     return (
         <>
-            <Header />
+            <Header/>
             <div className={styles.container}>
                 <div className={styles.wrapper}>
-                    {/* 페이지 타이틀 */}
                     <h1 className={styles.pageTitle}>민원 상세 조회</h1>
 
-                    {/* 큰 카드(이미지처럼 내부에 민원/답변 박스) */}
                     <div className={styles.card}>
                         {/* 민원 박스 */}
                         <div className={styles.sectionBox}>
                             <div className={styles.sectionInner}>
                                 <div className={styles.fieldTitleRow}>
-                                    {/*<div className={styles.fieldTitleLabel}>민원 제목</div>*/}
                                     <div className={styles.fieldTitleValue}>{complaint.title}</div>
                                 </div>
 
                                 <div className={styles.metaGrid}>
                                     <div className={styles.metaCell}>
                                         <div className={styles.metaLabel}>민원 유형</div>
-                                        <div className={styles.metaValue}>{COMPLAINT_TYPE_LABEL[complaint.category]}</div>
+                                        <div className={styles.metaValue}>
+                                            {COMPLAINT_TYPE_LABEL[complaint.category] || '-'}
+                                        </div>
                                     </div>
                                     <div className={styles.metaCell}>
                                         <div className={styles.metaLabel}>접수 일시</div>
-                                        <div className={styles.metaValue}>{formatUtcYmdHm(complaint.receivedDate)}</div>
+                                        <div className={styles.metaValue}>
+                                            {formatUtcYmdHm(complaint.receivedDate)}
+                                        </div>
                                     </div>
                                 </div>
-
 
                                 <div className={styles.textAreaBox}>
                                     {complaint.content}
@@ -161,29 +192,43 @@ export default function ComplaintDetail() {
                         <div className={styles.sectionBox}>
                             <div className={styles.sectionInner}>
                                 <div className={styles.replyHeader}>
-                <span
-                    className={`${styles.replyBadge} ${
-                        complaint.hasReply ? styles.replyBadgeDone : styles.replyBadgePending
-                    }`}
-                >
-                  {replyBadgeText}
-                </span>
+                                    <div className={styles.replyHeaderLeft}>
+                                    <span
+                                        className={`${styles.replyBadge} ${
+                                            complaint.hasReply ? styles.replyBadgeDone : styles.replyBadgePending
+                                        }`}
+                                    >
+                                        {replyBadgeText}
+                                    </span>
 
-                                    <div className={styles.replyMeta}>
-                                        <span className={styles.replyMetaLabel}>답변 일시</span>
-                                        <span className={styles.replyMetaValue}>{formatUtcYmdHm(replyDateText)}</span>
+                                        <div className={styles.replyMeta}>
+                                            <span className={styles.replyMetaLabel}>답변 일시</span>
+                                            <span
+                                                className={styles.replyMetaValue}>{formatUtcYmdHm(replyDateText)}</span>
+                                        </div>
                                     </div>
+
+                                    {/* ✅ 우측 상단: 모달 열기 */}
+                                    {complaint.hasReply && (
+                                        <button
+                                            className={styles.deleteButton}
+                                            onClick={() => setIsDeleteModalOpen(true)}
+                                            disabled={deleting}
+                                        >
+                                            답변 삭제
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className={styles.textAreaBoxReply}>
-                                    {complaint.hasReply && complaint.reply
-                                        ? complaint.reply
-                                        : '답변 내용'}
+                                    {complaint.hasReply && complaint.reply ? complaint.reply : '답변 내용'}
                                 </div>
+
+                                {/* ❌ 삭제 에러 표시 제거 */}
                             </div>
                         </div>
 
-                        {/* 하단 목록 버튼 */}
+                        {/* 하단 버튼 */}
                         <div className={styles.bottomActions}>
                             <button className={styles.listButton} onClick={handleBack}>
                                 목록
@@ -192,7 +237,36 @@ export default function ComplaintDetail() {
                     </div>
                 </div>
             </div>
-        </>
 
+            {/* ✅ 여기: return의 “맨 아래(</> 직전)”에 모달 */}
+            {isDeleteModalOpen && (
+                <div
+                    className={styles.modalOverlay}
+                    onClick={() => !deleting && setIsDeleteModalOpen(false)}
+                >
+                    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.modalTitle}>답변 삭제</div>
+                        <div className={styles.modalDesc}>이 민원의 답변을 삭제할까요?</div>
+
+                        <div className={styles.modalActions}>
+                            <button
+                                className={styles.modalCancel}
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                disabled={deleting}
+                            >
+                                취소
+                            </button>
+                            <button
+                                className={styles.modalOk}
+                                onClick={handleDeleteReply}
+                                disabled={deleting}
+                            >
+                                {deleting ? '삭제 중...' : '삭제'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

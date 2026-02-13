@@ -154,11 +154,20 @@
 .replyHeader {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-between;
     gap: 14px;
     padding-bottom: 12px;
     border-bottom: 1px solid #efefef;
     margin-bottom: 12px;
+}
+
+
+
+/* ✅ 추가 */
+.replyHeaderLeft {
+    display: flex;
+    align-items: center;
+    gap: 14px;
 }
 
 .replyBadge {
@@ -301,4 +310,84 @@
     .listButton {
         width: 100%;
     }
+}
+
+.deleteButton {
+    padding: 10px 14px;
+    border: 1px solid #d33;
+    background: #fff;
+    color: #d33;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.deleteButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.modal {
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    padding: 18px;
+    box-sizing: border-box;
+}
+
+.modalTitle {
+    font-weight: 700;
+    font-size: 16px;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.modalDesc {
+    font-size: 14px;
+    color: #374151;
+    line-height: 20px;
+}
+
+.modalActions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modalCancel {
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.modalOk {
+    padding: 10px 14px;
+    border: 1px solid #d33;
+    background: #fff;
+    color: #d33;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.modalCancel:disabled,
+.modalOk:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }

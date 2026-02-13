@@ -144,3 +144,92 @@ export async function POST(request) {
         );
     }
 }
+
+export async function DELETE(request) {
+    try {
+        const body = await request.json().catch(() => null);
+
+        // 기대 스펙: { reqId: 22 }
+        const reqIdRaw = body?.reqId;
+        const reqId = Number.isInteger(reqIdRaw) ? reqIdRaw : null;
+
+        if (reqId === null) {
+            return NextResponse.json(
+                { error: "Body must include integer reqId" },
+                { status: 400 }
+            );
+        }
+
+        const cookie = request.headers.get("cookie") || "";
+
+        const res = await fetch(`${BACKEND_BASE}/api/request_outbound/${reqId}`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                ...(cookie ? { cookie } : {}),
+            },
+            cache: "no-store",
+        });
+
+        const text = await res.text();
+        let data = null;
+        try {
+            data = text ? JSON.parse(text) : null;
+        } catch {
+            data = null;
+        }
+
+        let nextRes;
+        if (res.ok) {
+            nextRes = NextResponse.json(data ?? { ok: true }, { status: 200 });
+        } else {
+            nextRes = NextResponse.json(
+                {
+                    error: "BACKEND_ERROR",
+                    status: res.status,
+                    body: data !== null ? data : text,
+                },
+                { status: res.status }
+            );
+        }
+
+        const setCookie = res.headers.get("set-cookie");
+        if (setCookie) {
+            nextRes.headers.set("set-cookie", setCookie);
+        }
+
+        return nextRes;
+    } catch (e) {
+        return NextResponse.json(
+            { error: String(e?.message || "Internal Server Error") },
+            { status: 500 }
+        );
+    }
+}
+
+// export async function DELETE(request) {
+//     try {
+//         const body = await request.json();
+//         const { reqId } = body;
+//
+//         if (Number.isInteger(reqId)) {
+//             const res = await api.delete(`${BACKEND_BASE}/api/request_outbound/${reqId}`);
+//
+//             const payload = assertSuccess(res);
+//
+//             return NextResponse.json(payload, { status: 200 });
+//         }
+//
+//         return NextResponse.json(
+//             { error: "Body must include integer reqId" },
+//             { status: 400 }
+//         );
+//     } catch (error) {
+//         console.error("Error in complaintsApi DELETE route:", error);
+//
+//         return NextResponse.json(
+//             { error: getBackendMessage(error), debug: error?.response?.data?.code || error?.code },
+//             { status: getHttpStatus(error) }
+//         );
+//     }
+// }
