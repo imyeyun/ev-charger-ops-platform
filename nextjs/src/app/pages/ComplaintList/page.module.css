@@ -322,26 +322,43 @@
 }
 
 .agentProcessButton {
-    background: transparent;
-    border: none;
-    color: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 10px 14px;
+    border-radius: 8px;
+
+    background: #2563eb;      /* ✅ 활성: 파란 배경 */
+    border: 1px solid #2563eb;
+    color: #ffffff;
+
     font-family: Inter, Arial, sans-serif;
     font-style: normal;
-    font-weight: 400;
+    font-weight: 600;
     font-size: 12px;
-    line-height: 14.52px;
+    line-height: 1;
+
     cursor: pointer;
-    text-decoration: underline;
-    padding: 0;
+    text-decoration: none;     /* ✅ 밑줄 제거 */
+
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
 }
 
 .agentProcessButton:hover:not(:disabled) {
-    color: #1d4ed8;
+    background: #1d4ed8;       /* ✅ hover: 더 진한 파랑 */
+    border-color: #1d4ed8;
 }
 
-/* ✅ 항상 노출 + 선택 없을 때 비활성화 스타일 */
+.agentProcessButton:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+/* ✅ 선택 없을 때 비활성: 회색 배경 */
 .agentProcessButton:disabled {
-    color: #999999;
+    background: #e5e7eb;
+    border-color: #e5e7eb;
+    color: #9ca3af;
     cursor: not-allowed;
     text-decoration: none;
 }

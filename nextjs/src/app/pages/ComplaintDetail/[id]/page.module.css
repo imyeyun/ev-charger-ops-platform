@@ -320,6 +320,19 @@
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease; /* 추가 */
+}
+
+/* ✅ hover 시 배경 진해지기 */
+.deleteButton:hover:not(:disabled) {
+    background: #d33;
+    color: #fff;
+    border-color: #d33;
+}
+
+/* (선택) 눌렀을 때 살짝 눌리는 느낌 */
+.deleteButton:active:not(:disabled) {
+    transform: translateY(1px);
 }
 
 .deleteButton:disabled {
@@ -379,8 +392,8 @@
 .modalOk {
     padding: 10px 14px;
     border: 1px solid #d33;
-    background: #fff;
-    color: #d33;
+    background: #d33;   /* 테두리와 동일한 빨강 */
+    color: #fff;        /* 흰색 글자 */
     border-radius: 8px;
     cursor: pointer;
     font-weight: 700;
