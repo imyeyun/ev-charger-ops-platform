@@ -50,6 +50,8 @@ export default function ComplaintDetail() {
     const [deleting, setDeleting] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
+    const [role, setRole] = useState("");
+
     const handleDeleteReply = async () => {
 
         try {
@@ -209,7 +211,7 @@ export default function ComplaintDetail() {
                                     </div>
 
                                     {/* ✅ 우측 상단: 모달 열기 */}
-                                    {complaint.hasReply && (
+                                    {complaint.hasReply && role === "manager" && (
                                         <button
                                             className={styles.deleteButton}
                                             onClick={() => setIsDeleteModalOpen(true)}

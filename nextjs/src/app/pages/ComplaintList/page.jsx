@@ -61,6 +61,8 @@ export default function ComplaintList() {
     const [isProcessing, setIsProcessing] = useState(false); // 민원 답변 생성 시 스피너 설정 위함
     const [processingMsg, setProcessingMsg] = useState("");
 
+    const [role, setRole] = useState("");
+
     // 기존에 존재하던 중복 mapped를 제거하기 위해 매핑 함수와 로딩 함수 추가
     // 1) 백 list item -> 화면용 item으로 매핑
     const mapComplaint = (item) => ({
@@ -215,7 +217,13 @@ export default function ComplaintList() {
     };
 
     const handleAgentProcess = async () => { // reqIds를 일괄 처리 POST로 보내고 결과 안내, 목록 리프레시
-        if (selectedItems.length === 0) {
+
+        const fieldById = new Map(allComplaints.map(c => [c.id, c.field]));
+
+// ✅ 선택된 것 중 미처리만 추림
+        const pendingIds = selectedItems.filter(id => fieldById.get(id) === "PENDING");
+
+        if (pendingIds.length === 0) {
             openModal('처리할 민원을 선택해주세요.');
             return;
         }
@@ -226,7 +234,7 @@ export default function ComplaintList() {
             setIsProcessing(true); // 답변 생성 중일 때 true
             setProcessingMsg("선택한 민원 답변을 생성 중입니다..."); // 민원 답변 생성중일 때 사용자에게 표시 위함
 
-            const result = await axios.post('/api/complaintsApi', { reqIds: selectedItems });
+            const result = await axios.post('/api/complaintsApi', { reqIds: pendingIds });
 
             const data = result.data; // res.data -> HTTP 응답 바디 전체이므로 실제 데이터 필드를 꺼내기 위함
             openModal(`요청 ${data.requestedCount}건 중 ${data.successCount}건 처리되었습니다.`);
@@ -433,13 +441,15 @@ export default function ComplaintList() {
 
                             {/* 항상 표시되도록 변경 */}
                             {/*선택된 민원이 0건 또는 답변 처리 진행 중일 때 버튼 비활성화*/}
-                            <button
-                                className={styles.agentProcessButton}
-                                onClick={handleAgentProcess}
-                                disabled={selectedItems.length === 0 || isProcessing}
-                            >
-                                {isProcessing ? "처리 중..." : "선택 민원 Agent 처리"}
-                            </button>
+                            {role === "manager" && (
+                                <button
+                                    className={styles.agentProcessButton}
+                                    onClick={handleAgentProcess}
+                                    disabled={selectedItems.length === 0 || isProcessing}
+                                >
+                                    {isProcessing ? "처리 중..." : "선택 민원 Agent 처리"}
+                                </button>
+                            )}
 
                             <span className={styles.itemsPerPage}>{itemsPerPage}개씩</span>
                         </div>
