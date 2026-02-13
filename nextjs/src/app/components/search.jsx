@@ -56,6 +56,7 @@ const SearchResultList = memo(function SearchResultList(props) {
 
         if (!station || !station.id) continue;
 
+        const stationId = station.id;
         var statusClass = pickStatusClass(styles, station.status);
 
         children.push(
@@ -65,11 +66,11 @@ const SearchResultList = memo(function SearchResultList(props) {
                 role="button"
                 tabIndex={0}
                 onClick={function () {
-                    if (onSelect) onSelect(station.id);
+                    if (onSelect) onSelect(stationId);
                 }}
                 onKeyDown={function (e) {
                     if (!onSelect) return;
-                    if (e.key === "Enter" || e.key === " ") onSelect(station.id);
+                    if (e.key === "Enter" || e.key === " ") onSelect(stationId);
                 }}
                 style={{ cursor: "pointer" }}
             >
