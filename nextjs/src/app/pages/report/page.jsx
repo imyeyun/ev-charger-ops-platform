@@ -72,9 +72,9 @@ export default function Report() {
     const handleReportTypeSelect = (type) => {
         setSelectedReportType(type);
 
-        if (type === "audit") setPrompt("감사용 보고서 예시 프롬프트...");
-        else if (type === "monthly") setPrompt("월별 보고서 예시 프롬프트...");
-        else if (type === "custom") setPrompt("맞춤 보고서 예시 프롬프트...");
+        if (type === "audit") setPrompt("내용을 입력해주세요...");
+        else if (type === "monthly") setPrompt("내용을 입력해주세요...");
+        else if (type === "custom") setPrompt("내용을 입력해주세요...");
     };
 
     const resetDates = () => {
@@ -100,7 +100,7 @@ export default function Report() {
             return;
         }
         if (!prompt.trim()) {
-            setErrorMsg("프롬프트를 입력해주세요.");
+            setErrorMsg("내용을 입력해주세요...");
             setOpenError(true);
             return;
         }
@@ -269,11 +269,29 @@ export default function Report() {
                             <h2 className={styles.sectionTitle}>프롬프트 입력</h2>
                             <textarea
                                 className={styles.promptInput}
-                                placeholder="프롬프트를 입력하세요..."
+                                placeholder={selectedReportType ? "내용을 입력해주세요..." : "보고서를 선택해주세요..."}
                                 value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
+                                // onChange={(e) => setPrompt(e.target.value)}
+                                onChange={(e) => {
+                                    const v = e.target.value;
+
+                                    // ✅ "내용을 입력해주세요..." 상태에서 첫 입력이 들어오면 문구 제거
+                                    if (prompt === "내용을 입력해주세요...") {
+                                        // 사용자가 타이핑한 값에서 기존 문구를 제거한 값만 반영
+                                        // (대부분의 경우 v는 "내용을 입력해주세요...a" 같은 형태가 됨)
+                                        const next = v.replace("내용을 입력해주세요...", "");
+                                        setPrompt(next);
+                                        return;
+                                    }
+
+                                    setPrompt(v);
+                                }}
+                                onFocus={() => {
+                                    if (prompt === "보고서를 선택해주세요..." || prompt === "내용을 입력해주세요...") {setPrompt("");}
+                                }}
                                 rows={10}
                                 disabled={isGenerating}
+                                style={{ color: "#757575" }}
                             />
 
                             <button

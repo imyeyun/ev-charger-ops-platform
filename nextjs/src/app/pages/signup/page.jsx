@@ -112,6 +112,7 @@ export default function Signup() {
         passwordConfirm: '',
     });
     const [isIdVerified, setIsIdVerified] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
     // ✅ 두 개 모두 체크되어야만 true
     const canSubmit = useMemo(
@@ -208,7 +209,7 @@ export default function Signup() {
             alert('비밀번호가 일치하지 않습니다.');
             return;
         }
-
+        setSubmitting(true);
         try {
             const payload = {
                 employeeNum: formData.userId,
@@ -229,11 +230,44 @@ export default function Signup() {
                 err?.message ||
                 '회원가입에 실패했습니다.';
             alert(msg);
+        } finally {
+            setSubmitting(false);
         }
     };
 
     return (
         <div className={styles.container}>
+            {/* ✅ [추가] 회원가입 중 스피너 */}
+            {submitting && (
+                <div
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(255,255,255,0.65)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 9999,
+                    }}
+                >
+                    <div
+                        style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: "50%",
+                            border: "3px solid #cfe3ff",
+                            borderTopColor: "#2196f3",
+                            animation: "spin 0.8s linear infinite",
+                        }}
+                    />
+                    <style>{`
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                `}</style>
+                </div>
+            )}
+
             <div className={styles.signupWrapper}>
                 <div className={styles.header}>
                     <div className={styles.logoContainer}>
@@ -317,20 +351,33 @@ export default function Signup() {
                             </div>
 
                             <div className={styles.inputRowHalf}>
-                                <input
-                                    type="text"
+                                <select
                                     className={styles.input}
-                                    placeholder="부서"
                                     value={formData.department}
                                     onChange={(e) => handleInputChange('department', e.target.value)}
-                                />
-                                <input
-                                    type="text"
+                                    >
+                                    <option value="" disabled>
+                                        부서
+                                    </option>
+                                    <option value="충전인프라사업부">충전인프라사업부</option>
+                                    <option value="충전인프라지원부">충전인프라지원부</option>
+                                </select>
+                                <select
                                     className={styles.input}
-                                    placeholder="직급"
                                     value={formData.rank}
                                     onChange={(e) => handleInputChange('rank', e.target.value)}
-                                />
+                                >
+                                    <option value="" disabled>
+                                        직급
+                                    </option>
+                                    <option value="부장">부장</option>
+                                    <option value="과장">과장</option>
+                                    <option value="차장">차장</option>
+                                    <option value="대리">대리</option>
+                                    <option value="주임">주임</option>
+                                    <option value="사원">사원</option>
+                                    <option value="인턴">인턴</option>
+                                </select>
                             </div>
 
                             <div className={styles.inputGroupWithButton}>
@@ -384,8 +431,8 @@ export default function Signup() {
                             <button
                                 type="submit"
                                 className={`${styles.signupButton} ${!canSubmit ? styles.signupButtonDisabled : ''}`}
-                                disabled={!canSubmit}
-                                aria-disabled={!canSubmit}
+                                disabled={!canSubmit || submitting}
+                                aria-disabled={!canSubmit || submitting}
                             >
                                 회원가입
                             </button>

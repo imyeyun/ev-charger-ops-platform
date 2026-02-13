@@ -228,3 +228,7 @@
         flex-direction: column;
     }
 }
+
+select.input {
+    color: #333333;
+}
