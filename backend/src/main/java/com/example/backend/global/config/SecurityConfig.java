@@ -37,21 +37,13 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/user/signup",
                                 "/api/user/login",
-                                "/api/user/logout",
-                                "/api/request",
-                                "/api/request_outbound",
-                                "/api/QnA",
-                                "/api/report",
-                                "/api/charging_station/detail",
-                                "/api/monitoring",
-                                "/api/search",
-                                "/api/uncheckList",
-                                "/api/anomaly",
-                                "/api/uncheck",
-                                "/api/uncheckRg",
-                                "/api/condition",
-                                "/api/uncheckDaily"
+                                "/api/user/logout"
                         ).permitAll()
+                        .requestMatchers(
+                                "/api/report",
+                                "/api/request_outbound",
+                                "/api/multimodal_analysis"
+                        ).hasRole("MANAGER")
                         .anyRequest().authenticated()
                 )
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
