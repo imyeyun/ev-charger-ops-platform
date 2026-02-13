@@ -4,6 +4,7 @@ import json
 import os
 import time
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any, TypedDict
 
@@ -97,6 +98,64 @@ def extract_and_classify(*, text: str) -> ComplaintResult:
                     return ComplaintResult(clean_text=clean_text, category=preferred)
 
     return ComplaintResult(clean_text=clean_text, category="기타")
+
+
+def _extract_bool_token(text: str, keys: tuple[str, ...]) -> bool | None:
+    for key in keys:
+        m = re.search(rf"{re.escape(key)}=(True|False|true|false)", text)
+        if m:
+            return m.group(1).lower() == "true"
+    return None
+
+
+def _extract_multimodal_context(text: str) -> dict[str, Any]:
+    context: dict[str, Any] = {}
+
+    id_match = re.search(r"multimodalId=([^\s]+)", text or "")
+    if id_match:
+        context["multimodal_id"] = id_match.group(1)
+
+    notes_match = re.search(r"notes=([^\\n]+?)(?:\\s+[a-zA-Z_]+=[^\\s]+|$)", text or "")
+    if notes_match:
+        context["notes"] = notes_match.group(1).strip()
+
+    fire = _extract_bool_token(text or "", ("fireYn", "fireYN"))
+    broke = _extract_bool_token(text or "", ("brokeYn", "brokeYN", "brokenYN", "faultYN"))
+    dirty = _extract_bool_token(text or "", ("dirtyYn", "dirtyYN"))
+
+    if fire is not None:
+        context["fire"] = fire
+    if broke is not None:
+        context["broke"] = broke
+    if dirty is not None:
+        context["dirty"] = dirty
+
+    return context
+
+
+def _extract_status_context(text: str) -> dict[str, Any]:
+    context: dict[str, Any] = {}
+    status_missing = _extract_bool_token(text or "", ("chargerStatusStatMissing",))
+    if status_missing is not None:
+        context["status_missing"] = status_missing
+
+    stat_match = re.search(r"\bstat=([^\s]+)", text or "")
+    if stat_match:
+        context["stat"] = stat_match.group(1).strip()
+
+    stat_upd_match = re.search(r"\bstatUpdDt=([^\s]+)", text or "")
+    if stat_upd_match:
+        context["stat_upd_dt"] = stat_upd_match.group(1).strip()
+
+    last_tedt_match = re.search(r"\blastTedt=([^\s]+)", text or "")
+    if last_tedt_match:
+        context["last_tedt"] = last_tedt_match.group(1).strip()
+
+    last_tsdt_match = re.search(r"\blastTsdt=([^\s]+)", text or "")
+    if last_tsdt_match:
+        context["last_tsdt"] = last_tsdt_match.group(1).strip()
+
+    return context
 
 
 # -----------------------------
@@ -359,9 +418,19 @@ def draft_node(state: RAGState) -> RAGState:
     system_prompt = (
         "민원 답변 초안을 작성하는 한국 환경 공단의 고객지원 담당자입니다. "
         "제공되지 않은 상태 정보는 임의로 추정하지 말고, 알 수 없다고 명시하세요. "
-        "입력에 chargerStatusStatMissing=true가 있으면 운영상태(stat)를 추정하거나 언급하지 마세요."
+        "입력에 chargerStatusStatMissing=true가 있으면 운영상태(stat)를 추정하거나 언급하지 마세요. "
+        "민원 내용이 청결/오염/고장 관련이고 멀티모달 컨텍스트에 근거가 있으면 "
+        "'CCTV 확인 결과 ...', 형태의 근거 문장을 포함하세요. "
+        "근거가 없으면 단정하지 말고 추가 확인/점검 계획을 안내하세요."
     )
     references_text = "\n\n---\n\n".join(_reference_contents(state.get("references", [])))
+    complaint_text = state.get("clean_text", "")
+    multimodal = _extract_multimodal_context(complaint_text)
+    status = _extract_status_context(complaint_text)
+    multimodal_context_text = (
+        json.dumps(multimodal, ensure_ascii=False) if multimodal else "(멀티모달 정보 없음)"
+    )
+    status_context_text = json.dumps(status, ensure_ascii=False) if status else "(상태로그 정보 없음)"
 
     resp = client.responses.create(
         model="gpt-4.1-mini",
@@ -372,7 +441,9 @@ def draft_node(state: RAGState) -> RAGState:
                 "content": (
                     "민원 유형/내용과 참고 문서를 바탕으로 답변 초안을 작성하세요.\n"
                     f"민원 유형: {state.get('category', '')}\n"
-                    f"민원: {state.get('clean_text', '')}\n"
+                    f"민원: {complaint_text}\n"
+                    f"멀티모달 컨텍스트: {multimodal_context_text}\n"
+                    f"상태로그 컨텍스트: {status_context_text}\n"
                     f"참고 문서:\n{references_text if references_text else '(참고 문서 없음)'}"
                 ),
             },
@@ -397,12 +468,21 @@ def verify_node(state: RAGState) -> RAGState:
     category = state.get("category", "")
     complaint = state.get("clean_text", "")
     references_text = "\n\n---\n\n".join(_reference_contents(state.get("references", [])))
+    multimodal = _extract_multimodal_context(complaint)
+    status = _extract_status_context(complaint)
+    multimodal_context_text = (
+        json.dumps(multimodal, ensure_ascii=False) if multimodal else "(멀티모달 정보 없음)"
+    )
+    status_context_text = json.dumps(status, ensure_ascii=False) if status else "(상태로그 정보 없음)"
 
     system = (
         "당신은 한국 환경 공단의 전기차 충전기 고객지원 QA 담당자입니다. "
         "아래 초안을 검증하고 문제가 있으면 더 정확하고 안전하게 수정하세요. "
         "제공되지 않은 상태 정보는 임의로 추정하지 말고, 알 수 없다고 명시하세요. "
-        "입력에 chargerStatusStatMissing=true가 있으면 운영상태(stat)를 추정하거나 언급하지 마세요."
+        "입력에 chargerStatusStatMissing=true가 있으면 운영상태(stat)를 추정하거나 언급하지 마세요. "
+        "민원 내용이 청결/오염/고장 관련이고 멀티모달 컨텍스트에 근거가 있으면 "
+        "'CCTV 확인 결과 ...', 와 같은 형태의 근거 문장을 포함하세요. "
+        "근거가 없으면 단정하지 말고 추가 확인/점검 계획을 안내하세요."
     )
 
     user = f"""
@@ -411,6 +491,12 @@ def verify_node(state: RAGState) -> RAGState:
 
 [민원 내용]
 {complaint}
+
+[멀티모달 컨텍스트]
+{multimodal_context_text}
+
+[상태로그 컨텍스트]
+{status_context_text}
 
 [참고 문서/근거]
 {references_text if references_text else "(참고 문서 없음)"}
@@ -422,6 +508,7 @@ def verify_node(state: RAGState) -> RAGState:
 1) 근거 없는 추정/판단은 제거하고, 근거가 있으면 근거와 맞는 표현 사용
 2) 고객에게 필요한 다음 행동(안내/추가 정보 요청/센터 방문 안내 등) 명확히 제시
 3) 3~5문장, 정중한 톤
+4) 청결/고장 등 로그로 사실확인이 가능한 민원은 반드시 '확인 결과' 근거 문장을 포함
 
 출력은 JSON만:
 {{

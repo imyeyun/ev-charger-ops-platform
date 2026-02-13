@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional, Union, List, Dict, Any, Iterable
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, AliasChoices
 
 from app.api.openai_vectorstore_rag import rag_pipeline
 
@@ -63,10 +63,22 @@ def _pick_time(row: Dict[str, Any]) -> Optional[datetime]:
 def _normalize_chargerlog_row(row: Dict[str, Any]) -> Dict[str, Any]:
     for k in ("lastTsdt", "lastTedt", "statUpdDt", "chgerTime"):
         v = row.get(k)
-        t = _parse_yyyymmddhhmmss(v) if isinstance(v, str) else None
-        if t:
-            row[k] = t.isoformat()
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                row[k] = None
+                continue
+            t = _parse_yyyymmddhhmmss(s)
+            row[k] = t.isoformat() if t else None
+        elif v is None:
+            row[k] = None
     return row
+
+
+def _same_id(left: Any, right: Any) -> bool:
+    if left is None or right is None:
+        return False
+    return str(left).strip() == str(right).strip()
 
 
 def _load_latest_charger_status(stat_id: str, chger_id: str) -> Optional[Dict[str, Any]]:
@@ -200,16 +212,26 @@ class MultimodalAnalysisSummary(BaseModel):
     method: Optional[str] = None
     transactionId: Optional[str] = Field(default=None, alias="transaction_id")
     multimodalId: Optional[int] = None
-    fireYn: Optional[bool] = None
+    fireYn: Optional[bool] = Field(
+        default=None,
+        validation_alias=AliasChoices("fireYn", "fireYN"),
+    )
     fireDetails: Optional[str] = None
-    brokeYn: Optional[bool] = None
+    brokeYn: Optional[bool] = Field(
+        default=None,
+        validation_alias=AliasChoices("brokeYn", "brokeYN", "brokenYN", "faultYN"),
+    )
     brokeDetails: Optional[str] = None
-    cleanYn: Optional[bool] = None
-    cleanDetails: Optional[str] = None
+    dirtyYn: Optional[bool] = Field(
+        default=None,
+        validation_alias=AliasChoices("dirtyYn", "dirtyYN"),
+    )
+    notes: Optional[str] = None
     imgsensoranalTime: Optional[datetime] = None
 
     model_config = ConfigDict(
         populate_by_name=True,
+        extra="ignore",
     )
 
 
@@ -259,7 +281,7 @@ def build_prompt(payload: RequestOutboundRequest) -> str:
         status_text = "chargerStatus: (정보없음)"
         status_missing_text = "chargerStatusStatMissing=true"
     if multimodal:
-        multimodal_data = multimodal.dict(exclude_none=True)
+        multimodal_data = multimodal.model_dump(exclude_none=True)
         if multimodal_data:
             multimodal_text = "multimodalAnalysis: " + " ".join(
                 f"{k}={v}" for k, v in multimodal_data.items()
@@ -291,6 +313,19 @@ async def request_outbound(payload: RequestOutboundRequest) -> RequestOutboundRe
     req_info = payload.request
     stat_id = req_info.statId if req_info else None
     chger_id = req_info.chgerId if req_info else None
+
+    # Use multimodal data only when it matches complaint station/charger IDs.
+    mm = payload.multimodalAnalysis
+    if mm and (stat_id or chger_id):
+        stat_ok = True if not stat_id else _same_id(mm.statId, stat_id)
+        chger_ok = True if not chger_id else _same_id(mm.chgerId, chger_id)
+        if not (stat_ok and chger_ok):
+            logger.info(
+                "[%s] DROP multimodalAnalysis due to ID mismatch req(statId=%s,chgerId=%s) mm(statId=%s,chgerId=%s)",
+                trace, stat_id, chger_id, mm.statId, mm.chgerId
+            )
+            payload.multimodalAnalysis = None
+
     if stat_id and chger_id:
         latest = _load_latest_charger_status(stat_id, chger_id)
         if latest:
