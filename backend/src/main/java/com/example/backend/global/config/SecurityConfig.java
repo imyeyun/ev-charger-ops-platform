@@ -37,7 +37,20 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/user/signup",
                                 "/api/user/login",
-                                "/api/user/logout"
+                                "/api/user/logout",
+                                "/api/request",
+                                "/api/request_outbound",
+                                "/api/QnA",
+                                "/api/report",
+                                "/api/charging_station/detail",
+                                "/api/monitoring",
+                                "/api/search",
+                                "/api/uncheckList",
+                                "/api/anomaly",
+                                "/api/uncheck",
+                                "/api/uncheckRg",
+                                "/api/condition",
+                                "/api/uncheckDaily"
                         ).permitAll()
                         .requestMatchers(
                                 "/api/report",
