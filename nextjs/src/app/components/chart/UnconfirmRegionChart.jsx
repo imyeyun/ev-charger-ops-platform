@@ -62,10 +62,18 @@ function buildPiePaths(cx, cy, r, segments) {
             " 1 " + x1 + " " + y1 +
             " Z ";
 
+        const mid = (a0 + a1) / 2;
+        const tipR = r * 0.72;
+        const tipX = cx + Math.cos(mid) * tipR;
+        const tipY = cy + Math.sin(mid) * tipR;
+
         out.push({
             key: seg.key,
-            d: d,
+            d,
             title: seg.title,
+            mid,
+            tipX,
+            tipY,
         });
 
         acc += frac;
@@ -75,13 +83,18 @@ function buildPiePaths(cx, cy, r, segments) {
 }
 
 function colorOfKey(i) {
-    // TopN까지는 서로 다른 색, 마지막 기타는 회색
-    if (i === 0) return "#2F6BFF"; // 파랑
-    if (i === 1) return "#F5C542"; // 노랑
-    if (i === 2) return "#E53935"; // 빨강
-    if (i === 3) return "#6E7B8F"; // 추가 Top이 생기면
+    if (i === 0) return "#2F6BFF";
+    if (i === 1) return "#F5C542";
+    if (i === 2) return "#E53935";
+    if (i === 3) return "#6E7B8F";
     if (i === 4) return "#2DBE7F";
-    return "#999"; // 기타/나머지
+    return "#999";
+}
+
+function toNum(v) {
+    if (v === undefined || v === null) return 0;
+    const n = Number(v);
+    return Number.isNaN(n) ? 0 : n;
 }
 
 export default function ChartUnconfirmedRatioByRegion() {
@@ -89,6 +102,9 @@ export default function ChartUnconfirmedRatioByRegion() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    // ✅ hover(툴팁/레전드 연동)
+    const [hoverKey, setHoverKey] = useState(null);
+    const [tooltip, setTooltip] = useState(null); // { x, y, label, value, pct }
 
     let topN = 3;
 
@@ -150,8 +166,7 @@ export default function ChartUnconfirmedRatioByRegion() {
 
         for (let i = 0; i < keys.length; i += 1) {
             const code = keys[i];
-
-            const cnt = chargingStation[code].count;
+            const cnt = chargingStation[code]?.count;
 
             if (cnt > 0) {
                 out.push({
@@ -212,6 +227,14 @@ export default function ChartUnconfirmedRatioByRegion() {
         return out;
     }, [sliced]);
 
+    // ✅ IMPORTANT: early return 전에 항상 호출되도록 여기로 올림
+    const segMap = useMemo(() => {
+        const m = {};
+        for (let i = 0; i < segments.length; i += 1) m[segments[i].key] = segments[i];
+        return m;
+    }, [segments]);
+
+    // ---- early return (Hook 아래로 내려오면 안 됨) ----
     if (loading) {
         return (
             <div
@@ -276,8 +299,8 @@ export default function ChartUnconfirmedRatioByRegion() {
 
     const w = 320;
     const h = 240;
-    const cx = w/2;
-    const cy = h/2;
+    const cx = w / 2;
+    const cy = h / 2;
     const r = 100;
 
     const paths = buildPiePaths(cx, cy, r, segments);
@@ -287,83 +310,156 @@ export default function ChartUnconfirmedRatioByRegion() {
             <div
                 style={{
                     display: "flex",
-                    flexDirection: "column",   // ✅ [수정]
-                    gap: 8,                    // ✅ [수정] 간격 축소
+                    flexDirection: "column",
+                    gap: 8,
                     alignItems: "center",
-                    width: "100%",             // ✅ [수정]
-                    maxWidth: "100%",          // ✅ [수정]
-                    boxSizing: "border-box",   // ✅ [수정]
+                    width: "100%",
+                    maxWidth: "100%",
+                    boxSizing: "border-box",
                 }}
             >
-                {/* ✅ [수정] 고정 width/height SVG 제거 → viewBox 기반 반응형 */}
                 <svg
-                    viewBox={`0 0 ${w} ${h}`}                 // ✅ [수정]
-                    preserveAspectRatio="xMidYMid meet"       // ✅ [수정]
+                    viewBox={`0 0 ${w} ${h}`}
+                    preserveAspectRatio="xMidYMid meet"
                     style={{
                         display: "block",
-                        width: "100%",                        // ✅ [수정]
-                        maxWidth: w,                          // ✅ [수정] 원래 크기 이상 커지지 않게
-                        height: "auto",                       // ✅ [수정]
+                        width: "100%",
+                        maxWidth: w,
+                        height: "auto",
                         margin: "0 auto",
+                    }}
+                    onMouseLeave={() => {
+                        setHoverKey(null);
+                        setTooltip(null);
                     }}
                 >
                     {paths.map(function (p) {
                         let fill = "#999";
-                        for (let i = 0; i < segments.length; i += 1) {
-                            if (segments[i].key === p.key) {
-                                fill = segments[i].color; // ✅ [수정]
-                                break;
-                            }
+                        let label = "";
+                        let value = 0;
+
+                        const seg = segMap[p.key];
+                        if (seg) {
+                            fill = seg.color;
+                            label = seg.label;
+                            value = toNum(seg.value);
                         }
 
+                        const isHover = hoverKey === p.key;
+                        const pct = sliced.total > 0 ? Math.round((value * 1000) / sliced.total) / 10 : 0;
+
                         return (
-                            <path key={p.key} d={p.d} fill={fill}>
+                            <path
+                                key={p.key}
+                                d={p.d}
+                                fill={fill}
+                                style={{
+                                    cursor: "pointer",
+                                    transition: "filter 120ms ease, opacity 120ms ease",
+                                    filter: isHover ? "drop-shadow(0px 2px 6px rgba(0,0,0,0.18))" : "none",
+                                    opacity: hoverKey && !isHover ? 0.65 : 1,
+                                }}
+                                onMouseEnter={() => {
+                                    setHoverKey(p.key);
+                                    setTooltip({
+                                        x: p.tipX,
+                                        y: p.tipY,
+                                        label: label,
+                                        value: value,
+                                        pct: pct,
+                                    });
+                                }}
+                            >
                                 <title>{p.title}</title>
                             </path>
                         );
                     })}
-                    <text
-                        x={cx}
-                        y={cy}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        style={{ fontSize: 18, fontWeight: 800, fill: "#111" }}
-                    >
-                        {/*{sliced.total} /!* ✅ [수정] total → sliced.total (RegionChart 총합) *!/*/}
-                    </text>
+
+                    {tooltip && (
+                        <g pointerEvents="none">
+                            {(() => {
+                                const boxW = 160;
+                                const boxH = 34;
+
+                                let x = tooltip.x - boxW / 2;
+                                let y = tooltip.y - boxH - 8;
+
+                                if (x < 6) x = 6;
+                                if (x + boxW > w - 6) x = w - boxW - 6;
+                                if (y < 6) y = tooltip.y + 10;
+
+                                return (
+                                    <>
+                                        <rect x={x} y={y} width={boxW} height={boxH} rx={10} fill="rgba(17,17,17,0.88)" />
+                                        <text
+                                            x={x + boxW / 2}
+                                            y={y + 14}
+                                            textAnchor="middle"
+                                            style={{ fontSize: 11, fill: "#fff", fontWeight: 800 }}
+                                        >
+                                            {tooltip.label}
+                                        </text>
+                                        <text
+                                            x={x + boxW / 2}
+                                            y={y + 27}
+                                            textAnchor="middle"
+                                            style={{ fontSize: 10, fill: "rgba(255,255,255,0.9)" }}
+                                        >
+                                            {tooltip.value}건 · {tooltip.pct}%
+                                        </text>
+                                    </>
+                                );
+                            })()}
+                        </g>
+                    )}
                 </svg>
+
                 <div
                     style={{
                         fontSize: 12,
                         color: "#333",
-                        width: "100%",               // ✅ [수정]
-                        padding: "0 8px",            // ✅ [수정]
-                        boxSizing: "border-box",     // ✅ [수정]
+                        width: "100%",
+                        padding: "0 8px",
+                        boxSizing: "border-box",
                     }}
                 >
-                    <div style={{ maxWidth: 260, margin: "0 auto" }}> {/* ✅ [수정] 너무 넓어지지 않게 */}
-
+                    <div style={{ maxWidth: 260, margin: "0 auto" }}>
                         {segments.map(function (s) {
                             const cnt = s.value;
                             const pct = sliced.total > 0 ? Math.round((cnt * 100) / sliced.total) : 0;
                             const color = s.color;
+                            const isHover = hoverKey === s.key;
 
                             return (
                                 <div
                                     key={s.key}
+                                    onMouseEnter={() => setHoverKey(s.key)}
+                                    onMouseLeave={() => setHoverKey(null)}
                                     style={{
                                         display: "flex",
                                         alignItems: "center",
-                                        gap: 4,          // ✅ [수정] 라벨/값 사이 간격 더 좁게
-                                        marginBottom: 1, // ✅ [수정] 행 간격 더 좁게
+                                        gap: 4,
+                                        marginBottom: 1,
                                         width: "100%",
+                                        padding: "4px 6px",
+                                        borderRadius: 10,
+                                        background: isHover ? "rgba(0,0,0,0.04)" : "transparent",
+                                        cursor: "default",
                                     }}
                                 >
                                     <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flex: "0 0 auto" }} />
-                                    <div style={{ flex: "1 1 auto", minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    <div
+                                        style={{
+                                            flex: "1 1 auto",
+                                            minWidth: 0,
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                        }}
+                                    >
                                         {s.label} <span style={{ color: "#999" }}>({cnt})</span>
                                     </div>
-                                    <div style={{ flex: "0 0 auto", width: 36, textAlign: "right", color: "#555" }}> {/* ✅ [수정] 폭 축소 */}
+                                    <div style={{ flex: "0 0 auto", width: 36, textAlign: "right", color: "#555" }}>
                                         {pct}%
                                     </div>
                                 </div>

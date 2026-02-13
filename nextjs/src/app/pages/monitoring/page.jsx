@@ -50,11 +50,11 @@ export default function MonitoringPage() {
     // 📊 기본 레이아웃 설정 (그리드 위치: row/col로 관리)
     const defaultLayout = [
         { id:"chart1", component:"UnconfirmStatusChart",  title:"상태미확인 충전기 현황",      gridArea:"2 / 2 / 3 / 3" },
-        { id:"chart2", component:"UnconfirmRegionChart",  title:"지역별 상태 미확인 비율",     gridArea:"2 / 3 / 3 / 4" },
+        { id:"chart2", component:"UnconfirmRegionChart",  title:"지역별 상태미확인 충전소 비율",     gridArea:"2 / 3 / 3 / 4" },
         { id:"chart3", component:"SummaryChart",          title:"충전기 상태 현황",            gridArea:"2 / 4 / 3 / 5" },
 
-        { id:"chart4", component:"DailyUnconfirmBarChart",title:"일별 상태 미확인 충전기 개수", gridArea:"3 / 2 / 4 / 3" },
-        { id:"list2",  component:"UncheckList", title:"상태 미확인 충전소 리스트", dataKey:"unconfirmed", gridArea:"3 / 3 / 4 / 4" },
+        { id:"chart4", component:"DailyUnconfirmBarChart",title:"일별 상태미확인 충전기 누적 개수", gridArea:"3 / 2 / 4 / 3" },
+        { id:"list2",  component:"UncheckList", title:"상태미확인 충전소 리스트", dataKey:"unconfirmed", gridArea:"3 / 3 / 4 / 4" },
         { id:"list1",  component:"AnomalyList", title:"조기 고장 위험 충전소 리스트", dataKey:"risk",       gridArea:"3 / 4 / 4 / 5" },
     ];
 

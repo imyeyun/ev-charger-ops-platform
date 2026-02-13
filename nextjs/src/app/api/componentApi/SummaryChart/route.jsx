@@ -16,7 +16,7 @@ export async function GET() {
         const payload = { chargerStat: {"9":0, "1":0, "2":0, "3":0, "4":0, "5":0} };
 
         if (conditionRaw.data) {
-            payload.chargerStat["9"] = Number(conditionRaw.data["0"]) || 0;
+            payload.chargerStat["9"] = Number(conditionRaw.data["9"]) || 0;
             payload.chargerStat["1"] = Number(conditionRaw.data["1"]) || 0;
             payload.chargerStat["2"] = Number(conditionRaw.data["2"]) || 0;
             payload.chargerStat["3"] = Number(conditionRaw.data["3"]) || 0;

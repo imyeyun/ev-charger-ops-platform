@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 function buildPiePaths(cx, cy, r, segments) {
     const full = Math.PI * 2;
@@ -34,10 +34,18 @@ function buildPiePaths(cx, cy, r, segments) {
             " 1 " + x1 + " " + y1 +
             " Z";
 
+        // ✅ hover/tooltip 위치
+        const mid = (a0 + a1) / 2;
+        const tipR = r * 0.72;
+        const tipX = cx + Math.cos(mid) * tipR;
+        const tipY = cy + Math.sin(mid) * tipR;
+
         out.push({
             key: seg.key,
-            d: d,
+            d,
             title: seg.title,
+            tipX,
+            tipY,
         });
 
         acc += frac;
@@ -46,44 +54,54 @@ function buildPiePaths(cx, cy, r, segments) {
     return out;
 }
 
-
 function colorOfKey(key) {
     // 상태별 고정 색(원하면 바꿔도 됨)
-    if (key === "9") return "#F5C542"; // 노랑
-    if (key === "1") return "#2F6BFF";    // 파랑
-    if (key === "4") return "#E67E22";    // 주황
-    if (key === "5") return "#E53935";    // 빨강
+    if (key === "9") return "#9ba1a6"; // 노랑
+    if (key === "1") return "#F59E0B"; // 파랑
+    if (key === "4") return "#DC2626"; // 주황
+    if (key === "5") return "#B91C1C"; // 빨강
     return "#999";
 }
 
 // 라벨링
 function labelOfKey(key) {
-    if (key === "9") return "알 수 없음";
-    if (key === "1") return "통신 이상";
-    if (key === "4") return "운영 중지";
-    if (key === "5") return "점검 중";
+    if (key === "9") return "알수없음";
+    if (key === "1") return "통신이상";
+    if (key === "4") return "운영중지";
+    if (key === "5") return "점검중";
     return String(key);
 }
 
+function toNum(v) {
+    if (v === undefined || v === null) return 0;
+    const n = Number(v);
+    return Number.isNaN(n) ? 0 : n;
+}
 
 export default function ChartUnconfirmedStatus() {
     const [chargerStat, setChargerStat] = useState({ "9": 0, "1": 0, "4": 0, "5": 0 });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    const v9 = chargerStat["9"];
-    const v1 = chargerStat["1"];
-    const v4 = chargerStat["4"];
-    const v5 = chargerStat["5"];
+    // ✅ hover(툴팁/레전드 연동)
+    const [hoverKey, setHoverKey] = useState(null);
+    const [tooltip, setTooltip] = useState(null); // { x, y, label, value, pct }
+
+    const v9 = toNum(chargerStat["9"]);
+    const v1 = toNum(chargerStat["1"]);
+    const v4 = toNum(chargerStat["4"]);
+    const v5 = toNum(chargerStat["5"]);
 
     const total = v9 + v1 + v4 + v5;
 
-    const segments = [
-        { key: "9", value: v9, total: total, title: labelOfKey("9") + " " + String(v9) },
-        { key: "1", value: v1, total: total, title: labelOfKey("1") + " " + String(v1) },
-        { key: "4", value: v4, total: total, title: labelOfKey("4") + " " + String(v4) },
-        { key: "5", value: v5, total: total, title: labelOfKey("5") + " " + String(v5) },
-    ];
+    const segments = useMemo(() => {
+        return [
+            { key: "9", value: v9, total: total, title: labelOfKey("9") + " " + String(v9) },
+            { key: "1", value: v1, total: total, title: labelOfKey("1") + " " + String(v1) },
+            { key: "4", value: v4, total: total, title: labelOfKey("4") + " " + String(v4) },
+            { key: "5", value: v5, total: total, title: labelOfKey("5") + " " + String(v5) },
+        ];
+    }, [v9, v1, v4, v5, total]);
 
     useEffect(() => {
         let alive = true;
@@ -106,6 +124,7 @@ export default function ChartUnconfirmedStatus() {
                     if (data && data.message) msg = String(data.message);
                     throw new Error(msg);
                 }
+
                 let next = { "9": 0, "1": 0, "4": 0, "5": 0 };
                 if (data && data.chargerStat) next = data.chargerStat;
 
@@ -125,7 +144,6 @@ export default function ChartUnconfirmedStatus() {
             alive = false;
         };
     }, []);
-
 
     if (loading) {
         return (
@@ -151,8 +169,8 @@ export default function ChartUnconfirmedStatus() {
 
     const w = 320;
     const h = 240;
-    const cx = w/2;
-    const cy = h/2;
+    const cx = w / 2;
+    const cy = h / 2;
     const r = 100;
 
     const paths = buildPiePaths(cx, cy, r, segments);
@@ -162,34 +180,104 @@ export default function ChartUnconfirmedStatus() {
             <div
                 style={{
                     display: "flex",
-                    flexDirection: "column",   // ✅ [수정]
-                    gap: 8,                    // ✅ [수정] 간격 축소
+                    flexDirection: "column",
+                    gap: 8,
                     alignItems: "center",
-                    width: "100%",             // ✅ [수정]
-                    maxWidth: "100%",          // ✅ [수정]
-                    boxSizing: "border-box",   // ✅ [수정]
+                    width: "100%",
+                    maxWidth: "100%",
+                    boxSizing: "border-box",
                 }}
             >
-                {/* ✅ [수정] 고정 width/height SVG 제거 → viewBox 기반 반응형 */}
                 <svg
-                    viewBox={`0 0 ${w} ${h}`}                 // ✅ [수정]
-                    preserveAspectRatio="xMidYMid meet"       // ✅ [수정]
+                    viewBox={`0 0 ${w} ${h}`}
+                    preserveAspectRatio="xMidYMid meet"
                     style={{
                         display: "block",
-                        width: "100%",                        // ✅ [수정]
-                        maxWidth: w,                          // ✅ [수정] 원래 크기 이상 커지지 않게
-                        height: "auto",                       // ✅ [수정]
+                        width: "100%",
+                        maxWidth: w,
+                        height: "auto",
                         margin: "0 auto",
+                    }}
+                    onMouseLeave={() => {
+                        setHoverKey(null);
+                        setTooltip(null);
                     }}
                 >
                     {paths.map(function (p) {
                         const color = colorOfKey(p.key);
+                        const isHover = hoverKey === p.key;
+
+                        // pct는 실제 비율로
+                        const seg = segments.find((s) => s.key === p.key);
+                        const value = seg ? toNum(seg.value) : 0;
+                        const pct = total > 0 ? Math.round((value * 1000) / total) / 10 : 0;
+
                         return (
-                            <path key={p.key} d={p.d} fill={color}>
+                            <path
+                                key={p.key}
+                                d={p.d}
+                                fill={color}
+                                style={{
+                                    cursor: "pointer",
+                                    transition: "filter 120ms ease, opacity 120ms ease",
+                                    filter: isHover ? "drop-shadow(0px 2px 6px rgba(0,0,0,0.18))" : "none",
+                                    opacity: hoverKey && !isHover ? 0.65 : 1,
+                                }}
+                                onMouseEnter={() => {
+                                    setHoverKey(p.key);
+                                    setTooltip({
+                                        x: p.tipX,
+                                        y: p.tipY,
+                                        label: labelOfKey(p.key),
+                                        value: value,
+                                        pct: pct,
+                                    });
+                                }}
+                            >
                                 <title>{p.title}</title>
                             </path>
                         );
                     })}
+
+                    {/* ✅ SVG 툴팁 */}
+                    {tooltip && (
+                        <g pointerEvents="none">
+                            {(() => {
+                                const boxW = 160;
+                                const boxH = 34;
+
+                                let x = tooltip.x - boxW / 2;
+                                let y = tooltip.y - boxH - 8;
+
+                                if (x < 6) x = 6;
+                                if (x + boxW > w - 6) x = w - boxW - 6;
+                                if (y < 6) y = tooltip.y + 10;
+
+                                return (
+                                    <>
+                                        <rect x={x} y={y} width={boxW} height={boxH} rx={10} fill="rgba(17,17,17,0.88)" />
+                                        <text
+                                            x={x + boxW / 2}
+                                            y={y + 14}
+                                            textAnchor="middle"
+                                            style={{ fontSize: 11, fill: "#fff", fontWeight: 800 }}
+                                        >
+                                            {tooltip.label}
+                                        </text>
+                                        <text
+                                            x={x + boxW / 2}
+                                            y={y + 27}
+                                            textAnchor="middle"
+                                            style={{ fontSize: 10, fill: "rgba(255,255,255,0.9)" }}
+                                        >
+                                            {tooltip.value}건 · {tooltip.pct}%
+                                        </text>
+                                    </>
+                                );
+                            })()}
+                        </g>
+                    )}
+
                     <text
                         x={cx}
                         y={cy}
@@ -200,38 +288,45 @@ export default function ChartUnconfirmedStatus() {
                         {/*{total}*/}
                     </text>
                 </svg>
+
                 <div
                     style={{
                         fontSize: 12,
                         color: "#333",
-                        width: "100%",               // ✅ [수정]
-                        padding: "0 8px",            // ✅ [수정]
-                        boxSizing: "border-box",     // ✅ [수정]
+                        width: "100%",
+                        padding: "0 8px",
+                        boxSizing: "border-box",
                     }}
                 >
-                    <div style={{ maxWidth: 260, margin: "0 auto" }}> {/* ✅ [수정] 너무 넓어지지 않게 */}
-
+                    <div style={{ maxWidth: 260, margin: "0 auto" }}>
                         {segments.map(function (s) {
-                            const cnt = s.value;
+                            const cnt = toNum(s.value);
                             const pct = Math.round((cnt * 100) / (total > 0 ? total : 1));
                             const color = colorOfKey(s.key);
+                            const isHover = hoverKey === s.key;
 
                             return (
                                 <div
                                     key={s.key}
+                                    onMouseEnter={() => setHoverKey(s.key)}
+                                    onMouseLeave={() => setHoverKey(null)}
                                     style={{
                                         display: "flex",
                                         alignItems: "center",
-                                        gap: 4,          // ✅ [수정] 라벨/값 사이 간격 더 좁게
-                                        marginBottom: 1, // ✅ [수정] 행 간격 더 좁게
+                                        gap: 4,
+                                        marginBottom: 1,
                                         width: "100%",
+                                        padding: "4px 6px",
+                                        borderRadius: 10,
+                                        background: isHover ? "rgba(0,0,0,0.04)" : "transparent",
+                                        cursor: "default",
                                     }}
                                 >
                                     <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flex: "0 0 auto" }} />
                                     <div style={{ flex: "1 1 auto", minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                         {labelOfKey(s.key)} <span style={{ color: "#999" }}>({cnt})</span>
                                     </div>
-                                    <div style={{ flex: "0 0 auto", width: 36, textAlign: "right", color: "#555" }}> {/* ✅ [수정] 폭 축소 */}
+                                    <div style={{ flex: "0 0 auto", width: 36, textAlign: "right", color: "#555" }}>
                                         {pct}%
                                     </div>
                                 </div>
