@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { clearMonitoringDashboard } from "@/app/lib/monitoringDashboardStorage"; // ✅ 추가
+import { clearMonitoringDashboard } from "@/app/lib/monitoringDashboardStorage";
+import {useState} from "react"; // ✅ 추가
 
 const NAV = [
     { label: "모니터링", href: "/pages/monitoring" },
@@ -23,6 +24,7 @@ const NEW_TAB = new Set([
 export default function Header() {
     const router = useRouter();
     const pathname = usePathname();
+    const [role, setRole] = useState("");
 
     const isActive = (href) => {
         if (!pathname) return false;
@@ -114,9 +116,9 @@ export default function Header() {
                     }}
                 >
                     <Image
-                        src="/logo2.svg"
+                        src="/logo.png"
                         alt="한국환경공단 로고"
-                        width={307}
+                        width={210}
                         height={44}
                         priority
                     />
@@ -163,12 +165,15 @@ export default function Header() {
                             const openNewTab = isOnMonitoring && !isMonitoringMenu; // 모니터링에서 다른 메뉴만 새탭
 
                             // ✅ active 클릭 막는 건 기존 유지 (원하면 아래처럼 예외도 가능)
-                            const disableClick = active; // 그대로
+                            const isReport = item.href === "/pages/report";
+                            const denyReport = isReport && role !== "manager";
+
+                            const disableClick = active || denyReport;// 그대로
 
                             return (
                                 <Link
                                     key={item.href}
-                                    href={item.href}
+                                    href={denyReport ? "#" : item.href}
                                     target={openNewTab ? "_blank" : undefined}
                                     rel={openNewTab ? "noopener noreferrer" : undefined}
                                     aria-current={active ? "page" : undefined}

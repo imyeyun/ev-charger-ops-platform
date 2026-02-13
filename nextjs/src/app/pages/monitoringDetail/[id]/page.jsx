@@ -99,11 +99,13 @@ export default function MonitoringDetail() {
     const [error, setError] = useState("");
 
     const [analysis, setAnalysis] = useState({
-        fireYN:"",
-        brokenYN:"",
-        dirtyYN:"",
-        notes:"",
+        fireYN: "",
+        brokenYN: "",
+        dirtyYN: "",
+        notes: "",
     });
+
+    const [role, setRole] = useState("");
 
     useEffect(() => {
         if (!statIdStr) return;
@@ -114,7 +116,7 @@ export default function MonitoringDetail() {
             setImageUrl("");
 
             try {
-                const data = await postJson("/api/monitoringApi/charging_station", { statId: statIdStr });
+                const data = await postJson("/api/monitoringApi/charging_station", {statId: statIdStr});
 
                 if (!data) throw new Error("Internal Server Error");
                 if (!data.chargingStation) throw new Error("Internal Server Error");
@@ -183,16 +185,6 @@ export default function MonitoringDetail() {
                 notes: v.notes ? String(v.notes) : "",
             });
 
-            // const res = await postJson("/api/monitoringApi/multimodal_analysis", payload);
-            // const v = res || {};
-            // const verdict = v.verdict || {};
-            //
-            // setAnalysis({
-            //     fireYN: toText(verdict.fireYN ?? v.fireYN),       // verdict 우선
-            //     brokenYN: toText(verdict.faultYN ?? v.brokenYN),  // ✅ faultYN이 고장 의미
-            //     dirtyYN: toText(verdict.dirtyYN),                 // ✅ null이면 판단불가
-            //     notes: verdict.notes ? String(verdict.notes) : "",// ✅
-            // });
 
         } catch (e) {
             alert(String(e.message || "Internal Server Error"));
@@ -201,7 +193,7 @@ export default function MonitoringDetail() {
 
     return (
         <>
-            <Header />
+            <Header/>
 
             <div className={styles.page}>
                 <div className={styles.wrap}>
@@ -212,8 +204,8 @@ export default function MonitoringDetail() {
                         </button>
                     </header>
 
-                    {loading && <div style={{ padding: 12 }}>불러오는 중...</div>}
-                    {error && <div style={{ padding: 12, color: "crimson" }}>{error}</div>}
+                    {loading && <div style={{padding: 12}}>불러오는 중...</div>}
+                    {error && <div style={{padding: 12, color: "crimson"}}>{error}</div>}
 
                     <div className={styles.grid}>
                         <section className={styles.left}>
@@ -242,7 +234,7 @@ export default function MonitoringDetail() {
                                             <div>{c.status}</div>
                                             <div>
                                                 {c.speedLabel}
-                                                <br />
+                                                <br/>
                                                 {c.output}
                                                 {c.output && " kW"}
                                                 {c.method && ` / ${c.method}`}
@@ -252,7 +244,7 @@ export default function MonitoringDetail() {
                                     ))}
                                 </div>
 
-                                <div style={{ marginTop: 8, fontSize: 12 }}>
+                                <div style={{marginTop: 8, fontSize: 12}}>
                                     선택된 충전기 ID: <b>{selectedChargerId || "-"}</b>
                                 </div>
                             </section>
@@ -291,50 +283,52 @@ export default function MonitoringDetail() {
                             </section>
                         </section>
 
-                        <aside className={styles.right}>
-                            <h2 className={styles.h2}>CCTV 영상</h2>
+                        {/* ✅ manager일 때만 CCTV 영역 표시 */}
+                        {role === "manager" && (
+                            <aside className={styles.right}>
+                                <h2 className={styles.h2}>CCTV 영상</h2>
 
-                            <div className={styles.cctv}>
-                                {imageUrl && (
-                                    <img
-                                        src={imageUrl}
-                                        alt="cctv"
-                                        style={{
-                                            width: "100%",
-                                            height: "100%",
-                                            objectFit: "cover",
-                                            display: "block",
-                                        }}
-                                    />
-                                )}
-                            </div>
-
-                            <button className={styles.cctvBtn} onClick={onSendCctvImage}>
-                                CCTV 이미지 분석 <span>▶</span>
-                            </button>
-
-                            {/* ✅ 분석 결과 표시 영역 (추가) */}
-                            <div className={styles.analysisWrap}>
-                                <div className={styles.analysisLeft}>
-                                    <div className={styles.analysisRow}>
-                                        <div className={styles.analysisLabel}>화재</div>
-                                        <div className={styles.analysisBox}>{analysis.fireYN || "-"}</div>
-                                    </div>
-                                    <div className={styles.analysisRow}>
-                                        <div className={styles.analysisLabel}>고장</div>
-                                        <div className={styles.analysisBox}>{analysis.brokenYN || "-"}</div>
-                                    </div>
-                                    <div className={styles.analysisRow}>
-                                        <div className={styles.analysisLabel}>청결</div>
-                                        <div className={styles.analysisBox}>{analysis.dirtyYN || "-"}</div>
-                                    </div>
+                                <div className={styles.cctv}>
+                                    {imageUrl && (
+                                        <img
+                                            src={imageUrl}
+                                            alt="cctv"
+                                            style={{
+                                                width: "100%",
+                                                height: "100%",
+                                                objectFit: "cover",
+                                                display: "block",
+                                            }}
+                                        />
+                                    )}
                                 </div>
 
-                                <div className={styles.analysisRight}>
-                                    <div className={styles.analysisNotes}>{analysis.notes || ""}</div>
+                                <button className={styles.cctvBtn} onClick={onSendCctvImage}>
+                                    CCTV 이미지 분석 <span>▶</span>
+                                </button>
+
+                                <div className={styles.analysisWrap}>
+                                    <div className={styles.analysisLeft}>
+                                        <div className={styles.analysisRow}>
+                                            <div className={styles.analysisLabel}>화재</div>
+                                            <div className={styles.analysisBox}>{analysis.fireYN || "-"}</div>
+                                        </div>
+                                        <div className={styles.analysisRow}>
+                                            <div className={styles.analysisLabel}>고장</div>
+                                            <div className={styles.analysisBox}>{analysis.brokenYN || "-"}</div>
+                                        </div>
+                                        <div className={styles.analysisRow}>
+                                            <div className={styles.analysisLabel}>청결</div>
+                                            <div className={styles.analysisBox}>{analysis.dirtyYN || "-"}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.analysisRight}>
+                                        <div className={styles.analysisNotes}>{analysis.notes || ""}</div>
+                                    </div>
                                 </div>
-                            </div>
-                        </aside>
+                            </aside>
+                        )}
                     </div>
                 </div>
             </div>
