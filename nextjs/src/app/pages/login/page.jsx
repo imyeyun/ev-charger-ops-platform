@@ -81,11 +81,11 @@ export default function Page() {
                 <Box sx={{ textAlign: "center", mb: 3.5 }}>
                     <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
                         <Image
-                            src="/logo.png"
+                            src="/logo2.svg"
                             alt="한국환경공단 로고"
                             priority
-                            width={220}
-                            height={50}
+                            width={419}
+                            height={60}
                         />
                     </Box>
                     <Typography sx={{ fontSize: 12, color: "#666", mt: 0.8 }}>

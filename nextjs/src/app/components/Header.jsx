@@ -114,9 +114,9 @@ export default function Header() {
                     }}
                 >
                     <Image
-                        src="/logo.png"
+                        src="/logo2.svg"
                         alt="한국환경공단 로고"
-                        width={210}
+                        width={307}
                         height={44}
                         priority
                     />
