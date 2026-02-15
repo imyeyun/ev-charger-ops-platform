@@ -88,11 +88,6 @@ function validatePassword(pw, ctx) {
         return "아이디와 동일한 비밀번호는 사용할 수 없습니다.";
     }
 
-    // 9) (선택) 영문 단어 + 끝에 숫자만 붙는 형태(예: security1, love12) 간단 차단
-    if (/^[A-Za-z]+[0-9]+$/.test(password)) {
-        return "단어 뒤에 숫자만 붙인 형태의 비밀번호는 사용할 수 없습니다.";
-    }
-
     return "";
 }
 
@@ -188,11 +183,6 @@ export default function Signup() {
             return;
         }
 
-        if (formData.password.length < 10) {
-            alert('비밀번호는 10자 이상이어야 합니다.');
-            return;
-        }
-
         const pwMsg = validatePassword(formData.password, {
             name: formData.name,
             userId: formData.userId,
@@ -236,8 +226,8 @@ export default function Signup() {
     };
 
     return (
-        <div className={styles.container}>
-            {/* ✅ [추가] 회원가입 중 스피너 */}
+        <div className={styles.container}>            
+        {/* ✅ [추가] 회원가입 중 스피너 */}
             {submitting && (
                 <div
                     style={{
@@ -291,7 +281,11 @@ export default function Signup() {
                         <div className={styles.agreementList}>
                             {/* 개인정보처리방침 */}
                             <div className={styles.agreementBlock}>
-                                <label className={styles.agreementItem}>
+                                <div className={styles.agreementBox} aria-label="개인정보처리방침">
+                                    <pre className={styles.agreementText}>{PRIVACY_TEXT}</pre>
+                                </div>
+
+                                <label className={styles.agreementItem} style={{ marginTop: 8 }}>
                                     <input
                                         type="checkbox"
                                         checked={agreements.personalInfo}
@@ -300,15 +294,15 @@ export default function Signup() {
                                     />
                                     <span>개인정보 처리방침 동의 (필수)</span>
                                 </label>
-
-                                <div className={styles.agreementBox} aria-label="개인정보처리방침">
-                                    <pre className={styles.agreementText}>{PRIVACY_TEXT}</pre>
-                                </div>
                             </div>
 
                             {/* 서비스 이용약관 */}
                             <div className={styles.agreementBlock}>
-                                <label className={styles.agreementItem}>
+                                <div className={styles.agreementBox} aria-label="서비스 이용약관">
+                                    <pre className={styles.agreementText}>{SERVICE_TEXT}</pre>
+                                </div>
+
+                                <label className={styles.agreementItem} style={{ marginTop: 8 }}>
                                     <input
                                         type="checkbox"
                                         checked={agreements.terms}
@@ -317,10 +311,6 @@ export default function Signup() {
                                     />
                                     <span>서비스 이용약관 동의 (필수)</span>
                                 </label>
-
-                                <div className={styles.agreementBox} aria-label="서비스 이용약관">
-                                    <pre className={styles.agreementText}>{SERVICE_TEXT}</pre>
-                                </div>
                             </div>
 
                             {/* 전체 동의 */}
@@ -355,7 +345,7 @@ export default function Signup() {
                                     className={styles.input}
                                     value={formData.department}
                                     onChange={(e) => handleInputChange('department', e.target.value)}
-                                    >
+                                >
                                     <option value="" disabled>
                                         부서
                                     </option>
@@ -400,6 +390,16 @@ export default function Signup() {
                                 </button>
                             </div>
 
+                            {/* 비밀번호 조건 안내: 항상 표시 */}
+                            <div className={styles.passwordRule}>
+                                <div>비밀번호 조건</div>
+                                <ul>
+                                    <li>8~20자 사이</li>
+                                    <li>영어 대/소문자, 숫자, 특수문자 중 2종류 이상</li>
+                                    <li>3번 이상 반복되는 문자 또는 연속적인 문자 사용 불가</li>
+                                </ul>
+                            </div>
+
                             <div className={styles.inputGroup}>
                                 <input
                                     type="password"
@@ -418,16 +418,16 @@ export default function Signup() {
                                     value={formData.passwordConfirm}
                                     onChange={(e) => handleInputChange('passwordConfirm', e.target.value)}
                                 />
-                                {formData.password && formData.passwordConfirm && (
-                                    <p className={styles.passwordMatch}>
-                                        {formData.password === formData.passwordConfirm
-                                            ? '비밀번호가 일치합니다.'
-                                            : '비밀번호가 일치하지 않습니다.'}
-                                    </p>
-                                )}
                             </div>
 
-                            {/* ✅ canSubmit이 false면 disabled + 회색 */}
+                            {/* “일치/불일치” 문구 유지 + 아래쪽 배치 */}
+                            {formData.password && formData.passwordConfirm && (
+                                <p className={styles.passwordMatch}>
+                                    {formData.password === formData.passwordConfirm
+                                        ? '비밀번호가 일치합니다.'
+                                        : '비밀번호가 일치하지 않습니다.'}
+                                </p>
+                            )}
                             <button
                                 type="submit"
                                 className={`${styles.signupButton} ${!canSubmit ? styles.signupButtonDisabled : ''}`}

@@ -232,3 +232,24 @@
 select.input {
     color: #333333;
 }
+
+.passwordRule {
+    margin: 8px 0 10px 0;
+    font-size: 12px;
+    color: #333333;
+    line-height: 1.5;
+}
+
+.passwordRule > div {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.passwordRule ul {
+    margin: 0;
+    padding-left: 16px;
+}
+
+.passwordRule li {
+    margin: 2px 0;
+}
