@@ -61,7 +61,11 @@ export default function ComplaintList() {
     const [isProcessing, setIsProcessing] = useState(false); // 민원 답변 생성 시 스피너 설정 위함
     const [processingMsg, setProcessingMsg] = useState("");
 
-    const [role, setRole] = useState("");
+    const [role, setRole] = useState(""); // ✅ 추가
+
+    useEffect(() => {                     // ✅ 추가
+        setRole(localStorage.getItem("role") || "");
+    }, []);
 
     // 기존에 존재하던 중복 mapped를 제거하기 위해 매핑 함수와 로딩 함수 추가
     // 1) 백 list item -> 화면용 item으로 매핑
@@ -441,7 +445,7 @@ export default function ComplaintList() {
 
                             {/* 항상 표시되도록 변경 */}
                             {/*선택된 민원이 0건 또는 답변 처리 진행 중일 때 버튼 비활성화*/}
-                            {role === "manager" && (
+                            {role === "MANAGER" && (
                                 <button
                                     className={styles.agentProcessButton}
                                     onClick={handleAgentProcess}

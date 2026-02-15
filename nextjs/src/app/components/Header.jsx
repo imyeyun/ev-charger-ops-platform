@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearMonitoringDashboard } from "@/app/lib/monitoringDashboardStorage";
-import {useState} from "react"; // ✅ 추가
+import { useState, useEffect } from "react"; // ✅ 추가
 
 const NAV = [
     { label: "모니터링", href: "/pages/monitoring" },
@@ -24,7 +24,11 @@ const NEW_TAB = new Set([
 export default function Header() {
     const router = useRouter();
     const pathname = usePathname();
-    const [role, setRole] = useState("");
+    const [role, setRole] = useState(""); 
+
+    useEffect(() => {                
+        setRole(localStorage.getItem("role") || "");
+    }, []);
 
     const isActive = (href) => {
         if (!pathname) return false;
@@ -72,7 +76,9 @@ export default function Header() {
                 localStorage.removeItem("accessToken");
                 localStorage.removeItem("refreshToken");
             }
+            sessionStorage.clear();
             sessionStorage.removeItem("chat_tid_next");
+            localStorage.removeItem("role");
 
             // ✅ (선택) 모니터링 레이아웃도 로그아웃 시 초기화
             clearMonitoringDashboard();
@@ -81,6 +87,8 @@ export default function Header() {
             router.push("/pages/login");
             router.refresh();
         } catch (e) {
+            sessionStorage.clear();
+            localStorage.removeItem("role");
             router.push("/pages/login");
             router.refresh();
         }
@@ -166,7 +174,7 @@ export default function Header() {
 
                             // ✅ active 클릭 막는 건 기존 유지 (원하면 아래처럼 예외도 가능)
                             const isReport = item.href === "/pages/report";
-                            const denyReport = isReport && role !== "manager";
+                            const denyReport = isReport && role !== "MANAGER";
 
                             const disableClick = active || denyReport;// 그대로
 

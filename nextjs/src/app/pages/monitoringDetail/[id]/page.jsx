@@ -106,6 +106,9 @@ export default function MonitoringDetail() {
     });
 
     const [role, setRole] = useState("");
+    useEffect(() => {
+        setRole(localStorage.getItem("role") || "");
+    }, []);
 
     useEffect(() => {
         if (!statIdStr) return;
@@ -284,7 +287,7 @@ export default function MonitoringDetail() {
                         </section>
 
                         {/* ✅ manager일 때만 CCTV 영역 표시 */}
-                        {role === "manager" && (
+                        {role === "MANAGER" && (
                             <aside className={styles.right}>
                                 <h2 className={styles.h2}>CCTV 영상</h2>
 
