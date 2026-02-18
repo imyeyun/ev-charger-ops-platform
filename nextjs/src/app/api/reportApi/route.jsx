@@ -1,13 +1,10 @@
 import axios from "axios";
-import path from "path";
-import { promises as fs } from "fs";
 import { NextResponse } from "next/server";
 import { BACKEND_BASE } from "@/app/api/url";
 
 export const runtime = "nodejs";
 
 const REPORT_ENDPOINT = `${BACKEND_BASE}/api/report`;
-const TEMP_PDF_URL = "/pdf/temp.pdf";
 
 function normalizeReportType(rawType) {
     const type = String(rawType || "").trim().toLowerCase();
@@ -33,24 +30,65 @@ function pickErrorMessage(data, fallback) {
     return fallback;
 }
 
-async function saveTempPdfFromS3(s3Url) {
-    const pdfRes = await axios.get(s3Url, {
-        responseType: "arraybuffer",
-        validateStatus: () => true,
-        timeout: 60000,
-    });
+function toAllowedPdfUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== "string") return null;
 
-    if (pdfRes.status < 200 || pdfRes.status >= 300) {
-        throw new Error("S3 PDF 다운로드에 실패했습니다.");
+    try {
+        const parsed = new URL(rawUrl);
+        const protocolOk = parsed.protocol === "https:" || parsed.protocol === "http:";
+        const hostOk = parsed.hostname.includes("amazonaws.com");
+        if (!protocolOk || !hostOk) return null;
+        return parsed.toString();
+    } catch {
+        return null;
+    }
+}
+
+export async function GET(req) {
+    const url = new URL(req.url);
+    const rawSrc = url.searchParams.get("src");
+    const download = url.searchParams.get("download") === "1";
+
+    const src = toAllowedPdfUrl(rawSrc);
+    if (!src) {
+        return NextResponse.json({ message: "유효한 PDF URL이 필요합니다." }, { status: 400 });
     }
 
-    const pdfDir = path.join(process.cwd(), "public", "pdf");
-    const pdfPath = path.join(pdfDir, "temp.pdf");
+    try {
+        const pdfRes = await axios.get(src, {
+            responseType: "arraybuffer",
+            validateStatus: () => true,
+            timeout: 60000,
+        });
 
-    await fs.mkdir(pdfDir, { recursive: true });
-    await fs.writeFile(pdfPath, Buffer.from(pdfRes.data));
+        if (pdfRes.status < 200 || pdfRes.status >= 300) {
+            return NextResponse.json(
+                { message: "PDF를 불러오지 못했습니다." },
+                { status: pdfRes.status || 502 }
+            );
+        }
 
-    return `${TEMP_PDF_URL}?t=${Date.now()}`;
+        const headers = new Headers();
+        const sourceContentType = String(pdfRes.headers?.["content-type"] || "");
+        headers.set(
+            "Content-Type",
+            sourceContentType.toLowerCase().includes("pdf")
+                ? sourceContentType
+                : "application/pdf"
+        );
+        headers.set(
+            "Content-Disposition",
+            `${download ? "attachment" : "inline"}; filename="report.pdf"`
+        );
+        headers.set("Cache-Control", "no-store");
+
+        return new Response(pdfRes.data, { status: 200, headers });
+    } catch (e) {
+        return NextResponse.json(
+            { message: String(e?.message || "PDF 프록시 처리 중 오류가 발생했습니다.") },
+            { status: 500 }
+        );
+    }
 }
 
 export async function POST(req) {
@@ -103,8 +141,7 @@ export async function POST(req) {
             return NextResponse.json({ message: "응답에 s3_url이 없습니다." }, { status: 500 });
         }
 
-        const fileUrl = await saveTempPdfFromS3(s3Url);
-        return NextResponse.json({ fileUrl }, { status: 200 });
+        return NextResponse.json({ fileUrl: s3Url }, { status: 200 });
     } catch (e) {
         return NextResponse.json(
             { message: String(e?.message || "보고서 API 처리 중 오류가 발생했습니다.") },

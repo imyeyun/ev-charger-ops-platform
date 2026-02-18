@@ -70,6 +70,12 @@ export default function Report() {
 
     // 서버가 준 PDF URL(프론트에서 열 수 있는 형태)
     const [filePath, setFilePath] = useState("");
+    const proxiedPreviewPath = filePath
+        ? `/api/reportApi?src=${encodeURIComponent(filePath)}`
+        : "";
+    const proxiedDownloadPath = filePath
+        ? `/api/reportApi?src=${encodeURIComponent(filePath)}&download=1`
+        : "";
 
     // UI 상태
     const [isGenerating, setIsGenerating] = useState(false);
@@ -158,12 +164,7 @@ export default function Report() {
      */
     const confirmDownload = async () => {
         try {
-            const link = document.createElement("a");
-            link.href = filePath;
-            link.download = "report.pdf";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            window.open(proxiedDownloadPath, "_blank", "noopener,noreferrer");
             setOpenDownload(false);
         } catch (e) {
             setErrorMsg(e?.message || "다운로드할 파일을 확인할 수 없습니다.");
@@ -310,7 +311,7 @@ export default function Report() {
                                 {filePath ? (
                                     <iframe
                                         title="report-preview"
-                                        src={filePath}
+                                        src={proxiedPreviewPath}
                                         style={{
                                             width: "100%",
                                             height: "420px",
@@ -325,7 +326,7 @@ export default function Report() {
 
                             {filePath && (
                                 <div style={{ marginTop: 10 }}>
-                                    <a href={filePath} target="_blank" rel="noreferrer">
+                                    <a href={proxiedPreviewPath} target="_blank" rel="noreferrer">
                                         새 탭에서 PDF 열기
                                     </a>
                                 </div>
