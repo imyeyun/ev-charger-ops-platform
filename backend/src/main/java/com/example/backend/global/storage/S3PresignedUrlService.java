@@ -1,6 +1,7 @@
 package com.example.backend.global.storage;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -10,6 +11,7 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import java.time.Duration;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class S3PresignedUrlService {
 
@@ -19,6 +21,8 @@ public class S3PresignedUrlService {
     private String bucket;
 
     public String generateGetUrl(String key) {
+        log.info("[S3] generateGetUrl called bucket={}, key={}", bucket, key);
+
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucket)
                 .key(key)
@@ -29,6 +33,8 @@ public class S3PresignedUrlService {
                 .getObjectRequest(getObjectRequest)
                 .build();
 
-        return presigner.presignGetObject(presignRequest).url().toString();
+        String url = presigner.presignGetObject(presignRequest).url().toString();
+        log.info("[S3] Presigned URL generated for key={}", key);
+        return url;
     }
 }
