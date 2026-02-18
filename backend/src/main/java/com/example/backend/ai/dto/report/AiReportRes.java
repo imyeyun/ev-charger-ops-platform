@@ -1,5 +1,6 @@
 package com.example.backend.ai.dto.report;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -7,6 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AiReportRes {
 
-    private String reportTitle;
-    private String filePath;
+    @JsonProperty("s3_path")
+    private String s3Path;
 }
