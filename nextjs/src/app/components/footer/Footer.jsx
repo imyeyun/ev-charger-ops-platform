@@ -21,7 +21,7 @@ export default function Footer() {
                 <div className={styles.meta}>
                     <p>© {new Date().getFullYear()} EV Charger Ops Platform</p>
                     <p className={styles.small}>
-                        문의: support@example.com · 운영: 한국환경공단(예시)
+                        문의: support@example.com · 운영: EV 충전 통합관제 누리집
                     </p>
                 </div>
             </div>
