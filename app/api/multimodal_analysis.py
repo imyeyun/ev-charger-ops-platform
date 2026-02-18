@@ -343,7 +343,8 @@ def run_sensor_ml(sensor_model, sensor_row: dict) -> Dict[str, Any]:
     proba = sensor_model.predict_proba(X)[0]
     classes = list(sensor_model.classes_)
     prob_map = {str(int(classes[i])): float(proba[i]) for i in range(len(classes))}
-    score_risk = float(prob_map.get("2", 0.0))
+    score_risk = float(prob_map.get("1", 0.0) + prob_map.get("2", 0.0))
+    # score_risk = float(prob_map.get("2", 0.0))
 
     return {"probs": prob_map, "pred": int(classes[np.argmax(proba)]), "score_risk": score_risk}
 
