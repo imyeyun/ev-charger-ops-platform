@@ -17,6 +17,16 @@ import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 
+const CUSTOM_REPORT_PROMPT_GUIDE = [
+    "원하는 보고서 범위를 자연어로 입력해 주세요. 기본/전체 작성, 특정 목차만 선택, 제외할 주제 지정, 목차 직접 입력까지 모두 가능합니다. 예: \"2.1만 작성\", \"민원/품질 제외\", \"목차 직접 지정: 1. 서론 2. 이용 현황 3. 결론\"처럼 입력하면 요청한 범위에 맞춰 보고서를 생성합니다.",
+    "",
+    "간단 예시(3개):",
+    "",
+    "1. 기본 보고서 만들어줘",
+    "2. 전체 항목으로 상세 보고서 작성해줘",
+    "3. 지역별 위험 수준 비교만 작성해줘",
+].join("\n");
+
 export default function Report() {
     const [selectedReportType, setSelectedReportType] = useState("");
     const [prompt, setPrompt] = useState("");
@@ -71,10 +81,7 @@ export default function Report() {
 
     const handleReportTypeSelect = (type) => {
         setSelectedReportType(type);
-
-        if (type === "audit") setPrompt("내용을 입력해주세요...");
-        else if (type === "monthly") setPrompt("내용을 입력해주세요...");
-        else if (type === "custom") setPrompt("내용을 입력해주세요...");
+        setPrompt("");
     };
 
     const resetDates = () => {
@@ -151,8 +158,12 @@ export default function Report() {
      */
     const confirmDownload = async () => {
         try {
-            const fileUrl = await reportApi.validateDownload(filePath);
-            window.open(fileUrl, "_blank", "noopener,noreferrer");
+            const link = document.createElement("a");
+            link.href = filePath;
+            link.download = "report.pdf";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
             setOpenDownload(false);
         } catch (e) {
             setErrorMsg(e?.message || "다운로드할 파일을 확인할 수 없습니다.");
@@ -269,29 +280,18 @@ export default function Report() {
                             <h2 className={styles.sectionTitle}>프롬프트 입력</h2>
                             <textarea
                                 className={styles.promptInput}
-                                placeholder={selectedReportType ? "내용을 입력해주세요..." : "보고서를 선택해주세요..."}
+                                placeholder={
+                                    selectedReportType === "custom"
+                                        ? CUSTOM_REPORT_PROMPT_GUIDE
+                                        : selectedReportType
+                                            ? "내용을 입력해주세요..."
+                                            : "보고서를 선택해주세요..."
+                                }
                                 value={prompt}
-                                // onChange={(e) => setPrompt(e.target.value)}
-                                onChange={(e) => {
-                                    const v = e.target.value;
-
-                                    // ✅ "내용을 입력해주세요..." 상태에서 첫 입력이 들어오면 문구 제거
-                                    if (prompt === "내용을 입력해주세요...") {
-                                        // 사용자가 타이핑한 값에서 기존 문구를 제거한 값만 반영
-                                        // (대부분의 경우 v는 "내용을 입력해주세요...a" 같은 형태가 됨)
-                                        const next = v.replace("내용을 입력해주세요...", "");
-                                        setPrompt(next);
-                                        return;
-                                    }
-
-                                    setPrompt(v);
-                                }}
-                                onFocus={() => {
-                                    if (prompt === "보고서를 선택해주세요..." || prompt === "내용을 입력해주세요...") {setPrompt("");}
-                                }}
+                                onChange={(e) => setPrompt(e.target.value)}
                                 rows={10}
                                 disabled={isGenerating}
-                                style={{ color: "#757575" }}
+                                style={{ color: "#111111" }}
                             />
 
                             <button

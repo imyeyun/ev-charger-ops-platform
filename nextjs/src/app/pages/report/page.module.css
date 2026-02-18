@@ -118,6 +118,11 @@
     border-color: #2196f3;
 }
 
+.promptInput::placeholder {
+    color: #757575;
+    opacity: 1;
+}
+
 .generateButton {
     padding: 12px 30px;
     background-color: #2196f3;
