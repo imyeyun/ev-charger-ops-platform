@@ -50,7 +50,7 @@ app = FastAPI(title="AI Response Server")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://aivle-test.duckdns.org",
+        "https://aivle-test.duckdns.org",
         "http://localhost:3000",
     ],
     allow_credentials=False,
