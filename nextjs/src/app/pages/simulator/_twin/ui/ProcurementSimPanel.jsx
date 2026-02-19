@@ -97,7 +97,7 @@ export default function ProcurementSimPanel({ onRecommendResult }) {
                         height: 40,
                         borderRadius: 12,
                         border: 0,
-                        background: canRun ? "#1f2430" : "#9aa3b2",
+                        background: canRun ? "#344daa" : "#9aa3b2",
                         color: "white",
                         fontWeight: 900,
                         cursor: canRun ? "pointer" : "not-allowed",
