@@ -98,6 +98,8 @@ export default function MonitoringDetail() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    const [analyzing, setAnalyzing] = useState(false);
+
     const [analysis, setAnalysis] = useState({
         fireYN: "",
         brokenYN: "",
@@ -172,6 +174,8 @@ export default function MonitoringDetail() {
         if (!selectedChargerId) return;
 
         try {
+            setAnalyzing(true);
+
             const payload = {
                 statId: String(statIdStr),
                 chgerId: String(selectedChargerId),
@@ -191,13 +195,43 @@ export default function MonitoringDetail() {
 
         } catch (e) {
             alert(String(e.message || "Internal Server Error"));
+        } finally {
+            setAnalyzing(false);
         }
     }
 
     return (
         <>
             <Header/>
-
+            {analyzing && (
+                <div
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(255,255,255,0.65)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 9999,
+                    }}
+                >
+                    <div
+                        style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: "50%",
+                            border: "3px solid #cfe3ff",
+                            borderTopColor: "#2196f3",
+                            animation: "spin 0.8s linear infinite",
+                        }}
+                    />
+                    <style>{`
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        `}</style>
+                </div>
+            )}
             <div className={styles.page}>
                 <div className={styles.wrap}>
                     <header className={styles.top}>
@@ -306,7 +340,9 @@ export default function MonitoringDetail() {
                                     )}
                                 </div>
 
-                                <button className={styles.cctvBtn} onClick={onSendCctvImage}>
+                                <button className={styles.cctvBtn} onClick={onSendCctvImage}
+                                        disabled={analyzing}
+                                >
                                     CCTV 이미지 분석 <span>▶</span>
                                 </button>
 
