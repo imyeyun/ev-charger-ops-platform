@@ -262,12 +262,12 @@ export default function Signup() {
                 <div className={styles.header}>
                     <div className={styles.logoContainer}>
                         <Image
-                            src="/logo.png"
+                            src="/logo2.svg"
                             alt="한국환경공단 로고"
                             className={styles.logo}
                             priority
-                            width={210}
-                            height={48}
+                            width={307}
+                            height={44}
                         />
                     </div>
                 </div>
