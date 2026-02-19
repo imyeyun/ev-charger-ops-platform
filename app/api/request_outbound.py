@@ -12,7 +12,7 @@ from typing import Optional, Union, List, Dict, Any, Iterable
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, ConfigDict, AliasChoices
 
-from app.api.openai_vectorstore_rag import rag_pipeline
+from app.api.request_outbound_rag import rag_pipeline
 
 router = APIRouter()
 BASE_CHARGERLOG_DIR = Path(__file__).resolve().parents[1] / "data" / "chargerLog"
