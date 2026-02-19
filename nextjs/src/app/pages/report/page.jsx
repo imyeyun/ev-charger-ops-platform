@@ -251,15 +251,15 @@ export default function Report() {
                                     감사용 보고서
                                 </button>
 
-                                <button
-                                    disabled={isGenerating}
-                                    className={`${styles.reportTypeButton} ${
-                                        selectedReportType === "monthly" ? styles.active : ""
-                                    }`}
-                                    onClick={() => handleReportTypeSelect("monthly")}
-                                >
-                                    월별 보고서
-                                </button>
+                                {/*<button*/}
+                                {/*    disabled={isGenerating}*/}
+                                {/*    className={`${styles.reportTypeButton} ${*/}
+                                {/*        selectedReportType === "monthly" ? styles.active : ""*/}
+                                {/*    }`}*/}
+                                {/*    onClick={() => handleReportTypeSelect("monthly")}*/}
+                                {/*>*/}
+                                {/*    월별 보고서*/}
+                                {/*</button>*/}
 
                                 <button
                                     disabled={isGenerating}
