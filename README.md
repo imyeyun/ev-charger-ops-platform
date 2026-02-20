@@ -1,2 +1,2 @@
 # ev-charger-ops-platform
-aivle 빅 프로젝트용 repository (전기차 충전기 관리를 위한 시스템)
+- 데이터 전처리, 모델 개발 과정 등 기타 코드
